@@ -56,6 +56,20 @@ final readonly class MigrationService {
 		return $this->portability->apply( $candidate, $expectedReviewFingerprint, $nonce );
 	}
 
+	public function cleanup(
+		int $sourceId,
+		string $expectedSourceFingerprint,
+		PortabilityApplyResult $result
+	): bool {
+		if ( ! $result->targetVerified ) {
+			return false;
+		}
+
+		return $this->source->deleteExact(
+			$this->unchangedSource( $sourceId, $expectedSourceFingerprint )
+		);
+	}
+
 	public function nonceAction(
 		string $operation,
 		WpPusherPackage $source,

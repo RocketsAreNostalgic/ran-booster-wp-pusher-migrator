@@ -67,16 +67,34 @@ final class MigrationServiceTest extends TestCase {
 		self::assertSame( 'apply:' . $review, $service->nonceAction( 'apply', $source, null, $review ) );
 	}
 
-	private function service( FakePortabilityFacade $facade ): MigrationService {
+	public function testCleanupRequiresVerifiedTargetAndExactSource(): void {
 		$database = new FakeDatabase();
-		$source   = new WpPusherSource(
+		$facade   = new FakePortabilityFacade();
+		$service  = $this->service( $facade, $database );
+		$source   = $service->packages()[0];
+		$verified = new PortabilityApplyResult( 'adopted', 'adopted', 'Adopted.', true );
+
+		self::assertTrue( $service->cleanup( $source->id, $source->fingerprint(), $verified ) );
+		self::assertSame( array(), $database->rows );
+
+		$database   = new FakeDatabase();
+		$service    = $this->service( $facade, $database );
+		$source     = $service->packages()[0];
+		$unverified = new PortabilityApplyResult( 'failed', 'target_unverified', 'Not verified.', false );
+		self::assertFalse( $service->cleanup( $source->id, $source->fingerprint(), $unverified ) );
+		self::assertCount( 1, $database->rows );
+	}
+
+	private function service( FakePortabilityFacade $facade, ?FakeDatabase $database = null ): MigrationService {
+		$database ??= new FakeDatabase();
+		$source     = new WpPusherSource(
 			$database,
 			static fn (): array => array( WpPusherSource::PLUGIN => array( 'Version' => '3.0.13' ) ),
 			static fn (): array => array(),
 			static fn (): array => array(),
 			static fn (): bool => false
 		);
-		$factory  = new CandidateFactory(
+		$factory    = new CandidateFactory(
 			static fn (): array => array( 'fixture/fixture.php' => array( 'Name' => 'Fixture Plugin' ) ),
 			static fn ( string $stylesheet ): object => new FakeTheme( $stylesheet, true )
 		);

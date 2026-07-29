@@ -50,10 +50,13 @@ final class Plugin {
 		}
 
 		try {
-			$packages        = self::$migration->packages();
-			$optionPresence  = ( new WpPusherSource() )->optionPresence();
-			$review          = self::submittedReview( $packages );
-			$apply           = self::submittedApply( $packages );
+			$packages       = self::$migration->packages();
+			$optionPresence = ( new WpPusherSource() )->optionPresence();
+			$review         = self::submittedReview( $packages );
+			$apply          = self::submittedApply( $packages );
+			if ( null !== $apply ) {
+				$packages = self::$migration->packages();
+			}
 			$rows            = self::rows( $packages, $review );
 			$formAction      = self::FORM_ACTION;
 			$applyFormAction = self::APPLY_FORM_ACTION;
@@ -97,7 +100,8 @@ final class Plugin {
 	/**
 	 * @param list<WpPusherPackage> $packages Current exact source rows.
 	 */
-	private static function submittedApply( array $packages ): ?PortabilityApplyResult {
+	/** @return array{result:PortabilityApplyResult,cleanup_pending:bool}|null */
+	private static function submittedApply( array $packages ): ?array {
 		$operation = isset( $_POST['ran_booster_wp_pusher_migrator_action'] ) && is_scalar( $_POST['ran_booster_wp_pusher_migrator_action'] )
 			? sanitize_key( wp_unslash( (string) $_POST['ran_booster_wp_pusher_migrator_action'] ) )
 			: '';
@@ -121,12 +125,19 @@ final class Plugin {
 		$coreAction     = self::$migration->nonceAction( 'apply', $source, $credentialId, $expectedReview );
 		$coreNonce      = wp_create_nonce( $coreAction );
 
-		return self::$migration->apply(
+		$result  = self::$migration->apply(
 			$sourceId,
 			$expectedSource,
 			$credentialId,
 			$expectedReview,
 			$coreNonce
+		);
+		$removed = $result->targetVerified
+			&& self::$migration->cleanup( $sourceId, $expectedSource, $result );
+
+		return array(
+			'result'          => $result,
+			'cleanup_pending' => $result->targetVerified && ! $removed,
 		);
 	}
 

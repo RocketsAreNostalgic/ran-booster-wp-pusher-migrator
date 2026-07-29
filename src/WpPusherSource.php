@@ -120,6 +120,53 @@ final class WpPusherSource {
 		return array_map( static fn ( string $name ): bool => isset( $found[ $name ] ), array_combine( self::OPTIONS, self::OPTIONS ) );
 	}
 
+	public function deleteExact( WpPusherPackage $expected ): bool {
+		$current = null;
+		foreach ( $this->packages() as $package ) {
+			if ( $expected->id === $package->id ) {
+				$current = $package;
+				break;
+			}
+		}
+		if ( null === $current || ! hash_equals( $expected->fingerprint(), $current->fingerprint() ) ) {
+			return false;
+		}
+
+		$table  = $this->table();
+		$query  = "DELETE FROM `{$table}` WHERE `id` = %d AND `package` = %s AND `repository` = %s AND `branch` = %s AND `type` = %d AND `status` = %d AND `ptd` = %d AND `host` = %s AND `private` = %d";
+		$values = array(
+			$current->id,
+			$current->package,
+			$current->repository,
+			$current->branch,
+			$current->type,
+			$current->status,
+			$current->ptd,
+			$current->host,
+			$current->private,
+		);
+		if ( null === $current->subdirectory ) {
+			$query .= ' AND `subdirectory` IS NULL';
+		} else {
+			$query   .= ' AND `subdirectory` = %s';
+			$values[] = $current->subdirectory;
+		}
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Prepared immediately from constant columns and exact values.
+		$affected = $this->database->query( $this->database->prepare( $query, ...$values ) );
+		if ( 1 !== $affected ) {
+			return false;
+		}
+
+		foreach ( $this->packages() as $package ) {
+			if ( $expected->id === $package->id ) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
 	private function assertSupported(): void {
 		if ( ( $this->multisite )() ) {
 			throw new RuntimeException( 'WP Pusher migration supports single-site WordPress only.' );

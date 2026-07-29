@@ -6,7 +6,7 @@
  * @var array<string, bool> $optionPresence
  * @var string              $formAction
  * @var string              $applyFormAction
- * @var \RAN\AddOn\Portability\PortabilityApplyResult|null $apply
+ * @var array{result:\RAN\AddOn\Portability\PortabilityApplyResult,cleanup_pending:bool}|null $apply
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -17,7 +17,15 @@ $legacyDataPresent = in_array( true, $optionPresence, true );
 	<h2><?php esc_html_e( 'Migrate from WP Pusher', 'ran-booster-wp-pusher-migrator' ); ?></h2>
 	<p><?php esc_html_e( 'This temporary bridge reads retained WP Pusher 3.0.13 package settings. It does not read or import legacy credentials, install files, or enable deployments.', 'ran-booster-wp-pusher-migrator' ); ?></p>
 	<?php if ( null !== $apply ) { ?>
-		<div class="notice <?php echo $apply->targetVerified ? 'notice-success' : 'notice-error'; ?> inline"><p><?php echo esc_html( $apply->message ); ?></p></div>
+		<?php $applyResult = $apply['result']; ?>
+		<div class="notice <?php echo $applyResult->targetVerified ? 'notice-success' : 'notice-error'; ?> inline">
+			<p>
+				<?php echo esc_html( $applyResult->message ); ?>
+				<?php if ( $apply['cleanup_pending'] ) { ?>
+					<?php esc_html_e( 'Booster ownership is verified and Disabled, but exact WP Pusher row cleanup is still pending. Keep WP Pusher inactive and retry from the fresh source state.', 'ran-booster-wp-pusher-migrator' ); ?>
+				<?php } ?>
+			</p>
+		</div>
 	<?php } ?>
 	<?php if ( $legacyDataPresent ) { ?>
 		<div class="notice notice-warning inline"><p><?php esc_html_e( 'Legacy WP Pusher credential or settings options are present. Their values have not been read and will not be imported. Private repositories require an existing Booster credential profile.', 'ran-booster-wp-pusher-migrator' ); ?></p></div>

@@ -89,6 +89,32 @@ final class WpPusherSourceTest extends TestCase {
 		$this->source( $overBound )->packages();
 	}
 
+	public function testDeletesOnlyExactUnchangedRowAndPreservesNullDistinction(): void {
+		$database = new FakeDatabase();
+		$source   = $this->source( $database );
+		$package  = $source->packages()[0];
+
+		self::assertTrue( $source->deleteExact( $package ) );
+		self::assertStringContainsString( '`subdirectory` IS NULL', implode( ' ', $database->queries ) );
+		self::assertSame( array(), $source->packages() );
+	}
+
+	public function testChangedOrUnmatchedDeleteLeavesSourceRow(): void {
+		$database                    = new FakeDatabase();
+		$source                      = $this->source( $database );
+		$package                     = $source->packages()[0];
+		$database->rows[0]['branch'] = 'changed';
+
+		self::assertFalse( $source->deleteExact( $package ) );
+		self::assertCount( 1, $database->rows );
+
+		$database               = new FakeDatabase();
+		$database->affectedRows = 0;
+		$source                 = $this->source( $database );
+		self::assertFalse( $source->deleteExact( $source->packages()[0] ) );
+		self::assertCount( 1, $database->rows );
+	}
+
 	private function source(
 		FakeDatabase $database,
 		string $version = '3.0.13',
@@ -122,6 +148,7 @@ final class FakeDatabase {
 
 	/** @var list<array<string, mixed>> */
 	public array $rows;
+	public int $affectedRows = 1;
 
 	public function __construct() {
 		$types        = array(
@@ -168,8 +195,8 @@ final class FakeDatabase {
 		return str_starts_with( $query, 'SHOW COLUMNS' ) ? $this->schema : $this->rows;
 	}
 
-	public function prepare( string $query, string ...$values ): string {
-		unset( $values );
+	public function prepare( string $query, mixed ...$values ): string {
+		$this->queries[] = $query . ' :: ' . count( $values );
 
 		return $query;
 	}
@@ -179,5 +206,14 @@ final class FakeDatabase {
 		$this->queries[] = $query;
 
 		return $this->optionNames;
+	}
+
+	public function query( string $query ): int {
+		$this->queries[] = $query;
+		if ( 1 === $this->affectedRows ) {
+			$this->rows = array();
+		}
+
+		return $this->affectedRows;
 	}
 }
