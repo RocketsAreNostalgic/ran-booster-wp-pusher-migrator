@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests;
 
 use PHPUnit\Framework\TestCase;
+use RAN\AddOn\Portability\PortabilityApplyResult;
 use RAN\AddOn\Portability\PortabilityCandidate;
 use RAN\AddOn\Portability\PortabilityFacade;
 use RAN\AddOn\Portability\PortabilityReviewResult;
@@ -46,6 +47,26 @@ final class MigrationServiceTest extends TestCase {
 		$service->review( 999, $source->fingerprint(), null, 'nonce' );
 	}
 
+	public function testApplyFreshRevalidatesSourceAndForwardsExactReview(): void {
+		$facade  = new FakePortabilityFacade();
+		$service = $this->service( $facade );
+		$source  = $service->packages()[0];
+		$review  = 'v1:' . str_repeat( 'c', 64 );
+
+		$result = $service->apply(
+			$source->id,
+			$source->fingerprint(),
+			null,
+			$review,
+			'valid-apply-nonce'
+		);
+
+		self::assertTrue( $result->targetVerified );
+		self::assertSame( $review, $facade->expectedFingerprint );
+		self::assertSame( 'valid-apply-nonce', $facade->nonce );
+		self::assertSame( 'apply:' . $review, $service->nonceAction( 'apply', $source, null, $review ) );
+	}
+
 	private function service( FakePortabilityFacade $facade ): MigrationService {
 		$database = new FakeDatabase();
 		$source   = new WpPusherSource(
@@ -68,6 +89,7 @@ final class FakePortabilityFacade extends PortabilityFacade {
 
 	public ?PortabilityCandidate $candidate = null;
 	public string $nonce                    = '';
+	public string $expectedFingerprint      = '';
 
 	public function review( PortabilityCandidate $candidate, string $nonce ): PortabilityReviewResult {
 		$this->candidate = $candidate;
@@ -80,5 +102,17 @@ final class FakePortabilityFacade extends PortabilityFacade {
 			'Ready to adopt.',
 			'v1:' . str_repeat( 'a', 64 )
 		);
+	}
+
+	public function apply(
+		PortabilityCandidate $candidate,
+		string $expectedFingerprint,
+		string $nonce
+	): PortabilityApplyResult {
+		$this->candidate           = $candidate;
+		$this->expectedFingerprint = $expectedFingerprint;
+		$this->nonce               = $nonce;
+
+		return new PortabilityApplyResult( 'adopted', 'adopted', 'Adopted.', true );
 	}
 }

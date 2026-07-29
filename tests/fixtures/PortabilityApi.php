@@ -31,6 +31,17 @@ final readonly class PortabilityReviewResult {
 	}
 }
 
+final readonly class PortabilityApplyResult {
+
+	public function __construct(
+		public string $status,
+		public string $reason,
+		public string $message,
+		public bool $targetVerified
+	) {
+	}
+}
+
 abstract class PortabilityFacade {
 
 	public const API_VERSION = 1;
@@ -46,4 +57,10 @@ abstract class PortabilityFacade {
 	}
 
 	abstract public function review( PortabilityCandidate $candidate, string $nonce ): PortabilityReviewResult;
+
+	abstract public function apply(
+		PortabilityCandidate $candidate,
+		string $expectedFingerprint,
+		string $nonce
+	): PortabilityApplyResult;
 }

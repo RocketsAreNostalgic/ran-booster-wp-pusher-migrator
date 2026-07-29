@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace RAN\BoosterWpPusherMigrator;
 
+use RAN\AddOn\Portability\PortabilityApplyResult;
 use RAN\AddOn\Portability\PortabilityCandidate;
 use RAN\AddOn\Portability\PortabilityFacade;
 use RAN\AddOn\Portability\PortabilityReviewResult;
@@ -37,6 +38,22 @@ final readonly class MigrationService {
 		$candidate = $this->coreCandidate( $this->candidates->candidate( $source, $credentialId ) );
 
 		return $this->portability->review( $candidate, $nonce );
+	}
+
+	/**
+	 * Fresh-read and apply one unchanged reviewed source row through Core.
+	 */
+	public function apply(
+		int $sourceId,
+		string $expectedSourceFingerprint,
+		?string $credentialId,
+		string $expectedReviewFingerprint,
+		string $nonce
+	): PortabilityApplyResult {
+		$source    = $this->unchangedSource( $sourceId, $expectedSourceFingerprint );
+		$candidate = $this->coreCandidate( $this->candidates->candidate( $source, $credentialId ) );
+
+		return $this->portability->apply( $candidate, $expectedReviewFingerprint, $nonce );
 	}
 
 	public function nonceAction(
