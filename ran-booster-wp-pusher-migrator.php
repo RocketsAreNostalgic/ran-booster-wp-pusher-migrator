@@ -1,0 +1,24 @@
+<?php
+/**
+ * Plugin Name: RAN Booster WP Pusher Migrator
+ * Plugin URI: https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator
+ * Description: Migrates retained WP Pusher 3.0.13 package ownership into RAN Booster.
+ * Version: 0.1.0-alpha.1
+ * Requires at least: 7.0
+ * Requires PHP: 8.2
+ * Tested up to: 7.0
+ * Author: Rockets Are Nostalgic
+ * License: GPL-2.0-or-later
+ * Text Domain: ran-booster-wp-pusher-migrator
+ * Update URI: https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator
+ */
+
+declare(strict_types=1);
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+require_once __DIR__ . '/src/Autoloader.php';
+
+\RAN\BoosterWpPusherMigrator\Autoloader::register();

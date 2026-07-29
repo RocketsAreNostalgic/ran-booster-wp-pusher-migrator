@@ -1,0 +1,36 @@
+{
+  "name": "rockets-are-nostalgic/ran-booster-wp-pusher-migrator",
+  "description": "One-time WP Pusher 3.0.13 migration bridge for RAN Booster.",
+  "type": "wordpress-plugin",
+  "license": "GPL-2.0-or-later",
+  "require": {
+    "php": "^8.2"
+  },
+  "require-dev": {
+    "dealerdirect/phpcodesniffer-composer-installer": "^1.2.1",
+    "phpunit/phpunit": "^11.0",
+    "squizlabs/php_codesniffer": "^3.13.5",
+    "wp-coding-standards/wpcs": "^3.4.1"
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Tests\\": "tests/"
+    }
+  },
+  "scripts": {
+    "lint:php": "find . -path ./vendor -prune -o -path ./.git -prune -o -name '*.php' -exec php -l {} \\;",
+    "standards": "phpcs --standard=.phpcs.xml.dist --report=summary",
+    "test": "phpunit --configuration phpunit.xml",
+    "check": [
+      "@lint:php",
+      "@standards",
+      "@test"
+    ]
+  },
+  "config": {
+    "sort-packages": true,
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true
+    }
+  }
+}

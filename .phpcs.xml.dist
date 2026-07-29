@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<ruleset name="RAN Booster WP Pusher Migrator">
+	<description>WordPress coding standards for the migration bridge.</description>
+	<file>ran-booster-wp-pusher-migrator.php</file>
+	<file>src</file>
+	<file>tests</file>
+	<exclude-pattern>vendor/*</exclude-pattern>
+	<rule ref="WordPress-Extra">
+		<exclude name="WordPress.Files.FileName.NotHyphenatedLowercase"/>
+		<exclude name="WordPress.Files.FileName.InvalidClassFileName"/>
+		<exclude name="WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid"/>
+		<exclude name="WordPress.NamingConventions.ValidVariableName"/>
+		<exclude name="WordPress.PHP.YodaConditions"/>
+	</rule>
+	<rule ref="Universal.NamingConventions.NoReservedKeywordParameterNames">
+		<severity>0</severity>
+	</rule>
+	<rule ref="Generic.Files.OneObjectStructurePerFile">
+		<exclude-pattern>/tests/</exclude-pattern>
+	</rule>
+	<config name="minimum_supported_wp_version" value="7.0"/>
+</ruleset>
