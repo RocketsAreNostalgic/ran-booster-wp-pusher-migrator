@@ -85,6 +85,31 @@ final class MigrationServiceTest extends TestCase {
 		self::assertCount( 1, $database->rows );
 	}
 
+	public function testNewRequestReconstructsCleanupPendingAndBlockedStates(): void {
+		$database             = new FakeDatabase();
+		$facade               = new FakePortabilityFacade();
+		$facade->reviewAction = 'managed';
+		$facade->applyStatus  = 'unchanged';
+		$service              = $this->service( $facade, $database );
+		$source               = $service->packages()[0];
+		$review               = $service->review( $source->id, $source->fingerprint(), null, 'nonce' );
+		$result               = $service->apply( $source->id, $source->fingerprint(), null, $review->fingerprint, 'nonce' );
+
+		self::assertSame( 'managed', $review->action );
+		self::assertSame( 'unchanged', $result->status );
+		self::assertTrue( $service->cleanup( $source->id, $source->fingerprint(), $result ) );
+		self::assertSame( array(), $database->rows );
+
+		$database               = new FakeDatabase();
+		$facade->targetVerified = false;
+		$facade->applyStatus    = 'blocked';
+		$service                = $this->service( $facade, $database );
+		$source                 = $service->packages()[0];
+		$result                 = $service->apply( $source->id, $source->fingerprint(), null, $review->fingerprint, 'nonce' );
+		self::assertFalse( $service->cleanup( $source->id, $source->fingerprint(), $result ) );
+		self::assertCount( 1, $database->rows );
+	}
+
 	private function service( FakePortabilityFacade $facade, ?FakeDatabase $database = null ): MigrationService {
 		$database ??= new FakeDatabase();
 		$source     = new WpPusherSource(
@@ -108,6 +133,9 @@ final class FakePortabilityFacade extends PortabilityFacade {
 	public ?PortabilityCandidate $candidate = null;
 	public string $nonce                    = '';
 	public string $expectedFingerprint      = '';
+	public string $reviewAction             = 'adopt';
+	public string $applyStatus              = 'adopted';
+	public bool $targetVerified             = true;
 
 	public function review( PortabilityCandidate $candidate, string $nonce ): PortabilityReviewResult {
 		$this->candidate = $candidate;
@@ -115,7 +143,7 @@ final class FakePortabilityFacade extends PortabilityFacade {
 
 		return new PortabilityReviewResult(
 			$candidate,
-			'adopt',
+			$this->reviewAction,
 			'ready',
 			'Ready to adopt.',
 			'v1:' . str_repeat( 'a', 64 )
@@ -131,6 +159,11 @@ final class FakePortabilityFacade extends PortabilityFacade {
 		$this->expectedFingerprint = $expectedFingerprint;
 		$this->nonce               = $nonce;
 
-		return new PortabilityApplyResult( 'adopted', 'adopted', 'Adopted.', true );
+		return new PortabilityApplyResult(
+			$this->applyStatus,
+			$this->targetVerified ? 'adopted' : 'target_unverified',
+			$this->targetVerified ? 'Adopted.' : 'Target changed.',
+			$this->targetVerified
+		);
 	}
 }
