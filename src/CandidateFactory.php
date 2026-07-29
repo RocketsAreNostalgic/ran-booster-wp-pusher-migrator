@@ -34,6 +34,9 @@ final class CandidateFactory {
 		if ( 'gl' === $source->host ) {
 			throw new RuntimeException( 'GitLab WP Pusher packages are not supported.' );
 		}
+		if ( 1 === $source->private && null === $credentialId ) {
+			throw new RuntimeException( 'Choose an existing Booster credential profile for this private repository.' );
+		}
 
 		$displayName = 1 === $source->type
 			? $this->pluginName( $source->package )

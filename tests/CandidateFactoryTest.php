@@ -80,6 +80,12 @@ final class CandidateFactoryTest extends TestCase {
 			false,
 			null,
 		);
+		yield 'private without replacement credential' => array(
+			self::staticPackage( array( 'private' => '1' ) ),
+			array( 'fixture/fixture.php' => array( 'Name' => 'Fixture' ) ),
+			true,
+			null,
+		);
 		yield 'invalid credential id' => array( self::staticPackage(), array( 'fixture/fixture.php' => array( 'Name' => 'Fixture' ) ), true, '../secret' );
 	}
 
