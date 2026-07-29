@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.0-alpha.2](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/compare/v0.1.0-alpha.1...v0.1.0-alpha.2) (2026-07-29)
+
+
+### Performance Improvements
+
+* remove redundant migration source scans ([711ef90](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/711ef904a92b819361c22c0d25f9957788c48f32))
+* remove redundant migration source scans ([7490b1d](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/7490b1d182bc3ceaf2b09269adfbd480983a4fdb))
+
 ## 0.1.0-alpha.1 (2026-07-29)
 
 
