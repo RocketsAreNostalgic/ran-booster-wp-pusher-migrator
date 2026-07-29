@@ -12,7 +12,7 @@ use RAN\BoosterWpPusherMigrator\WpPusherPackage;
 final class SourceCardViewTest extends TestCase {
 
 	public function testRendersEscapedAccessibleNoJavascriptReview(): void {
-		$source         = WpPusherPackage::fromRow(
+		$source          = WpPusherPackage::fromRow(
 			array(
 				'id'           => '1',
 				'package'      => 'fixture/fixture.php',
@@ -26,7 +26,7 @@ final class SourceCardViewTest extends TestCase {
 				'subdirectory' => null,
 			)
 		);
-		$candidate      = new PortabilityCandidate(
+		$candidate       = new PortabilityCandidate(
 			'plugin',
 			$source->package,
 			'Fixture',
@@ -34,14 +34,14 @@ final class SourceCardViewTest extends TestCase {
 			$source->repository,
 			'main'
 		);
-		$review         = new PortabilityReviewResult(
+		$review          = new PortabilityReviewResult(
 			$candidate,
 			'blocked',
 			'credential_required',
 			'Use <existing> Booster credentials.',
 			'v1:' . str_repeat( 'a', 64 )
 		);
-		$rows           = array(
+		$rows            = array(
 			array(
 				'source'    => $source,
 				'candidate' => $candidate,
@@ -49,8 +49,10 @@ final class SourceCardViewTest extends TestCase {
 				'review'    => $review,
 			),
 		);
-		$optionPresence = array( 'gh_token' => true );
-		$formAction     = 'bridge-review';
+		$optionPresence  = array( 'gh_token' => true );
+		$formAction      = 'bridge-review';
+		$applyFormAction = 'bridge-apply';
+		$apply           = null;
 
 		ob_start();
 		require dirname( __DIR__ ) . '/views/source-card.php';

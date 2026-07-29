@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace RAN\BoosterWpPusherMigrator;
 
 use RAN\AddOn\Logging\LoggingFacade;
+use RAN\AddOn\Portability\PortabilityApplyResult;
 use RAN\AddOn\Portability\PortabilityFacade;
 use RAN\AddOn\Portability\PortabilityReviewResult;
 use Throwable;
@@ -12,7 +13,8 @@ use Throwable;
 /** WordPress hooks and request-local migration presentation. */
 final class Plugin {
 
-	private const FORM_ACTION = 'ran-booster-wp-pusher-migrator-review-v1';
+	private const FORM_ACTION       = 'ran-booster-wp-pusher-migrator-review-v1';
+	private const APPLY_FORM_ACTION = 'ran-booster-wp-pusher-migrator-apply-v1';
 
 	private static ?MigrationService $migration = null;
 
@@ -48,11 +50,13 @@ final class Plugin {
 		}
 
 		try {
-			$packages       = self::$migration->packages();
-			$optionPresence = ( new WpPusherSource() )->optionPresence();
-			$review         = self::submittedReview( $packages );
-			$rows           = self::rows( $packages, $review );
-			$formAction     = self::FORM_ACTION;
+			$packages        = self::$migration->packages();
+			$optionPresence  = ( new WpPusherSource() )->optionPresence();
+			$review          = self::submittedReview( $packages );
+			$apply           = self::submittedApply( $packages );
+			$rows            = self::rows( $packages, $review );
+			$formAction      = self::FORM_ACTION;
+			$applyFormAction = self::APPLY_FORM_ACTION;
 			require dirname( __DIR__ ) . '/views/source-card.php';
 		} catch ( Throwable ) {
 			self::notice(
@@ -88,6 +92,42 @@ final class Plugin {
 		$coreNonce  = wp_create_nonce( $coreAction );
 
 		return self::$migration->review( $sourceId, $expected, $credentialId, $coreNonce );
+	}
+
+	/**
+	 * @param list<WpPusherPackage> $packages Current exact source rows.
+	 */
+	private static function submittedApply( array $packages ): ?PortabilityApplyResult {
+		$operation = isset( $_POST['ran_booster_wp_pusher_migrator_action'] ) && is_scalar( $_POST['ran_booster_wp_pusher_migrator_action'] )
+			? sanitize_key( wp_unslash( (string) $_POST['ran_booster_wp_pusher_migrator_action'] ) )
+			: '';
+		if ( 'apply' !== $operation ) {
+			return null;
+		}
+		check_admin_referer( self::APPLY_FORM_ACTION );
+
+		$sourceId       = isset( $_POST['source_id'] ) ? absint( $_POST['source_id'] ) : 0;
+		$source         = self::package( $packages, $sourceId );
+		$expectedSource = isset( $_POST['source_fingerprint'] ) && is_scalar( $_POST['source_fingerprint'] )
+			? sanitize_text_field( wp_unslash( (string) $_POST['source_fingerprint'] ) )
+			: '';
+		$expectedReview = isset( $_POST['review_fingerprint'] ) && is_scalar( $_POST['review_fingerprint'] )
+			? sanitize_text_field( wp_unslash( (string) $_POST['review_fingerprint'] ) )
+			: '';
+		$credentialId   = isset( $_POST['credential_id'] ) && is_scalar( $_POST['credential_id'] )
+			? sanitize_text_field( wp_unslash( (string) $_POST['credential_id'] ) )
+			: '';
+		$credentialId   = '' === $credentialId ? null : $credentialId;
+		$coreAction     = self::$migration->nonceAction( 'apply', $source, $credentialId, $expectedReview );
+		$coreNonce      = wp_create_nonce( $coreAction );
+
+		return self::$migration->apply(
+			$sourceId,
+			$expectedSource,
+			$credentialId,
+			$expectedReview,
+			$coreNonce
+		);
 	}
 
 	/**
