@@ -21,7 +21,7 @@ final class WpPusherSourceTest extends TestCase {
 		self::assertCount( 1, $packages );
 		self::assertSame( 'fixture/fixture.php', $packages[0]->package );
 		self::assertMatchesRegularExpression( '/\Av1:[a-f0-9]{64}\z/', $packages[0]->fingerprint() );
-		self::assertStringContainsString( 'LIMIT 129', $database->queries[1] );
+		self::assertStringContainsString( 'LIMIT 129', implode( ' ', $database->queries ) );
 	}
 
 	public function testReportsOptionNamesWithoutReadingValues(): void {
@@ -115,6 +115,56 @@ final class WpPusherSourceTest extends TestCase {
 		self::assertCount( 1, $database->rows );
 	}
 
+	public function testCleanupRequiresNoRowsAndPreservesLicenseAndUnknownOptions(): void {
+		$database              = new FakeDatabase();
+		$database->optionNames = array( 'gh_token', 'wppusher_license_key', 'unknown_secret' );
+		$source                = $this->source( $database );
+
+		self::assertFalse( $source->deleteUnusedOptions() );
+		self::assertContains( 'gh_token', $database->optionNames );
+
+		$database->rows = array();
+		self::assertTrue( $source->deleteUnusedOptions() );
+		self::assertNotContains( 'gh_token', $database->optionNames );
+		self::assertContains( 'wppusher_license_key', $database->optionNames );
+		self::assertContains( 'unknown_secret', $database->optionNames );
+	}
+
+	public function testDropsOnlyExactLockedFreshlyEmptyTable(): void {
+		$database       = new FakeDatabase();
+		$database->rows = array();
+		$source         = $this->source( $database );
+
+		self::assertTrue( $source->dropEmptyPackageTable() );
+		self::assertFalse( $source->packageTablePresent() );
+		self::assertStringContainsString( 'LOCK TABLES', implode( ' ', $database->queries ) );
+		self::assertStringContainsString( 'SELECT COUNT(*)', implode( ' ', $database->queries ) );
+		self::assertStringContainsString( 'UNLOCK TABLES', implode( ' ', $database->queries ) );
+	}
+
+	public function testTableCleanupRejectsRowsSchemaDriftAndLockFailure(): void {
+		$database = new FakeDatabase();
+		self::assertFalse( $this->source( $database )->dropEmptyPackageTable() );
+		self::assertTrue( $database->tableExists );
+
+		$database       = new FakeDatabase();
+		$database->rows = array();
+		array_pop( $database->schema );
+		try {
+			$this->source( $database )->dropEmptyPackageTable();
+			self::fail( 'Schema drift was accepted.' );
+		} catch ( RuntimeException ) {
+			self::assertTrue( $database->tableExists );
+			self::assertStringContainsString( 'UNLOCK TABLES', implode( ' ', $database->queries ) );
+		}
+
+		$database             = new FakeDatabase();
+		$database->rows       = array();
+		$database->lockResult = false;
+		self::assertFalse( $this->source( $database )->dropEmptyPackageTable() );
+		self::assertTrue( $database->tableExists );
+	}
+
 	private function source(
 		FakeDatabase $database,
 		string $version = '3.0.13',
@@ -127,7 +177,13 @@ final class WpPusherSourceTest extends TestCase {
 			static fn (): array => array( WpPusherSource::PLUGIN => array( 'Version' => $version ) ),
 			static fn (): array => $active,
 			static fn (): array => $networkActive,
-			static fn (): bool => $multisite
+			static fn (): bool => $multisite,
+			static function ( string $option ) use ( $database ): bool {
+				$before                = count( $database->optionNames );
+				$database->optionNames = array_values( array_diff( $database->optionNames, array( $option ) ) );
+
+				return $before !== count( $database->optionNames );
+			}
 		);
 	}
 }
@@ -148,7 +204,9 @@ final class FakeDatabase {
 
 	/** @var list<array<string, mixed>> */
 	public array $rows;
-	public int $affectedRows = 1;
+	public int $affectedRows     = 1;
+	public bool $tableExists     = true;
+	public int|false $lockResult = 0;
 
 	public function __construct() {
 		$types        = array(
@@ -192,7 +250,7 @@ final class FakeDatabase {
 		unset( $output );
 		$this->queries[] = $query;
 
-		return str_starts_with( $query, 'SHOW COLUMNS' ) ? $this->schema : $this->rows;
+		return str_starts_with( $query, 'SHOW COLUMNS' ) ? ( $this->tableExists ? $this->schema : array() ) : $this->rows;
 	}
 
 	public function prepare( string $query, mixed ...$values ): string {
@@ -208,9 +266,26 @@ final class FakeDatabase {
 		return $this->optionNames;
 	}
 
-	public function query( string $query ): int {
+	public function get_var( string $query ): string|int|null {
 		$this->queries[] = $query;
-		if ( 1 === $this->affectedRows ) {
+		if ( str_starts_with( $query, 'SHOW TABLES' ) ) {
+			return $this->tableExists ? $this->prefix . 'wppusher_packages' : null;
+		}
+
+		return count( $this->rows );
+	}
+
+	public function query( string $query ): int|false {
+		$this->queries[] = $query;
+		if ( str_starts_with( $query, 'LOCK TABLES' ) ) {
+			return $this->lockResult;
+		}
+		if ( str_starts_with( $query, 'DROP TABLE' ) ) {
+			$this->tableExists = false;
+
+			return 1;
+		}
+		if ( str_starts_with( $query, 'DELETE FROM `wp_wppusher_packages`' ) && 1 === $this->affectedRows ) {
 			$this->rows = array();
 		}
 

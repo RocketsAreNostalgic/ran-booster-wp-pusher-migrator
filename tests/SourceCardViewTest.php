@@ -53,6 +53,10 @@ final class SourceCardViewTest extends TestCase {
 		$formAction      = 'bridge-review';
 		$applyFormAction = 'bridge-apply';
 		$apply           = null;
+		$cleanup         = null;
+		$tablePresent    = true;
+		$optionsAction   = 'bridge-options';
+		$tableAction     = 'bridge-table';
 
 		ob_start();
 		require dirname( __DIR__ ) . '/views/source-card.php';
