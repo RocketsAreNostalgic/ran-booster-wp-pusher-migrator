@@ -1,0 +1,5 @@
+# Runtime files allowed in the distributable ZIP.
+src/
+views/
+ran-booster-wp-pusher-migrator.php
+license.txt
