@@ -15,7 +15,7 @@ final class WpPusherSource {
 	private const VERSION = '3.0.13';
 
 	private const COLUMNS = array(
-		'id'           => 'mediumint(9)',
+		'id'           => 'mediumint',
 		'package'      => 'varchar(255)',
 		'repository'   => 'varchar(255)',
 		'branch'       => 'varchar(255)',
@@ -260,7 +260,8 @@ final class WpPusherSource {
 				|| ! is_string( $column['Type'] ) ) {
 				throw new RuntimeException( 'The retained WP Pusher package schema is unsupported.' );
 			}
-			$actual[ $column['Field'] ] = strtolower( $column['Type'] );
+			$type                       = strtolower( $column['Type'] );
+			$actual[ $column['Field'] ] = 'mediumint(9)' === $type ? 'mediumint' : $type;
 		}
 		if ( self::COLUMNS !== $actual ) {
 			throw new RuntimeException( 'The retained WP Pusher package schema is unsupported.' );

@@ -73,6 +73,13 @@ final class WpPusherSourceTest extends TestCase {
 		$this->source( $duplicates )->packages();
 	}
 
+	public function testAcceptsMySqlEightWithoutIntegerDisplayWidth(): void {
+		$database                    = new FakeDatabase();
+		$database->schema[0]['Type'] = 'mediumint';
+
+		self::assertCount( 1, $this->source( $database )->packages() );
+	}
+
 	public function testRejectsMalformedRowsAndInventoryOverBound(): void {
 		$malformed                          = new FakeDatabase();
 		$malformed->rows[0]['subdirectory'] = '../secret';
