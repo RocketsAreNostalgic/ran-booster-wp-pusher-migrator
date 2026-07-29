@@ -111,6 +111,7 @@ final class WpPusherSourceTest extends TestCase {
 		$source                      = $this->source( $database );
 		$package                     = $source->packages()[0];
 		$database->rows[0]['branch'] = 'changed';
+		$database->affectedRows      = 0;
 
 		self::assertFalse( $source->deleteExact( $package ) );
 		self::assertCount( 1, $database->rows );

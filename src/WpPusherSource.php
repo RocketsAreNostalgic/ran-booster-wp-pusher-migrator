@@ -186,50 +186,28 @@ final class WpPusherSource {
 	}
 
 	public function deleteExact( WpPusherPackage $expected ): bool {
-		$current = null;
-		foreach ( $this->packages() as $package ) {
-			if ( $expected->id === $package->id ) {
-				$current = $package;
-				break;
-			}
-		}
-		if ( null === $current || ! hash_equals( $expected->fingerprint(), $current->fingerprint() ) ) {
-			return false;
-		}
-
 		$table  = $this->table();
 		$query  = "DELETE FROM `{$table}` WHERE `id` = %d AND `package` = %s AND `repository` = %s AND `branch` = %s AND `type` = %d AND `status` = %d AND `ptd` = %d AND `host` = %s AND `private` = %d";
 		$values = array(
-			$current->id,
-			$current->package,
-			$current->repository,
-			$current->branch,
-			$current->type,
-			$current->status,
-			$current->ptd,
-			$current->host,
-			$current->private,
+			$expected->id,
+			$expected->package,
+			$expected->repository,
+			$expected->branch,
+			$expected->type,
+			$expected->status,
+			$expected->ptd,
+			$expected->host,
+			$expected->private,
 		);
-		if ( null === $current->subdirectory ) {
+		if ( null === $expected->subdirectory ) {
 			$query .= ' AND `subdirectory` IS NULL';
 		} else {
 			$query   .= ' AND `subdirectory` = %s';
-			$values[] = $current->subdirectory;
+			$values[] = $expected->subdirectory;
 		}
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Prepared immediately from constant columns and exact values.
-		$affected = $this->database->query( $this->database->prepare( $query, ...$values ) );
-		if ( 1 !== $affected ) {
-			return false;
-		}
-
-		foreach ( $this->packages() as $package ) {
-			if ( $expected->id === $package->id ) {
-				return false;
-			}
-		}
-
-		return true;
+		return 1 === $this->database->query( $this->database->prepare( $query, ...$values ) );
 	}
 
 	private function assertSupported(): void {
