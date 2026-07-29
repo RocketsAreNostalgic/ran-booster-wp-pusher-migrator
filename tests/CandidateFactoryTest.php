@@ -20,7 +20,7 @@ final class CandidateFactoryTest extends TestCase {
 				'type'          => 'plugin',
 				'identifier'    => 'fixture/fixture.php',
 				'display_name'  => 'Fixture Plugin',
-				'provider'      => 'github',
+				'provider'      => 'gh',
 				'repository'    => 'RocketsAreNostalgic/booster-fixture-plugin',
 				'branch'        => 'main',
 				'subdirectory'  => null,
@@ -48,7 +48,7 @@ final class CandidateFactoryTest extends TestCase {
 
 		self::assertSame( 'theme', $candidate['type'] );
 		self::assertSame( 'Fixture Theme', $candidate['display_name'] );
-		self::assertSame( 'bitbucket', $candidate['provider'] );
+		self::assertSame( 'bb', $candidate['provider'] );
 		self::assertSame( 'master', $candidate['branch'] );
 		self::assertSame( 'packages/theme', $candidate['subdirectory'] );
 		self::assertSame( 'profile_123', $candidate['credential_id'] );

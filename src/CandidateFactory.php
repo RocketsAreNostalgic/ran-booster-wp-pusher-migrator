@@ -28,7 +28,7 @@ final class CandidateFactory {
 	/**
 	 * Build one bounded candidate without provider-issued identity.
 	 *
-	 * @return array{type:'plugin'|'theme',identifier:string,display_name:string,provider:'github'|'bitbucket',repository:string,branch:string,subdirectory:string|null,credential_id:string|null}
+	 * @return array{type:'plugin'|'theme',identifier:string,display_name:string,provider:'gh'|'bb',repository:string,branch:string,subdirectory:string|null,credential_id:string|null}
 	 */
 	public function candidate( WpPusherPackage $source, ?string $credentialId = null ): array {
 		if ( 'gl' === $source->host ) {
@@ -51,7 +51,7 @@ final class CandidateFactory {
 			'type'          => 1 === $source->type ? 'plugin' : 'theme',
 			'identifier'    => $source->package,
 			'display_name'  => $displayName,
-			'provider'      => 'gh' === $source->host ? 'github' : 'bitbucket',
+			'provider'      => $source->host,
 			'repository'    => $source->repository,
 			'branch'        => '' === $source->branch ? 'master' : $source->branch,
 			'subdirectory'  => null === $source->subdirectory || '' === $source->subdirectory
