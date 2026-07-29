@@ -22,3 +22,4 @@ if ( ! defined( 'ABSPATH' ) ) {
 require_once __DIR__ . '/src/Autoloader.php';
 
 \RAN\BoosterWpPusherMigrator\Autoloader::register();
+\RAN\BoosterWpPusherMigrator\Plugin::register();
