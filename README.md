@@ -55,11 +55,13 @@ provider webhooks.
 
 ## Development
 
-Composer installs development tools only; the release ZIP contains no `vendor/`
-directory.
+Composer and pnpm install development tools only; the release ZIP contains
+neither dependency directory.
 
 ```sh
 composer install --no-interaction --prefer-dist
+pnpm install --frozen-lockfile
+pnpm check
 composer check
 ```
 

@@ -2,5 +2,6 @@
 src/
 views/
 assets/
+index.php
 ran-booster-wp-pusher-migrator.php
 license.txt

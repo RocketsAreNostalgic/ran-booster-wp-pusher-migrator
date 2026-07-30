@@ -1,10 +1,10 @@
 # Prerelease guide
 
 Release Please opens Alpha release pull requests from Conventional Commits. It
-owns the plugin-header version, `CHANGELOG.md`, and
-`.release-please-manifest.json`. A `fix` commit advances the patch prerelease
-line, a `feat` advances the minor prerelease line, and a breaking-change marker
-advances the pre-1.0 minor line.
+owns the synchronized plugin-header and `package.json` versions,
+`CHANGELOG.md`, and `.release-please-manifest.json`. A `fix` commit advances the
+patch prerelease line, a `feat` advances the minor prerelease line, and a
+breaking-change marker advances the pre-1.0 minor line.
 
 The `0.0.0` manifest value is an unreleased bootstrap boundary. The first
 release proposal must be `0.1.0-alpha.1` and must update the manifest, changelog,
@@ -15,7 +15,8 @@ add a manual `Release-As` footer.
 
 Before merging a release pull request:
 
-1. Run `composer validate --strict --no-check-publish` and `composer check`.
+1. Run `composer validate --strict --no-check-publish`, `pnpm install
+   --frozen-lockfile`, `pnpm check`, and `composer check`.
 2. Build twice from clean checkouts and confirm matching ZIP SHA-256 hashes.
 3. Inspect the allowlisted ZIP: one
    `ran-booster-wp-pusher-migrator/` root; no tests, tools, workflows, scripts,

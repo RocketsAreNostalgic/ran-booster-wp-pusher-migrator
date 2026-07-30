@@ -20,7 +20,7 @@
   "scripts": {
     "archive:build": "bash scripts/build-release.sh",
     "archive:verify": "bash scripts/verify-release.sh",
-    "lint:php": "find . -path ./vendor -prune -o -path ./.git -prune -o -name '*.php' -exec php -l {} \\;",
+    "lint:php": "find . -path ./vendor -prune -o -path ./node_modules -prune -o -path ./.git -prune -o -name '*.php' -exec php -l {} \\;",
     "standards": "phpcs --standard=.phpcs.xml.dist --report=summary",
     "test": "phpunit --configuration phpunit.xml",
     "check": [

@@ -8,6 +8,7 @@
  * x-release-please-end
  * Requires at least: 7.0
  * Requires PHP: 8.2
+ * Requires Plugins: ran-booster
  * Tested up to: 7.0
  * Author: Rockets Are Nostalgic
  * License: GPL-2.0-or-later

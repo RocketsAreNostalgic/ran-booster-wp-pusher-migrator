@@ -104,6 +104,10 @@ if ! grep -Fq ' * Update URI: https://github.com/RocketsAreNostalgic/ran-booster
 	printf 'Release archive does not declare its canonical GitHub Update URI.\n' >&2
 	exit 1
 fi
+if ! grep -Fq ' * Requires Plugins: ran-booster' "$header"; then
+	printf 'Release archive does not declare RAN Booster as a required plugin.\n' >&2
+	exit 1
+fi
 
 plugin="$inspection/$slug/src/Plugin.php"
 if ! grep -Fq 'RAN_BOOSTER_PORTABILITY_API_VERSION' "$plugin" \

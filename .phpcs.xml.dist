@@ -1,22 +1,52 @@
 <?xml version="1.0"?>
 <ruleset name="RAN Booster WP Pusher Migrator">
 	<description>WordPress coding standards for the migration bridge.</description>
-	<file>ran-booster-wp-pusher-migrator.php</file>
-	<file>src</file>
-	<file>tests</file>
-	<exclude-pattern>vendor/*</exclude-pattern>
+
+	<config name="minimum_supported_wp_version" value="7.0"/>
+
+	<!-- Scan every PHP file so views and future shipped entry points cannot escape the gate. -->
+	<file>.</file>
+	<exclude-pattern>/vendor/</exclude-pattern>
+	<exclude-pattern>/node_modules/</exclude-pattern>
+	<exclude-pattern>/.git/</exclude-pattern>
+	<exclude-pattern>/.phpunit.cache/</exclude-pattern>
+	<exclude-pattern>/.phpcs-cache</exclude-pattern>
+
+	<arg name="basepath" value="."/>
+	<arg name="colors"/>
+	<arg name="extensions" value="php"/>
+	<arg name="parallel" value="4"/>
+	<arg value="sp"/>
+
 	<rule ref="WordPress-Extra">
+		<!-- The RAN namespace is PSR-4 autoloaded, so class files retain class-case names. -->
 		<exclude name="WordPress.Files.FileName.NotHyphenatedLowercase"/>
 		<exclude name="WordPress.Files.FileName.InvalidClassFileName"/>
+		<!-- Preserve the Booster-family camelCase OOP/API convention. -->
 		<exclude name="WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid"/>
 		<exclude name="WordPress.NamingConventions.ValidVariableName"/>
+		<!-- Yoda rewrites would create a broad semantic diff without improving this bridge. -->
 		<exclude name="WordPress.PHP.YodaConditions"/>
 	</rule>
+
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<!-- Included templates receive request-local variables from Plugin; they do not define public globals. -->
+		<exclude-pattern>/views/</exclude-pattern>
+		<exclude-pattern>/tests/</exclude-pattern>
+		<properties>
+			<property name="prefixes" type="array">
+				<element value="ran_booster_wp_pusher_migrator"/>
+				<element value="RAN\BoosterWpPusherMigrator"/>
+			</property>
+		</properties>
+	</rule>
+
 	<rule ref="Universal.NamingConventions.NoReservedKeywordParameterNames">
 		<severity>0</severity>
 	</rule>
+
+	<!-- PHPUnit fixtures intentionally colocate small test doubles with their tests. -->
 	<rule ref="Generic.Files.OneObjectStructurePerFile">
 		<exclude-pattern>/tests/</exclude-pattern>
 	</rule>
-	<config name="minimum_supported_wp_version" value="7.0"/>
 </ruleset>
