@@ -80,6 +80,19 @@ final class WpPusherSourceTest extends TestCase {
 		self::assertCount( 1, $this->source( $database )->packages() );
 	}
 
+	public function testReportsOnlyAnExactSupportedRetainedPackageTable(): void {
+		$database = new FakeDatabase();
+		self::assertTrue( $this->source( $database )->supportedPackageTablePresent() );
+
+		$database->tableExists = false;
+		self::assertFalse( $this->source( $database )->supportedPackageTablePresent() );
+
+		$database                    = new FakeDatabase();
+		$database->schema[0]['Type'] = 'bigint';
+		$this->expectException( RuntimeException::class );
+		$this->source( $database )->supportedPackageTablePresent();
+	}
+
 	public function testRejectsMalformedRowsAndInventoryOverBound(): void {
 		$malformed                          = new FakeDatabase();
 		$malformed->rows[0]['subdirectory'] = '../secret';

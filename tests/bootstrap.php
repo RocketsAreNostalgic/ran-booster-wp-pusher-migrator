@@ -17,6 +17,10 @@ function esc_attr( mixed $value ): string {
 	return esc_html( $value );
 }
 
+function esc_url( mixed $value ): string {
+	return esc_html( $value );
+}
+
 function esc_html__( string $value, string $domain = '' ): string {
 	unset( $domain );
 

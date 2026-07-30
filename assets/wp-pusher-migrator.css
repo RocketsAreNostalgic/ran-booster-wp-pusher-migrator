@@ -1,0 +1,63 @@
+.ran-booster-admin .ran-booster-wp-pusher-migrator > * + * {
+	margin-block-start: var(--ran-booster-space-20);
+}
+
+.ran-booster-admin .ran-booster-wp-pusher-migrator .notice {
+	margin-inline: 0;
+}
+
+.ran-booster-admin .ran-booster-wp-pusher-migrator code {
+	overflow-wrap: anywhere;
+	white-space: normal;
+}
+
+.ran-booster-admin .ran-booster-wp-pusher-migrator td strong,
+.ran-booster-admin .ran-booster-wp-pusher-migrator td strong + span {
+	display: block;
+}
+
+.ran-booster-admin .ran-booster-wp-pusher-migrator td strong + span {
+	margin-block-start: var(--ran-booster-space-4);
+}
+
+.ran-booster-admin .ran-booster-wp-pusher-migrator__actions,
+.ran-booster-admin .ran-booster-wp-pusher-migrator__actions form,
+.ran-booster-admin .ran-booster-wp-pusher-migrator__actions label {
+	display: grid;
+	gap: var(--ran-booster-space-8);
+}
+
+.ran-booster-admin .ran-booster-wp-pusher-migrator__actions > * + * {
+	margin-block-start: var(--ran-booster-space-10);
+	padding-block-start: var(--ran-booster-space-10);
+	border-block-start: 1px solid var(--ran-booster-divider);
+}
+
+.ran-booster-admin .ran-booster-wp-pusher-migrator__actions .button {
+	justify-self: start;
+	white-space: nowrap;
+}
+
+.ran-booster-admin .ran-booster-wp-pusher-migrator__actions input[type="text"] {
+	inline-size: 100%;
+	min-inline-size: 180px;
+}
+
+.ran-booster-admin .ran-booster-wp-pusher-migrator__cleanup {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: var(--ran-booster-space-16);
+}
+
+.ran-booster-admin .ran-booster-wp-pusher-migrator__cleanup form,
+.ran-booster-admin .ran-booster-wp-pusher-migrator__removal {
+	padding: var(--ran-booster-space-16);
+	border: 1px solid var(--ran-booster-divider);
+	background: var(--ran-booster-surface-subtle);
+}
+
+@media screen and (max-width: 782px) {
+	.ran-booster-admin .ran-booster-wp-pusher-migrator__cleanup {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}

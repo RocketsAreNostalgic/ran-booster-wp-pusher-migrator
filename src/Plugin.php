@@ -23,7 +23,10 @@ final class Plugin {
 
 	public static function register(): void {
 		add_action( 'ran_booster_portability_ready', array( self::class, 'connect' ), 10, 2 );
-		add_action( 'ran_booster_portability_render_guidance', array( self::class, 'render' ), 20 );
+		add_action( 'ran_booster_portability_render_migration_modes', array( self::class, 'renderMode' ), 20 );
+		add_action( 'ran_booster_portability_render_migration_flows', array( self::class, 'renderPanel' ), 20 );
+		add_action( 'ran_booster_overview_render_migration_prompt', array( self::class, 'renderOverviewPrompt' ), 20 );
+		add_action( 'admin_enqueue_scripts', array( self::class, 'enqueueAssets' ), 20 );
 	}
 
 	public static function connect( object $portability, object $logging ): void {
@@ -40,16 +43,26 @@ final class Plugin {
 		self::$migration = new MigrationService( self::$source, new CandidateFactory(), $portability );
 	}
 
-	public static function render(): void {
+	public static function renderMode(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		require dirname( __DIR__ ) . '/views/migration-mode.php';
+	}
+
+	public static function renderPanel(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
 		if ( null === self::$migration ) {
-			self::notice( __( 'The WP Pusher migrator requires compatible RAN Booster Portability API 1 and Logging API 1.', 'ran-booster-wp-pusher-migrator' ), 'error' );
+			$error = __( 'Update Booster before migrating. This migrator needs a compatible version of Booster.', 'ran-booster-wp-pusher-migrator' );
+			require dirname( __DIR__ ) . '/views/source-card.php';
 			return;
 		}
 
 		try {
+			$error    = '';
 			$packages = self::$migration->packages();
 			$review   = self::submittedReview( $packages );
 			$apply    = self::submittedApply( $packages );
@@ -66,11 +79,52 @@ final class Plugin {
 			$tableAction     = self::TABLE_ACTION;
 			require dirname( __DIR__ ) . '/views/source-card.php';
 		} catch ( Throwable ) {
-			self::notice(
-				__( 'The retained WP Pusher installation could not be assessed safely. Confirm exact version 3.0.13, deactivate it, and review its package table before retrying.', 'ran-booster-wp-pusher-migrator' ),
-				'error'
-			);
+			$error = __( 'Booster could not read this WP Pusher installation safely. Check that WP Pusher 3.0.13 is installed and inactive, then try again.', 'ran-booster-wp-pusher-migrator' );
+			require dirname( __DIR__ ) . '/views/source-card.php';
 		}
+	}
+
+	public static function renderOverviewPrompt(): void {
+		if ( ! current_user_can( 'manage_options' )
+			|| null === self::$source ) {
+			return;
+		}
+
+		try {
+			if ( ! self::$source->supportedPackageTablePresent() ) {
+				return;
+			}
+		} catch ( Throwable ) {
+			return;
+		}
+
+		$migrationUrl = admin_url( 'admin.php?page=ran-booster&tab=portability#ran-booster-portability-wp-pusher' );
+		require dirname( __DIR__ ) . '/views/overview-prompt.php';
+	}
+
+	public static function enqueueAssets( mixed $hook ): void {
+		if ( 'toplevel_page_ran-booster' !== $hook ) {
+			return;
+		}
+
+		// Read-only allowlisted navigation state; no action is performed from this value.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$tab = isset( $_GET['tab'] ) && is_string( $_GET['tab'] )
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation state.
+			? sanitize_key( wp_unslash( $_GET['tab'] ) )
+			: 'overview';
+		if ( ! in_array( $tab, array( 'overview', 'portability' ), true ) ) {
+			return;
+		}
+
+		$path = dirname( __DIR__ ) . '/assets/wp-pusher-migrator.css';
+		$url  = plugins_url( 'assets/wp-pusher-migrator.css', dirname( __DIR__ ) . '/ran-booster-wp-pusher-migrator.php' );
+		wp_enqueue_style(
+			'ran-booster-wp-pusher-migrator',
+			$url,
+			array( 'ran-booster-onboarding' ),
+			file_exists( $path ) ? (string) filemtime( $path ) : null
+		);
 	}
 
 	/**
@@ -230,13 +284,5 @@ final class Plugin {
 		}
 
 		return __( 'This retained package is unsupported.', 'ran-booster-wp-pusher-migrator' );
-	}
-
-	private static function notice( string $message, string $type ): void {
-		printf(
-			'<div class="notice notice-%1$s inline"><p>%2$s</p></div>',
-			esc_attr( $type ),
-			esc_html( $message )
-		);
 	}
 }

@@ -109,7 +109,9 @@ plugin="$inspection/$slug/src/Plugin.php"
 if ! grep -Fq 'RAN_BOOSTER_PORTABILITY_API_VERSION' "$plugin" \
 	|| ! grep -Fq 'RAN_BOOSTER_LOGGING_API_VERSION' "$plugin" \
 	|| ! grep -Fq "'ran_booster_portability_ready'" "$plugin" \
-	|| ! grep -Fq "'ran_booster_portability_render_guidance'" "$plugin"; then
+	|| ! grep -Fq "'ran_booster_portability_render_migration_modes'" "$plugin" \
+	|| ! grep -Fq "'ran_booster_portability_render_migration_flows'" "$plugin" \
+	|| ! grep -Fq "'ran_booster_overview_render_migration_prompt'" "$plugin"; then
 	printf 'Release archive does not contain the required Portability and Logging boundary.\n' >&2
 	exit 1
 fi

@@ -93,10 +93,7 @@ final class WpPusherSource {
 			return array();
 		}
 		$table = $this->table();
-
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Exact validated table derived from wpdb prefix.
-		$schema = $this->database->get_results( "SHOW COLUMNS FROM `{$table}`", ARRAY_A );
-		$this->assertSchema( is_array( $schema ) ? $schema : array() );
+		$this->assertPackageTableSchema( $table );
 
 		$columns = implode( '`, `', array_keys( self::COLUMNS ) );
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Exact validated table and constant column allowlist.
@@ -137,6 +134,24 @@ final class WpPusherSource {
 		$this->assertSupported();
 
 		return $this->packageTableExists();
+	}
+
+	public function supportedPackageTablePresent(): bool {
+		$this->assertSupported();
+		if ( ! $this->packageTableExists() ) {
+			return false;
+		}
+
+		$table = $this->table();
+		$this->assertPackageTableSchema( $table );
+
+		return true;
+	}
+
+	private function assertPackageTableSchema( string $table ): void {
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Exact validated table derived from wpdb prefix.
+		$schema = $this->database->get_results( "SHOW COLUMNS FROM `{$table}`", ARRAY_A );
+		$this->assertSchema( is_array( $schema ) ? $schema : array() );
 	}
 
 	public function deleteUnusedOptions(): bool {

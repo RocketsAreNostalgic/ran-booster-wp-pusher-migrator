@@ -17,11 +17,12 @@ with deployment Disabled.
 - WP Pusher 3.0.13 installed but inactive.
 - An existing Booster credential profile for each private repository.
 
-## Migration
+## Migrate from WP Pusher
 
 1. Back up the site and deactivate WP Pusher.
 2. Install and activate this bridge beside a compatible RAN Booster release.
-3. Open Booster's Portability screen and review one retained package at a time.
+3. Open Booster's Transporter screen, choose **Migrate from WP Pusher**, and
+   review one retained package at a time.
 4. Apply only candidates whose installed package and repository identity match.
 5. Confirm the adopted Booster package is Disabled before removing its exact
    retained WP Pusher row.
