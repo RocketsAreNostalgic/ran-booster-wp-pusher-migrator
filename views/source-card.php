@@ -42,7 +42,7 @@ if ( ! $hasError ) {
 				</p>
 			</div>
 		<?php } ?>
-		<?php if ( $legacyDataPresent ) { ?>
+		<?php if ( $legacyDataPresent && array() !== $rows ) { ?>
 			<div class="notice notice-warning inline"><p><?php esc_html_e( 'WP Pusher settings found: Not all Pusher settings can be migrated. Private repositories will need to access credentials.', 'ran-booster-wp-pusher-migrator' ); ?></p></div>
 		<?php } ?>
 

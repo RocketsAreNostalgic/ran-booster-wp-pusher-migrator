@@ -212,6 +212,10 @@ final class SourceCardViewTest extends TestCase {
 		self::assertStringNotContainsString( 'Remove unused settings', $output );
 		self::assertStringNotContainsString( 'Remove empty package table', $output );
 		self::assertStringNotContainsString( 'ran-booster-wp-pusher-migrator__packages', $output );
+		self::assertStringNotContainsString(
+			'WP Pusher settings found: Not all Pusher settings can be migrated.',
+			$output
+		);
 	}
 
 	private function renderPublicPackage(
@@ -279,7 +283,7 @@ final class SourceCardViewTest extends TestCase {
 	private function renderEmptyInventory(): string {
 		$rows             = array();
 		$error            = '';
-		$optionPresence   = array();
+		$optionPresence   = array( 'gh_token' => true );
 		$formAction       = 'bridge-review';
 		$applyFormAction  = 'bridge-apply';
 		$apply            = null;
