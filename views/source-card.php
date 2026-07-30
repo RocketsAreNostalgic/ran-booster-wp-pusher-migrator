@@ -12,6 +12,9 @@
  * @var bool                $tablePresent
  * @var string              $optionsAction
  * @var string              $tableAction
+ * @var string              $migrationUrl
+ * @var string              $adminPostAction
+ * @var object|null         $adminInteraction
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -59,7 +62,7 @@ if ( ! $hasError ) {
 			</div>
 			<div class="ran-booster-wp-pusher-migrator__cleanup">
 				<?php if ( array() !== $unusedOptions ) { ?>
-					<form method="post">
+					<form method="post" action="<?php echo esc_url( $migrationUrl ); ?>">
 						<input type="hidden" name="ran_booster_wp_pusher_migrator_action" value="delete_options">
 						<?php wp_nonce_field( $optionsAction ); ?>
 						<p><?php esc_html_e( 'Remove known WP Pusher settings that Booster does not use. The WP Pusher license key and unknown settings are kept.', 'ran-booster-wp-pusher-migrator' ); ?></p>
@@ -67,7 +70,7 @@ if ( ! $hasError ) {
 					</form>
 				<?php } ?>
 				<?php if ( $tablePresent ) { ?>
-					<form method="post">
+					<form method="post" action="<?php echo esc_url( $migrationUrl ); ?>">
 						<input type="hidden" name="ran_booster_wp_pusher_migrator_action" value="drop_table">
 						<?php wp_nonce_field( $tableAction ); ?>
 						<p><?php esc_html_e( 'Remove the empty WP Pusher package table after checking it again.', 'ran-booster-wp-pusher-migrator' ); ?></p>
@@ -81,7 +84,13 @@ if ( ! $hasError ) {
 			</details>
 		<?php } else { ?>
 			<div class="ran-booster-portability__table-scroll ran-booster-wp-pusher-migrator__table-scroll" role="region" aria-labelledby="ran-booster-portability-wp-pusher-heading" tabindex="0">
-				<table class="widefat striped ran-booster-portability__review-table">
+				<table class="widefat striped ran-booster-portability__review-table ran-booster-wp-pusher-migrator__packages">
+					<colgroup>
+						<col class="ran-booster-wp-pusher-migrator__package-column">
+						<col class="ran-booster-wp-pusher-migrator__repository-column">
+						<col class="ran-booster-wp-pusher-migrator__status-column">
+						<col class="ran-booster-wp-pusher-migrator__action-column">
+					</colgroup>
 					<thead>
 						<tr>
 							<th scope="col"><?php esc_html_e( 'Installed package', 'ran-booster-wp-pusher-migrator' ); ?></th>
@@ -89,60 +98,15 @@ if ( ! $hasError ) {
 							<th scope="col"><?php esc_html_e( 'Status', 'ran-booster-wp-pusher-migrator' ); ?></th>
 							<th scope="col"><?php esc_html_e( 'Action', 'ran-booster-wp-pusher-migrator' ); ?></th>
 						</tr>
-					</thead>
-					<tbody>
-						<?php foreach ( $rows as $row ) { ?>
-							<?php
-							$source    = $row['source'];
-							$candidate = $row['candidate'];
-							$review    = $row['review'];
-							?>
-							<tr>
-								<th scope="row"><code><?php echo esc_html( $source->package ); ?></code></th>
-								<td><code><?php echo esc_html( $source->repository ); ?></code></td>
-								<td>
-									<?php if ( '' !== $row['error'] ) { ?>
-										<strong><?php esc_html_e( 'Cannot migrate', 'ran-booster-wp-pusher-migrator' ); ?></strong>
-										<span><?php echo esc_html( $row['error'] ); ?></span>
-									<?php } elseif ( null !== $review ) { ?>
-										<strong><?php esc_html_e( 'Checked', 'ran-booster-wp-pusher-migrator' ); ?></strong>
-										<span><?php echo esc_html( $review->message ); ?></span>
-									<?php } else { ?>
-										<?php esc_html_e( 'Ready to check', 'ran-booster-wp-pusher-migrator' ); ?>
-									<?php } ?>
-								</td>
-								<td>
-									<?php if ( null !== $candidate ) { ?>
-										<div class="ran-booster-wp-pusher-migrator__actions">
-											<form method="post">
-												<input type="hidden" name="ran_booster_wp_pusher_migrator_action" value="review">
-												<input type="hidden" name="source_id" value="<?php echo esc_attr( (string) $source->id ); ?>">
-												<input type="hidden" name="source_fingerprint" value="<?php echo esc_attr( $source->fingerprint() ); ?>">
-												<?php wp_nonce_field( $formAction ); ?>
-												<?php if ( 1 === $source->private ) { ?>
-													<label>
-														<span><?php esc_html_e( 'Booster credential', 'ran-booster-wp-pusher-migrator' ); ?></span>
-														<input type="text" name="credential_id" maxlength="64" pattern="[A-Za-z0-9_-]{3,64}" autocomplete="off" required>
-													</label>
-												<?php } ?>
-												<button class="button" type="submit"><?php esc_html_e( 'Check package', 'ran-booster-wp-pusher-migrator' ); ?></button>
-											</form>
-											<?php if ( null !== $review && in_array( $review->action, array( 'adopt', 'managed' ), true ) ) { ?>
-												<form method="post">
-													<input type="hidden" name="ran_booster_wp_pusher_migrator_action" value="apply">
-													<input type="hidden" name="source_id" value="<?php echo esc_attr( (string) $source->id ); ?>">
-													<input type="hidden" name="source_fingerprint" value="<?php echo esc_attr( $source->fingerprint() ); ?>">
-													<input type="hidden" name="review_fingerprint" value="<?php echo esc_attr( $review->fingerprint ); ?>">
-													<input type="hidden" name="credential_id" value="<?php echo esc_attr( (string) ( $review->candidate->credentialId ?? '' ) ); ?>">
-													<?php wp_nonce_field( $applyFormAction ); ?>
-													<button class="button button-primary" type="submit"><?php esc_html_e( 'Move to Booster (deployments off)', 'ran-booster-wp-pusher-migrator' ); ?></button>
-												</form>
-											<?php } ?>
-										</div>
-									<?php } ?>
-								</td>
-							</tr>
-						<?php } ?>
+						</thead>
+						<tbody>
+							<?php foreach ( $rows as $row ) { ?>
+								<?php
+								$checkRequest       = $row['check_request'];
+								$rowTargetElementId = null !== $checkRequest ? $checkRequest->targetElementId() : '';
+								require __DIR__ . '/source-row.php';
+								?>
+							<?php } ?>
 					</tbody>
 				</table>
 			</div>

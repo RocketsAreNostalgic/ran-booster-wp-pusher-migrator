@@ -20,6 +20,26 @@
 	margin-block-start: var(--ran-booster-space-4);
 }
 
+.ran-booster-admin .ran-booster-wp-pusher-migrator__packages {
+	table-layout: fixed;
+}
+
+.ran-booster-admin .ran-booster-wp-pusher-migrator__package-column {
+	inline-size: 25%;
+}
+
+.ran-booster-admin .ran-booster-wp-pusher-migrator__repository-column {
+	inline-size: 22%;
+}
+
+.ran-booster-admin .ran-booster-wp-pusher-migrator__status-column {
+	inline-size: 38%;
+}
+
+.ran-booster-admin .ran-booster-wp-pusher-migrator__action-column {
+	inline-size: 15%;
+}
+
 .ran-booster-admin .ran-booster-wp-pusher-migrator__actions,
 .ran-booster-admin .ran-booster-wp-pusher-migrator__actions form,
 .ran-booster-admin .ran-booster-wp-pusher-migrator__actions label {
@@ -33,9 +53,11 @@
 	border-block-start: 1px solid var(--ran-booster-divider);
 }
 
-.ran-booster-admin .ran-booster-wp-pusher-migrator__actions .button {
-	justify-self: start;
-	white-space: nowrap;
+.ran-booster-admin .ran-booster-wp-pusher-migrator__action-cell .button {
+	box-sizing: border-box;
+	inline-size: 100%;
+	justify-content: center;
+	text-align: center;
 }
 
 .ran-booster-admin .ran-booster-wp-pusher-migrator__actions input[type="text"] {
@@ -59,5 +81,19 @@
 @media screen and (max-width: 782px) {
 	.ran-booster-admin .ran-booster-wp-pusher-migrator__cleanup {
 		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+@media screen and (max-width: 960px) {
+	.ran-booster-admin .ran-booster-wp-pusher-migrator__packages {
+		table-layout: auto;
+	}
+
+	.ran-booster-admin .ran-booster-wp-pusher-migrator__packages col {
+		inline-size: auto;
+	}
+
+	.ran-booster-admin .ran-booster-wp-pusher-migrator__action-cell .button {
+		white-space: normal;
 	}
 }

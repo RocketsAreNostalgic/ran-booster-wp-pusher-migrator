@@ -45,6 +45,25 @@ composer install --no-interaction --prefer-dist
 composer check
 ```
 
+### Repeatable local migration fixtures
+
+The development-only fixture set provides six harmless installed plugins for
+repeated migration checks. Run the reseed script with the target WordPress
+public directory and its Local MySQL socket:
+
+```sh
+bash scripts/reseed-local-wp-pusher-fixtures.sh \
+  "/path/to/site/app/public" \
+  "/path/to/Local/run/site-id/mysql/mysqld.sock" \
+  "http://localhost:10023"
+```
+
+The script verifies the expected site URL and exact WP Pusher table schema,
+refuses to replace existing plugin paths, and inserts only missing WP Pusher
+rows. It never deletes Booster management records. The first cycle tests
+adoption; later reseeded cycles test the already-managed review and cleanup
+path.
+
 See [RELEASE.md](RELEASE.md) for the authoritative release procedure.
 
 ## License
