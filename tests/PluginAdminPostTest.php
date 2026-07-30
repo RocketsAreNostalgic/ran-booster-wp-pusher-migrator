@@ -94,7 +94,7 @@ final class PluginAdminPostTest extends TestCase {
 		self::assertSame( 'wp-pusher:check-package', $interaction->outcome?->request()->operation() );
 		self::assertSame( $targetId, $interaction->outcome?->request()->targetElementId() );
 		self::assertStringStartsWith( '<tr id="' . $targetId . '">', trim( $interaction->fragment ) );
-		self::assertStringContainsString( '<strong> Ready to adopt </strong>', preg_replace( '/\\s+/', ' ', $interaction->fragment ) ?? '' );
+		self::assertStringContainsString( '<strong>Ready to adopt</strong>', $interaction->fragment );
 		self::assertStringContainsString( '>Adopt</button>', $interaction->fragment );
 		self::assertStringNotContainsString( '>Check</button>', $interaction->fragment );
 		self::assertStringNotContainsString( '<table', $interaction->fragment );

@@ -36,13 +36,12 @@ $managedReview     = null !== $review && 'managed' === $review->action;
 			<strong><?php esc_html_e( 'Cannot adopt', 'ran-booster-wp-pusher-migrator' ); ?></strong>
 			<span><?php echo esc_html( $row['error'] ); ?></span>
 		<?php } elseif ( $actionableReview ) { ?>
-			<strong>
-				<?php
-				$managedReview
-					? esc_html_e( 'Ready to finish', 'ran-booster-wp-pusher-migrator' )
-					: esc_html_e( 'Ready to adopt', 'ran-booster-wp-pusher-migrator' );
-				?>
-			</strong>
+			<?php if ( $managedReview ) { ?>
+				<strong><?php esc_html_e( 'Adoption incomplete', 'ran-booster-wp-pusher-migrator' ); ?></strong>
+				<span><?php esc_html_e( 'Booster manages this package; a WP Pusher record remains.', 'ran-booster-wp-pusher-migrator' ); ?></span>
+			<?php } else { ?>
+				<strong><?php esc_html_e( 'Ready to adopt', 'ran-booster-wp-pusher-migrator' ); ?></strong>
+			<?php } ?>
 		<?php } elseif ( null !== $review ) { ?>
 			<strong><?php esc_html_e( 'Cannot adopt', 'ran-booster-wp-pusher-migrator' ); ?></strong>
 			<span><?php echo esc_html( $review->message ); ?></span>

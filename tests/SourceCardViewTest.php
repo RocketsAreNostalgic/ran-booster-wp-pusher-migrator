@@ -113,7 +113,7 @@ final class SourceCardViewTest extends TestCase {
 	public function testActionableCheckedPackageReplacesCheckWithAdopt(): void {
 		$output = $this->renderPublicPackage( 'adopt' );
 
-		self::assertStringContainsString( '<strong> Ready to adopt </strong>', preg_replace( '/\\s+/', ' ', $output ) ?? '' );
+		self::assertStringContainsString( '<strong>Ready to adopt</strong>', $output );
 		self::assertStringContainsString( 'value="apply"', $output );
 		self::assertStringContainsString( '>Adopt</button>', $output );
 		self::assertStringNotContainsString( '>Check</button>', $output );
@@ -123,7 +123,8 @@ final class SourceCardViewTest extends TestCase {
 	public function testManagedReviewExplainsTheRemainingCleanupAction(): void {
 		$output = $this->renderPublicPackage( 'managed' );
 
-		self::assertStringContainsString( '<strong> Ready to finish </strong>', preg_replace( '/\\s+/', ' ', $output ) ?? '' );
+		self::assertStringContainsString( '<strong>Adoption incomplete</strong>', $output );
+		self::assertStringContainsString( '<span>Booster manages this package; a WP Pusher record remains.</span>', $output );
 		self::assertStringNotContainsString( '<strong>Checked</strong>', $output );
 		self::assertStringContainsString( '>Finish</button>', $output );
 		self::assertStringNotContainsString( '>Adopt</button>', $output );
