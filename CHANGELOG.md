@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.1.0-alpha.3](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/compare/v0.1.0-alpha.2...v0.1.0-alpha.3) (2026-07-30)
+
+
+### Features
+
+* add stateful WP Pusher migration rows ([d748fbd](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/d748fbdfffd6541395b9d6502b6b2802a7882979))
+* **admin:** add stateful WP Pusher migration rows ([#4](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/4)) ([d5f7ed6](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/d5f7ed62c0acf861fb85ac0c6e22ca5b9001e1ad))
+
+
+### Bug Fixes
+
+* **admin:** clarify incomplete adoption state ([a8ea787](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/a8ea787f31b33e70fcaedd40bdcec3850b4ec8f4))
+* **admin:** clarify WP Pusher migration flow ([2ccca7f](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/2ccca7fad038ed0921d0cf2fa418917fa713df53))
+* **admin:** distinguish managed migration cleanup ([d1b5a27](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/d1b5a27857e6b0ac932a72a4fc3515bc9fc9b735))
+* **admin:** hide completed migration warning ([e042451](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/e042451d7f789a12d876892d1eb6854ea4399857))
+* **admin:** keep removal warning visible ([433c37a](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/433c37a275d7f7f1410b448ca0dd39b0b4a1fbc5))
+* **admin:** reveal final migration completion ([a913ffb](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/a913ffb48fb6054b080da9d5be4677590c30cd21))
+* **admin:** shorten migration completion heading ([7880329](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/788032999398c4431a77c1e11cd2baa911bee693))
+* **admin:** shorten migration row actions ([a1e2a86](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/a1e2a869a8e86c7170a1955ef713c3f3009d0378))
+
+
+### Miscellaneous Chores
+
+* **tooling:** align plugin conventions ([57f988f](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/57f988f9ec237f4dc76ccab54ff5cf17f90e1e91))
+
 ## [0.1.0-alpha.2](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/compare/v0.1.0-alpha.1...v0.1.0-alpha.2) (2026-07-29)
 
 
