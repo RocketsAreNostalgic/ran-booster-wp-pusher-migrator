@@ -120,12 +120,13 @@ final class SourceCardViewTest extends TestCase {
 		self::assertStringNotContainsString( 'Move to Booster (deployments off)', $output );
 	}
 
-	public function testManagedReviewUsesOneLineVerifiedStatus(): void {
+	public function testManagedReviewExplainsTheRemainingCleanupAction(): void {
 		$output = $this->renderPublicPackage( 'managed' );
 
-		self::assertStringContainsString( '<strong> Adoption verified </strong>', preg_replace( '/\\s+/', ' ', $output ) ?? '' );
+		self::assertStringContainsString( '<strong> Ready to finish </strong>', preg_replace( '/\\s+/', ' ', $output ) ?? '' );
 		self::assertStringNotContainsString( '<strong>Checked</strong>', $output );
-		self::assertStringContainsString( '>Adopt</button>', $output );
+		self::assertStringContainsString( '>Finish</button>', $output );
+		self::assertStringNotContainsString( '>Adopt</button>', $output );
 	}
 
 	public function testBlockedReviewKeepsItsReasonBelowAConciseHeading(): void {

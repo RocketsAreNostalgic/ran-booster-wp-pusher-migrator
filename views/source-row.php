@@ -20,6 +20,7 @@ $imported         = true === $row['imported'];
 $checkRequest     = $row['check_request'];
 $importRequest    = $row['import_request'];
 $actionableReview = null !== $review && in_array( $review->action, array( 'adopt', 'managed' ), true );
+$managedReview    = null !== $review && 'managed' === $review->action;
 ?>
 <tr<?php echo '' === $rowTargetElementId ? '' : ' id="' . esc_attr( $rowTargetElementId ) . '"'; ?>>
 	<th scope="row"><code><?php echo esc_html( $source->package ); ?></code></th>
@@ -33,8 +34,8 @@ $actionableReview = null !== $review && in_array( $review->action, array( 'adopt
 		<?php } elseif ( $actionableReview ) { ?>
 			<strong>
 				<?php
-				'managed' === $review->action
-					? esc_html_e( 'Adoption verified', 'ran-booster-wp-pusher-migrator' )
+				$managedReview
+					? esc_html_e( 'Ready to finish', 'ran-booster-wp-pusher-migrator' )
 					: esc_html_e( 'Ready to adopt', 'ran-booster-wp-pusher-migrator' );
 				?>
 			</strong>
@@ -85,7 +86,7 @@ $actionableReview = null !== $review && in_array( $review->action, array( 'adopt
 						<input type="hidden" name="review_fingerprint" value="<?php echo esc_attr( $review->fingerprint ); ?>">
 						<input type="hidden" name="credential_id" value="<?php echo esc_attr( (string) ( $review->candidate->credentialId ?? '' ) ); ?>">
 						<?php wp_nonce_field( $applyFormAction ); ?>
-						<button class="button button-primary" type="submit"><?php esc_html_e( 'Adopt', 'ran-booster-wp-pusher-migrator' ); ?></button>
+						<button class="button button-primary" type="submit"><?php $managedReview ? esc_html_e( 'Finish', 'ran-booster-wp-pusher-migrator' ) : esc_html_e( 'Adopt', 'ran-booster-wp-pusher-migrator' ); ?></button>
 					</form>
 				<?php } ?>
 			</div>
