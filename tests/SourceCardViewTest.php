@@ -200,6 +200,11 @@ final class SourceCardViewTest extends TestCase {
 			$output
 		);
 		self::assertStringContainsString( 'Package migration complete', $output );
+		self::assertStringContainsString(
+			'class="notice notice-warning inline ran-booster-wp-pusher-migrator__removal"',
+			$output
+		);
+		self::assertStringNotContainsString( '<details', $output );
 		self::assertStringNotContainsString( 'ran-booster-wp-pusher-migrator__packages', $output );
 	}
 

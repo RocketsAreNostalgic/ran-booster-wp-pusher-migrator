@@ -91,8 +91,7 @@
 	margin-block-start: var(--ran-booster-space-20);
 }
 
-.ran-booster-admin .ran-booster-wp-pusher-migrator__cleanup form,
-.ran-booster-admin .ran-booster-wp-pusher-migrator__removal {
+.ran-booster-admin .ran-booster-wp-pusher-migrator__cleanup form {
 	padding: var(--ran-booster-space-16);
 	border: 1px solid var(--ran-booster-divider);
 	background: var(--ran-booster-surface-subtle);

@@ -35,8 +35,8 @@ defined( 'ABSPATH' ) || exit;
 			</form>
 		<?php } ?>
 	</div>
-	<details class="ran-booster-wp-pusher-migrator__removal">
-		<summary><?php esc_html_e( 'Before removing WP Pusher', 'ran-booster-wp-pusher-migrator' ); ?></summary>
+	<div class="notice notice-warning inline ran-booster-wp-pusher-migrator__removal">
+		<p><strong><?php esc_html_e( 'Before removing WP Pusher', 'ran-booster-wp-pusher-migrator' ); ?></strong></p>
 		<p><?php esc_html_e( 'This migrator does not delete either plugin or contact WP Pusher. Review the WP Pusher license and any provider webhooks separately before deleting it.', 'ran-booster-wp-pusher-migrator' ); ?></p>
-	</details>
+	</div>
 </div>
