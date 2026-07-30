@@ -8,13 +8,10 @@
  * @var string              $formAction
  * @var string              $applyFormAction
  * @var array{result:\RAN\AddOn\Portability\PortabilityApplyResult,cleanup_pending:bool}|null $apply
- * @var array{success:bool,message:string}|null $cleanup
- * @var bool                $tablePresent
- * @var string              $optionsAction
- * @var string              $tableAction
  * @var string              $migrationUrl
  * @var string              $adminPostAction
  * @var object|null         $adminInteraction
+ * @var string              $pluginsUrl
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -22,7 +19,6 @@ defined( 'ABSPATH' ) || exit;
 $hasError = '' !== $error;
 if ( ! $hasError ) {
 	$legacyDataPresent = in_array( true, $optionPresence, true );
-	$unusedOptions     = array_diff( array_keys( array_filter( $optionPresence ) ), array( 'wppusher_license_key' ) );
 }
 ?>
 <section class="ran-booster-portability__flow ran-booster-wp-pusher-migrator" id="ran-booster-portability-wp-pusher" aria-labelledby="ran-booster-portability-wp-pusher-heading" hidden>
@@ -44,11 +40,6 @@ if ( ! $hasError ) {
 						<?php esc_html_e( 'The package is safely stored in Booster, but its old WP Pusher record remains. Keep WP Pusher inactive and try again.', 'ran-booster-wp-pusher-migrator' ); ?>
 					<?php } ?>
 				</p>
-			</div>
-		<?php } ?>
-		<?php if ( null !== $cleanup ) { ?>
-			<div class="notice <?php echo $cleanup['success'] ? 'notice-success' : 'notice-error'; ?> inline">
-				<p><?php echo esc_html( $cleanup['message'] ); ?></p>
 			</div>
 		<?php } ?>
 		<?php if ( $legacyDataPresent ) { ?>

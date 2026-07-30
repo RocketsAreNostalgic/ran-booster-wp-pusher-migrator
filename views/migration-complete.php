@@ -1,42 +1,34 @@
 <?php
 /**
- * WP Pusher package migration completion and optional cleanup.
+ * WP Pusher package migration completion advisory.
  *
  * @var bool                $completionVisible
- * @var list<string>        $unusedOptions
- * @var bool                $tablePresent
- * @var string              $migrationUrl
- * @var string              $optionsAction
- * @var string              $tableAction
+ * @var string              $pluginsUrl
  */
 
 defined( 'ABSPATH' ) || exit;
 ?>
 <div id="ran-booster-wp-pusher-migration-complete" class="ran-booster-wp-pusher-migrator__completion-panel<?php echo $completionVisible ? ' ran-booster-wp-pusher-migrator__completion-panel--visible' : ''; ?>">
-	<div class="ran-booster-wp-pusher-migrator__complete">
-		<h4><?php esc_html_e( 'Package migration complete', 'ran-booster-wp-pusher-migrator' ); ?></h4>
-		<p><?php esc_html_e( 'No WP Pusher package records remain. You can now review the optional cleanup below.', 'ran-booster-wp-pusher-migrator' ); ?></p>
-	</div>
-	<div class="ran-booster-wp-pusher-migrator__cleanup">
-		<?php if ( array() !== $unusedOptions ) { ?>
-			<form method="post" action="<?php echo esc_url( $migrationUrl ); ?>">
-				<input type="hidden" name="ran_booster_wp_pusher_migrator_action" value="delete_options">
-				<?php wp_nonce_field( $optionsAction ); ?>
-				<p><?php esc_html_e( 'Remove known WP Pusher settings that Booster does not use. The WP Pusher license key and unknown settings are kept.', 'ran-booster-wp-pusher-migrator' ); ?></p>
-				<button class="button" type="submit"><?php esc_html_e( 'Remove unused settings', 'ran-booster-wp-pusher-migrator' ); ?></button>
-			</form>
-		<?php } ?>
-		<?php if ( $tablePresent ) { ?>
-			<form method="post" action="<?php echo esc_url( $migrationUrl ); ?>">
-				<input type="hidden" name="ran_booster_wp_pusher_migrator_action" value="drop_table">
-				<?php wp_nonce_field( $tableAction ); ?>
-				<p><?php esc_html_e( 'Remove the empty WP Pusher package table after checking it again.', 'ran-booster-wp-pusher-migrator' ); ?></p>
-				<button class="button" type="submit"><?php esc_html_e( 'Remove empty package table', 'ran-booster-wp-pusher-migrator' ); ?></button>
-			</form>
-		<?php } ?>
-	</div>
-	<div class="notice notice-warning inline ran-booster-wp-pusher-migrator__removal">
-		<p><strong><?php esc_html_e( 'Before removing WP Pusher', 'ran-booster-wp-pusher-migrator' ); ?></strong></p>
-		<p><?php esc_html_e( 'This migrator does not delete either plugin or contact WP Pusher. Review the WP Pusher license and any provider webhooks separately before deleting it.', 'ran-booster-wp-pusher-migrator' ); ?></p>
+	<div class="notice notice-success inline ran-booster-wp-pusher-migrator__completion-advisory">
+		<h4><?php esc_html_e( 'Package migration complete!', 'ran-booster-wp-pusher-migrator' ); ?></h4>
+		<p><?php esc_html_e( 'No WP Pusher packages remain. You can now uninstall WP Pusher.', 'ran-booster-wp-pusher-migrator' ); ?></p>
+		<ol>
+			<li>
+				<strong><?php esc_html_e( 'Delete WP Pusher from WordPress.', 'ran-booster-wp-pusher-migrator' ); ?></strong>
+				<?php esc_html_e( 'WP Pusher will remove its own settings and package table, and attempt to revoke this site’s license activation.', 'ran-booster-wp-pusher-migrator' ); ?>
+			</li>
+			<li>
+				<strong><?php esc_html_e( 'Confirm the site was deactivated.', 'ran-booster-wp-pusher-migrator' ); ?></strong>
+				<?php esc_html_e( 'Sign in to WP Pusher and revoke the site manually if it still appears.', 'ran-booster-wp-pusher-migrator' ); ?>
+			</li>
+			<li>
+				<strong><?php esc_html_e( 'Review repository webhooks.', 'ran-booster-wp-pusher-migrator' ); ?></strong>
+				<?php esc_html_e( 'If push-to-deploy was enabled, check your repository provider separately for any WP Pusher webhooks.', 'ran-booster-wp-pusher-migrator' ); ?>
+			</li>
+		</ol>
+		<p class="ran-booster-wp-pusher-migrator__completion-actions">
+			<a class="button" href="<?php echo esc_url( $pluginsUrl ); ?>"><?php esc_html_e( 'Open Installed Plugins', 'ran-booster-wp-pusher-migrator' ); ?></a>
+			<a class="button" href="https://dashboard.wppusher.com/login" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Open WP Pusher dashboard', 'ran-booster-wp-pusher-migrator' ); ?></a>
+		</p>
 	</div>
 </div>

@@ -26,14 +26,16 @@ with deployment Disabled.
 4. Apply only candidates whose installed package and repository identity match.
 5. Confirm the adopted Booster package is Disabled before removing its exact
    retained WP Pusher row.
-6. After all rows are migrated, optionally remove only the known unused options
-   and freshly verified empty package table offered by the bridge.
-7. Verify the migrated packages, remove any provider-side deployment webhooks,
-   then remove this bridge.
+6. After all rows are migrated, delete WP Pusher through WordPress. WP Pusher's
+   uninstaller removes its local data and attempts to revoke the site's license
+   activation.
+7. Confirm the site activation is gone in the WP Pusher dashboard and review
+   any provider-side deployment webhooks separately.
+8. Verify the migrated packages, then remove this bridge.
 
-The bridge preserves the WP Pusher license key and unknown options. WordPress
-plugin deletion can invoke WP Pusher's own uninstall behavior, so review that
-separately.
+The bridge leaves WP Pusher's settings and empty package table for WP Pusher's
+own uninstaller. It does not delete WP Pusher, contact WP Pusher, or remove
+provider webhooks.
 
 ## Development
 
@@ -61,8 +63,8 @@ bash scripts/reseed-local-wp-pusher-fixtures.sh \
 The script verifies the expected site URL and exact WP Pusher table schema,
 refuses to replace existing plugin paths, and inserts only missing WP Pusher
 rows. It never deletes Booster management records. The first cycle tests
-adoption; later reseeded cycles test the already-managed review and cleanup
-path.
+adoption; later reseeded cycles test the already-managed review and exact
+source-row removal path.
 
 See [RELEASE.md](RELEASE.md) for the authoritative release procedure.
 

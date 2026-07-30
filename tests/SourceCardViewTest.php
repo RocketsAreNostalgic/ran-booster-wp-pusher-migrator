@@ -52,13 +52,10 @@ final class SourceCardViewTest extends TestCase {
 		$formAction       = 'bridge-review';
 		$applyFormAction  = 'bridge-apply';
 		$apply            = null;
-		$cleanup          = null;
-		$tablePresent     = true;
-		$optionsAction    = 'bridge-options';
-		$tableAction      = 'bridge-table';
 		$migrationUrl     = 'https://example.test/wp-admin/admin.php?page=ran-booster&tab=portability#ran-booster-portability-wp-pusher';
 		$adminPostAction  = 'bridge-package';
 		$adminInteraction = null;
+		$pluginsUrl       = 'https://example.test/wp-admin/plugins.php';
 
 		ob_start();
 		require dirname( __DIR__ ) . '/views/source-card.php';
@@ -200,12 +197,20 @@ final class SourceCardViewTest extends TestCase {
 			'class="ran-booster-wp-pusher-migrator__completion-panel ran-booster-wp-pusher-migrator__completion-panel--visible"',
 			$output
 		);
-		self::assertStringContainsString( 'Package migration complete', $output );
+		self::assertStringContainsString( 'Package migration complete!', $output );
+		self::assertStringContainsString( 'No WP Pusher packages remain. You can now uninstall WP Pusher.', $output );
 		self::assertStringContainsString(
-			'class="notice notice-warning inline ran-booster-wp-pusher-migrator__removal"',
+			'class="notice notice-success inline ran-booster-wp-pusher-migrator__completion-advisory"',
 			$output
 		);
-		self::assertStringNotContainsString( '<details', $output );
+		self::assertStringContainsString( 'WP Pusher will remove its own settings and package table', $output );
+		self::assertStringContainsString( 'href="https://example.test/wp-admin/plugins.php"', $output );
+		self::assertStringContainsString( 'href="https://dashboard.wppusher.com/login"', $output );
+		self::assertStringContainsString( 'check your repository provider separately', $output );
+		self::assertStringNotContainsString( 'delete_options', $output );
+		self::assertStringNotContainsString( 'drop_table', $output );
+		self::assertStringNotContainsString( 'Remove unused settings', $output );
+		self::assertStringNotContainsString( 'Remove empty package table', $output );
 		self::assertStringNotContainsString( 'ran-booster-wp-pusher-migrator__packages', $output );
 	}
 
@@ -260,13 +265,10 @@ final class SourceCardViewTest extends TestCase {
 		$formAction       = 'bridge-review';
 		$applyFormAction  = 'bridge-apply';
 		$apply            = null;
-		$cleanup          = null;
-		$tablePresent     = true;
-		$optionsAction    = 'bridge-options';
-		$tableAction      = 'bridge-table';
 		$migrationUrl     = 'https://example.test/wp-admin/admin.php?page=ran-booster&tab=portability#ran-booster-portability-wp-pusher';
 		$adminPostAction  = 'bridge-package';
 		$adminInteraction = $interaction;
+		$pluginsUrl       = 'https://example.test/wp-admin/plugins.php';
 
 		ob_start();
 		require dirname( __DIR__ ) . '/views/source-card.php';
@@ -281,13 +283,10 @@ final class SourceCardViewTest extends TestCase {
 		$formAction       = 'bridge-review';
 		$applyFormAction  = 'bridge-apply';
 		$apply            = null;
-		$cleanup          = null;
-		$tablePresent     = true;
-		$optionsAction    = 'bridge-options';
-		$tableAction      = 'bridge-table';
 		$migrationUrl     = 'https://example.test/wp-admin/admin.php?page=ran-booster&tab=portability#ran-booster-portability-wp-pusher';
 		$adminPostAction  = 'bridge-package';
 		$adminInteraction = null;
+		$pluginsUrl       = 'https://example.test/wp-admin/plugins.php';
 
 		ob_start();
 		require dirname( __DIR__ ) . '/views/source-card.php';

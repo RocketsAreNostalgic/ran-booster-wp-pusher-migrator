@@ -25,11 +25,13 @@ Before merging a release pull request:
    install.
 5. Exercise inactive and active WP Pusher, wrong version/schema, unsupported
    providers, public/private plugin and theme rows, stale review/apply data,
-   conflicting managed targets, partial cleanup recovery, and both plugin load
-   orders.
+   conflicting managed targets, partial exact source-row deletion recovery,
+   and both plugin load orders.
 6. Confirm every adopted target is freshly verified and Disabled before exact
-   source-row deletion. Verify optional cleanup preserves the license key,
-   unknown options, plugin files, and remote webhooks.
+   source-row deletion. Verify the completion advisory links to Installed
+   Plugins and the WP Pusher dashboard, describes WP Pusher-owned uninstall,
+   and leaves settings, the empty package table, plugin files, and remote
+   webhooks untouched.
 
 Merging the reviewed Release Please pull request creates the `v<version>` tag
 and prerelease GitHub release. The same workflow checks out that exact tag,

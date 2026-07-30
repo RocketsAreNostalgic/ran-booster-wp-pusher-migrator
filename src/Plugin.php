@@ -19,8 +19,6 @@ final class Plugin {
 
 	private const FORM_ACTION       = 'ran-booster-wp-pusher-migrator-review-v1';
 	private const APPLY_FORM_ACTION = 'ran-booster-wp-pusher-migrator-apply-v1';
-	private const OPTIONS_ACTION    = 'ran-booster-wp-pusher-migrator-delete-options-v1';
-	private const TABLE_ACTION      = 'ran-booster-wp-pusher-migrator-drop-table-v1';
 	private const ADMIN_POST_ACTION = 'ran_booster_wp_pusher_migrator_package';
 
 	private static ?MigrationService $migration              = null;
@@ -93,16 +91,13 @@ final class Plugin {
 			if ( null !== $apply ) {
 				$packages = self::$migration->packages();
 			}
-			$cleanup          = self::submittedCleanup( $packages );
 			$optionPresence   = self::$source->optionPresence();
-			$tablePresent     = self::$source->packageTablePresent();
 			$rows             = self::rows( $packages, $review, $migrationUrl );
 			$formAction       = self::FORM_ACTION;
 			$applyFormAction  = self::APPLY_FORM_ACTION;
-			$optionsAction    = self::OPTIONS_ACTION;
-			$tableAction      = self::TABLE_ACTION;
 			$adminPostAction  = self::ADMIN_POST_ACTION;
 			$adminInteraction = self::$adminInteraction;
+			$pluginsUrl       = admin_url( 'plugins.php' );
 			require dirname( __DIR__ ) . '/views/source-card.php';
 		} catch ( Throwable ) {
 			$error = __( 'Booster could not read this WP Pusher installation safely. Check that WP Pusher 3.0.13 is installed and inactive, then try again.', 'ran-booster-wp-pusher-migrator' );
@@ -278,40 +273,6 @@ final class Plugin {
 				}
 			}
 		);
-	}
-
-	/**
-	 * @param list<WpPusherPackage> $packages Current exact source rows.
-	 * @return array{success:bool,message:string}|null
-	 */
-	private static function submittedCleanup( array $packages ): ?array {
-		$operation = isset( $_POST['ran_booster_wp_pusher_migrator_action'] ) && is_scalar( $_POST['ran_booster_wp_pusher_migrator_action'] )
-			? sanitize_key( wp_unslash( (string) $_POST['ran_booster_wp_pusher_migrator_action'] ) )
-			: '';
-		if ( ! in_array( $operation, array( 'delete_options', 'drop_table' ), true ) ) {
-			return null;
-		}
-		check_admin_referer( 'delete_options' === $operation ? self::OPTIONS_ACTION : self::TABLE_ACTION );
-		if ( array() !== $packages ) {
-			return array(
-				'success' => false,
-				'message' => __( 'Migrate every supported package row before cleaning up WP Pusher data.', 'ran-booster-wp-pusher-migrator' ),
-			);
-		}
-
-		if ( 'delete_options' === $operation ) {
-			$success = self::$source->deleteUnusedOptions();
-			$message = $success
-				? __( 'Unused known WP Pusher options were removed. The license key and unknown options were preserved.', 'ran-booster-wp-pusher-migrator' )
-				: __( 'WP Pusher options were not removed because the source state changed.', 'ran-booster-wp-pusher-migrator' );
-		} else {
-			$success = self::$source->dropEmptyPackageTable();
-			$message = $success
-				? __( 'The freshly verified empty WP Pusher package table was removed.', 'ran-booster-wp-pusher-migrator' )
-				: __( 'The WP Pusher package table was not removed because it changed or is not empty.', 'ran-booster-wp-pusher-migrator' );
-		}
-
-		return compact( 'success', 'message' );
 	}
 
 	/**
