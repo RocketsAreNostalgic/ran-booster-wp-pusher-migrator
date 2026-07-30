@@ -218,7 +218,12 @@ final class Plugin {
 						: $result->message;
 					$outcome = AdminInteractionOutcome::validationFailure( $interactionRequest, $message );
 				} else {
-					$fragmentRow = self::importedRow( $source, $migrationUrl, $result );
+					$fragmentRow = self::importedRow(
+						$source,
+						$migrationUrl,
+						$result,
+						self::migrationComplete()
+					);
 					$outcome     = AdminInteractionOutcome::success( $interactionRequest, $result->message );
 				}
 			}
@@ -456,17 +461,18 @@ final class Plugin {
 		}
 
 		return array(
-			'source'          => $source,
-			'candidate'       => $candidate,
-			'error'           => $error,
-			'review'          => $review,
-			'imported'        => false,
-			'status_label'    => '',
-			'manage_url'      => '',
-			'manage_label'    => '',
-			'check_request'   => $checkRequest,
-			'import_request'  => $importRequest,
-			'error_region_id' => self::errorRegionId( $source ),
+			'source'             => $source,
+			'candidate'          => $candidate,
+			'error'              => $error,
+			'review'             => $review,
+			'imported'           => false,
+			'migration_complete' => false,
+			'status_label'       => '',
+			'manage_url'         => '',
+			'manage_label'       => '',
+			'check_request'      => $checkRequest,
+			'import_request'     => $importRequest,
+			'error_region_id'    => self::errorRegionId( $source ),
 		);
 	}
 
@@ -474,20 +480,35 @@ final class Plugin {
 	private static function importedRow(
 		WpPusherPackage $source,
 		string $migrationUrl,
-		PortabilityApplyResult $result
+		PortabilityApplyResult $result,
+		bool $migrationComplete
 	): array {
-		$row                 = self::row( $source, null, $migrationUrl );
-		$row['imported']     = true;
-		$row['status_label'] = 'adopted' === $result->status
-			? __( 'Adopted by Booster', 'ran-booster-wp-pusher-migrator' )
+		$row                       = self::row( $source, null, $migrationUrl );
+		$row['imported']           = true;
+		$row['migration_complete'] = $migrationComplete;
+		$row['status_label']       = 'adopted' === $result->status
+			? __( 'Adopted', 'ran-booster-wp-pusher-migrator' )
 			: __( 'Adoption verified', 'ran-booster-wp-pusher-migrator' );
-		$row['manage_url']   = admin_url(
+		$row['manage_url']         = admin_url(
 			'admin.php?page=' . ( 1 === $source->type ? 'ran-booster-plugins' : 'ran-booster-themes' )
 			. '&package=' . rawurlencode( $source->package )
 		);
-		$row['manage_label'] = __( 'Settings', 'ran-booster-wp-pusher-migrator' );
+		$row['manage_label']       = __( 'Settings', 'ran-booster-wp-pusher-migrator' );
 
 		return $row;
+	}
+
+	private static function migrationComplete(): bool {
+		try {
+			return null !== self::$migration && array() === self::$migration->packages();
+		} catch ( Throwable $failure ) {
+			self::$logging?->logException(
+				'WP Pusher migration completion could not be verified.',
+				$failure
+			);
+
+			return false;
+		}
 	}
 
 	/** @param array<string, mixed> $row */

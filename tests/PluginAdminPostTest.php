@@ -133,13 +133,52 @@ final class PluginAdminPostTest extends TestCase {
 		self::assertSame( 'wp-pusher:import-package', $interaction->outcome?->request()->operation() );
 		self::assertSame( $reviewFingerprint, $portability->expectedReviewFingerprint );
 		self::assertSame( array(), $database->rows );
-		self::assertStringContainsString( '<strong>Adopted by Booster</strong>', $interaction->fragment );
+		self::assertStringContainsString( 'data-ran-booster-wp-pusher-migration-complete="true"', $interaction->fragment );
+		self::assertStringContainsString( '<strong>Adopted</strong>', $interaction->fragment );
 		self::assertStringContainsString( '>Settings</a>', $interaction->fragment );
 		self::assertStringContainsString(
 			'href="https://example.test/wp-admin/admin.php?page=ran-booster-plugins&amp;package=fixture%2Ffixture.php"',
 			$interaction->fragment
 		);
 		self::assertStringNotContainsString( 'deployment remains off', strtolower( $interaction->fragment ) );
+	}
+
+	public function testApplyDoesNotMarkCompletionWhileAnotherSourceRemains(): void {
+		$database             = new AdminPostDatabase();
+		$remaining            = AdminPostDatabase::fixtureRow();
+		$remaining['id']      = '2';
+		$remaining['package'] = 'other/other.php';
+		$database->rows[]     = $remaining;
+		$portability          = new AdminPostPortabilityFacade();
+		$interaction          = new AdminPostInteractionSpy();
+		$this->connect( $database, $portability, $interaction );
+		$source = $this->sourcePackage( $database );
+		$_POST  = $this->applyRequest( $source, 'v1:' . str_repeat( 'f', 64 ) );
+
+		$this->runHandler();
+
+		self::assertCount( 1, $database->rows );
+		self::assertSame( 'other/other.php', $database->rows[0]['package'] );
+		self::assertStringContainsString( '>Settings</a>', $interaction->fragment );
+		self::assertStringNotContainsString( 'data-ran-booster-wp-pusher-migration-complete', $interaction->fragment );
+	}
+
+	public function testCompletionReadbackFailureIsLoggedAndDoesNotClaimCompletion(): void {
+		$database                               = new AdminPostDatabase();
+		$database->failInventoryReadAfterDelete = true;
+		$portability                            = new AdminPostPortabilityFacade();
+		$interaction                            = new AdminPostInteractionSpy();
+		$logging                                = new AdminPostLoggingSpy();
+		$this->connect( $database, $portability, $interaction );
+		$this->setPluginProperty( 'logging', $logging );
+		$source = $this->sourcePackage( $database );
+		$_POST  = $this->applyRequest( $source, 'v1:' . str_repeat( '9', 64 ) );
+
+		$this->runHandler();
+
+		self::assertStringNotContainsString( 'data-ran-booster-wp-pusher-migration-complete', $interaction->fragment );
+		self::assertSame( 'WP Pusher migration completion could not be verified.', $logging->message );
+		self::assertSame( 'Inventory readback failed.', $logging->exception?->getMessage() );
 	}
 
 	public function testAlreadyManagedApplyReturnsOneLineVerifiedStatus(): void {
@@ -385,7 +424,11 @@ final class AdminPostDatabase {
 
 	/** @var list<array<string, mixed>> */
 	public array $rows;
-	public int $deleteResult = 1;
+	public int $deleteResult                  = 1;
+	public bool $failInventoryReadAfterDelete = false;
+	/** @var list<mixed> */
+	private array $preparedValues = array();
+	private bool $deleted         = false;
 
 	public function __construct() {
 		$this->rows = array( self::fixtureRow() );
@@ -420,6 +463,11 @@ final class AdminPostDatabase {
 	public function get_results( string $query, string $output ): array {
 		unset( $output );
 		$GLOBALS['ran_booster_wp_pusher_test_events'][] = 'database';
+		if ( $this->failInventoryReadAfterDelete
+			&& $this->deleted
+			&& str_starts_with( $query, 'SELECT `' ) ) {
+			throw new RuntimeException( 'Inventory readback failed.' );
+		}
 		if ( str_starts_with( $query, 'SHOW COLUMNS' ) ) {
 			return array(
 				array(
@@ -469,7 +517,7 @@ final class AdminPostDatabase {
 	}
 
 	public function prepare( string $query, mixed ...$values ): string {
-		unset( $values );
+		$this->preparedValues = $values;
 
 		return $query;
 	}
@@ -478,7 +526,14 @@ final class AdminPostDatabase {
 		$GLOBALS['ran_booster_wp_pusher_test_events'][] = 'database';
 		if ( str_starts_with( $query, 'DELETE FROM `wp_wppusher_packages`' )
 			&& 1 === $this->deleteResult ) {
-			$this->rows = array();
+			$sourceId      = (string) ( $this->preparedValues[0] ?? '' );
+			$this->rows    = array_values(
+				array_filter(
+					$this->rows,
+					static fn ( array $row ): bool => $sourceId !== (string) $row['id']
+				)
+			);
+			$this->deleted = true;
 		}
 
 		return $this->deleteResult;

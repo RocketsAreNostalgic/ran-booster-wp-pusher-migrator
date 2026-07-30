@@ -52,37 +52,10 @@ if ( ! $hasError ) {
 			</div>
 		<?php } ?>
 		<?php if ( $legacyDataPresent ) { ?>
-			<div class="notice notice-warning inline"><p><?php esc_html_e( 'Saved WP Pusher settings were found. They will not be copied. For a private repository, choose an existing Booster credential.', 'ran-booster-wp-pusher-migrator' ); ?></p></div>
+			<div class="notice notice-warning inline"><p><?php esc_html_e( 'WP Pusher settings found: Not all Pusher settings can be migrated. Private repositories will need to access credentials.', 'ran-booster-wp-pusher-migrator' ); ?></p></div>
 		<?php } ?>
 
-		<?php if ( array() === $rows ) { ?>
-			<div class="ran-booster-wp-pusher-migrator__complete">
-				<h4><?php esc_html_e( 'Package migration complete', 'ran-booster-wp-pusher-migrator' ); ?></h4>
-				<p><?php esc_html_e( 'No WP Pusher package records remain. You can now review the optional cleanup below.', 'ran-booster-wp-pusher-migrator' ); ?></p>
-			</div>
-			<div class="ran-booster-wp-pusher-migrator__cleanup">
-				<?php if ( array() !== $unusedOptions ) { ?>
-					<form method="post" action="<?php echo esc_url( $migrationUrl ); ?>">
-						<input type="hidden" name="ran_booster_wp_pusher_migrator_action" value="delete_options">
-						<?php wp_nonce_field( $optionsAction ); ?>
-						<p><?php esc_html_e( 'Remove known WP Pusher settings that Booster does not use. The WP Pusher license key and unknown settings are kept.', 'ran-booster-wp-pusher-migrator' ); ?></p>
-						<button class="button" type="submit"><?php esc_html_e( 'Remove unused settings', 'ran-booster-wp-pusher-migrator' ); ?></button>
-					</form>
-				<?php } ?>
-				<?php if ( $tablePresent ) { ?>
-					<form method="post" action="<?php echo esc_url( $migrationUrl ); ?>">
-						<input type="hidden" name="ran_booster_wp_pusher_migrator_action" value="drop_table">
-						<?php wp_nonce_field( $tableAction ); ?>
-						<p><?php esc_html_e( 'Remove the empty WP Pusher package table after checking it again.', 'ran-booster-wp-pusher-migrator' ); ?></p>
-						<button class="button" type="submit"><?php esc_html_e( 'Remove empty package table', 'ran-booster-wp-pusher-migrator' ); ?></button>
-					</form>
-				<?php } ?>
-			</div>
-			<details class="ran-booster-wp-pusher-migrator__removal">
-				<summary><?php esc_html_e( 'Before removing WP Pusher', 'ran-booster-wp-pusher-migrator' ); ?></summary>
-				<p><?php esc_html_e( 'This migrator does not delete either plugin or contact WP Pusher. Review the WP Pusher license and any provider webhooks separately before deleting it.', 'ran-booster-wp-pusher-migrator' ); ?></p>
-			</details>
-		<?php } else { ?>
+		<?php if ( array() !== $rows ) { ?>
 			<div class="ran-booster-portability__table-scroll ran-booster-wp-pusher-migrator__table-scroll" role="region" aria-labelledby="ran-booster-portability-wp-pusher-heading" tabindex="0">
 				<table class="widefat striped ran-booster-portability__review-table ran-booster-wp-pusher-migrator__packages">
 					<colgroup>
@@ -111,5 +84,9 @@ if ( ! $hasError ) {
 				</table>
 			</div>
 		<?php } ?>
+		<?php
+		$completionVisible = array() === $rows;
+		require __DIR__ . '/migration-complete.php';
+		?>
 	<?php } ?>
 </section>

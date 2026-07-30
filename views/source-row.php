@@ -13,21 +13,25 @@
 
 defined( 'ABSPATH' ) || exit;
 
-$source           = $row['source'];
-$candidate        = $row['candidate'];
-$review           = $row['review'];
-$imported         = true === $row['imported'];
-$checkRequest     = $row['check_request'];
-$importRequest    = $row['import_request'];
-$actionableReview = null !== $review && in_array( $review->action, array( 'adopt', 'managed' ), true );
-$managedReview    = null !== $review && 'managed' === $review->action;
+$source            = $row['source'];
+$candidate         = $row['candidate'];
+$review            = $row['review'];
+$imported          = true === $row['imported'];
+$migrationComplete = true === $row['migration_complete'];
+$checkRequest      = $row['check_request'];
+$importRequest     = $row['import_request'];
+$actionableReview  = null !== $review && in_array( $review->action, array( 'adopt', 'managed' ), true );
+$managedReview     = null !== $review && 'managed' === $review->action;
 ?>
-<tr<?php echo '' === $rowTargetElementId ? '' : ' id="' . esc_attr( $rowTargetElementId ) . '"'; ?>>
+<tr<?php echo '' === $rowTargetElementId ? '' : ' id="' . esc_attr( $rowTargetElementId ) . '"'; ?><?php echo $migrationComplete ? ' data-ran-booster-wp-pusher-migration-complete="true"' : ''; ?>>
 	<th scope="row"><code><?php echo esc_html( $source->package ); ?></code></th>
 	<td><code><?php echo esc_html( $source->repository ); ?></code></td>
 	<td>
 		<?php if ( $imported ) { ?>
 			<strong><?php echo esc_html( $row['status_label'] ); ?></strong>
+			<?php if ( $migrationComplete ) { ?>
+				<span class="screen-reader-text" role="status" aria-live="polite"><?php esc_html_e( 'Package migration complete.', 'ran-booster-wp-pusher-migrator' ); ?></span>
+			<?php } ?>
 		<?php } elseif ( '' !== $row['error'] ) { ?>
 			<strong><?php esc_html_e( 'Cannot adopt', 'ran-booster-wp-pusher-migrator' ); ?></strong>
 			<span><?php echo esc_html( $row['error'] ); ?></span>
