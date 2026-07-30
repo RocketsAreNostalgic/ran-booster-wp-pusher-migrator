@@ -223,7 +223,7 @@ final class SourceCardViewTest extends TestCase {
 			'class="ran-booster-wp-pusher-migrator__completion-panel ran-booster-wp-pusher-migrator__completion-panel--visible"',
 			$output
 		);
-		self::assertStringContainsString( 'Package migration complete!', $output );
+		self::assertStringContainsString( 'Migration complete!', $output );
 		self::assertStringContainsString( 'No WP Pusher packages remain. You can now uninstall WP Pusher.', $output );
 		self::assertStringContainsString(
 			'class="notice notice-success inline ran-booster-wp-pusher-migrator__completion-advisory"',

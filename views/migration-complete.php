@@ -10,7 +10,7 @@ defined( 'ABSPATH' ) || exit;
 ?>
 <div id="ran-booster-wp-pusher-migration-complete" class="ran-booster-wp-pusher-migrator__completion-panel<?php echo $completionVisible ? ' ran-booster-wp-pusher-migrator__completion-panel--visible' : ''; ?>">
 	<div class="notice notice-success inline ran-booster-wp-pusher-migrator__completion-advisory">
-		<h4><?php esc_html_e( 'Package migration complete!', 'ran-booster-wp-pusher-migrator' ); ?></h4>
+		<h4><?php esc_html_e( 'Migration complete!', 'ran-booster-wp-pusher-migrator' ); ?></h4>
 		<p><?php esc_html_e( 'No WP Pusher packages remain. You can now uninstall WP Pusher.', 'ran-booster-wp-pusher-migrator' ); ?></p>
 		<ol>
 			<li>
