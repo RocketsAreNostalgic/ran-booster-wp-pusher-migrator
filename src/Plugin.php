@@ -209,16 +209,16 @@ final class Plugin {
 			} else {
 				$apply = self::apply( $packages, $request );
 				if ( null === $apply ) {
-					throw new \RuntimeException( 'The WP Pusher package could not be imported.' );
+					throw new \RuntimeException( 'The WP Pusher package could not be adopted.' );
 				}
 				$result = $apply['result'];
 				if ( ! $result->targetVerified || $apply['cleanup_pending'] ) {
 					$message = $apply['cleanup_pending']
-						? __( 'Booster verified the imported package, but its exact WP Pusher source record could not be removed. Keep WP Pusher inactive and try again.', 'ran-booster-wp-pusher-migrator' )
+						? __( 'Booster verified the adopted package, but its exact WP Pusher source record could not be removed. Keep WP Pusher inactive and try again.', 'ran-booster-wp-pusher-migrator' )
 						: $result->message;
 					$outcome = AdminInteractionOutcome::validationFailure( $interactionRequest, $message );
 				} else {
-					$fragmentRow = self::importedRow( $source, $migrationUrl );
+					$fragmentRow = self::importedRow( $source, $migrationUrl, $result );
 					$outcome     = AdminInteractionOutcome::success( $interactionRequest, $result->message );
 				}
 			}
@@ -461,6 +461,7 @@ final class Plugin {
 			'error'           => $error,
 			'review'          => $review,
 			'imported'        => false,
+			'status_label'    => '',
 			'manage_url'      => '',
 			'manage_label'    => '',
 			'check_request'   => $checkRequest,
@@ -470,9 +471,16 @@ final class Plugin {
 	}
 
 	/** @return array<string, mixed> */
-	private static function importedRow( WpPusherPackage $source, string $migrationUrl ): array {
+	private static function importedRow(
+		WpPusherPackage $source,
+		string $migrationUrl,
+		PortabilityApplyResult $result
+	): array {
 		$row                 = self::row( $source, null, $migrationUrl );
 		$row['imported']     = true;
+		$row['status_label'] = 'adopted' === $result->status
+			? __( 'Adopted by Booster', 'ran-booster-wp-pusher-migrator' )
+			: __( 'Adoption verified', 'ran-booster-wp-pusher-migrator' );
 		$row['manage_url']   = admin_url(
 			'admin.php?page=' . ( 1 === $source->type ? 'ran-booster-plugins' : 'ran-booster-themes' )
 			. '&package=' . rawurlencode( $source->package )
@@ -541,7 +549,7 @@ final class Plugin {
 		$message = $failure->getMessage();
 		$allowed = array(
 			'The WP Pusher package could not be checked.',
-			'The WP Pusher package could not be imported.',
+			'The WP Pusher package could not be adopted.',
 			'The WP Pusher package is no longer available.',
 			'Refresh the WP Pusher migration review.',
 			'The WP Pusher package changed. Review it again.',

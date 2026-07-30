@@ -94,9 +94,9 @@ final class PluginAdminPostTest extends TestCase {
 		self::assertSame( 'wp-pusher:check-package', $interaction->outcome?->request()->operation() );
 		self::assertSame( $targetId, $interaction->outcome?->request()->targetElementId() );
 		self::assertStringStartsWith( '<tr id="' . $targetId . '">', trim( $interaction->fragment ) );
-		self::assertStringContainsString( '<strong>Checked</strong>', $interaction->fragment );
-		self::assertStringContainsString( '>Import</button>', $interaction->fragment );
-		self::assertStringNotContainsString( 'Check package', $interaction->fragment );
+		self::assertStringContainsString( '<strong> Ready to adopt </strong>', preg_replace( '/\\s+/', ' ', $interaction->fragment ) ?? '' );
+		self::assertStringContainsString( '>Adopt</button>', $interaction->fragment );
+		self::assertStringNotContainsString( '>Check</button>', $interaction->fragment );
 		self::assertStringNotContainsString( '<table', $interaction->fragment );
 		self::assertSame( $source->fingerprint(), $portability->reviewedSourceFingerprint );
 	}
@@ -133,14 +133,29 @@ final class PluginAdminPostTest extends TestCase {
 		self::assertSame( 'wp-pusher:import-package', $interaction->outcome?->request()->operation() );
 		self::assertSame( $reviewFingerprint, $portability->expectedReviewFingerprint );
 		self::assertSame( array(), $database->rows );
-		self::assertStringContainsString( '<strong>Imported</strong>', $interaction->fragment );
-		self::assertStringContainsString( 'Managed by Booster.', $interaction->fragment );
+		self::assertStringContainsString( '<strong>Adopted by Booster</strong>', $interaction->fragment );
 		self::assertStringContainsString( '>Plugin settings</a>', $interaction->fragment );
 		self::assertStringContainsString(
 			'href="https://example.test/wp-admin/admin.php?page=ran-booster-plugins&amp;package=fixture%2Ffixture.php"',
 			$interaction->fragment
 		);
 		self::assertStringNotContainsString( 'deployment remains off', strtolower( $interaction->fragment ) );
+	}
+
+	public function testAlreadyManagedApplyReturnsOneLineVerifiedStatus(): void {
+		$database                 = new AdminPostDatabase();
+		$portability              = new AdminPostPortabilityFacade();
+		$portability->applyStatus = 'unchanged';
+		$interaction              = new AdminPostInteractionSpy();
+		$this->connect( $database, $portability, $interaction );
+		$source = $this->sourcePackage( $database );
+		$_POST  = $this->applyRequest( $source, 'v1:' . str_repeat( 'e', 64 ) );
+
+		$this->runHandler();
+
+		self::assertStringContainsString( '<strong>Adoption verified</strong>', $interaction->fragment );
+		self::assertStringNotContainsString( 'Managed by Booster.', $interaction->fragment );
+		self::assertStringContainsString( '>Plugin settings</a>', $interaction->fragment );
 	}
 
 	public function testCleanupPendingUsesBoundedLocalFailureAndKeepsSource(): void {
@@ -156,7 +171,7 @@ final class PluginAdminPostTest extends TestCase {
 
 		self::assertSame( 'validation_failure', $interaction->outcome?->kind() );
 		self::assertSame(
-			'Booster verified the imported package, but its exact WP Pusher source record could not be removed. Keep WP Pusher inactive and try again.',
+			'Booster verified the adopted package, but its exact WP Pusher source record could not be removed. Keep WP Pusher inactive and try again.',
 			$interaction->outcome?->message()
 		);
 		self::assertLessThanOrEqual( 255, strlen( (string) $interaction->outcome?->message() ) );
@@ -317,6 +332,7 @@ final class AdminPostPortabilityFacade extends PortabilityFacade {
 	public int $reviewCalls                  = 0;
 	public string $reviewedSourceFingerprint = '';
 	public string $expectedReviewFingerprint = '';
+	public string $applyStatus               = 'adopted';
 	public ?RuntimeException $reviewFailure  = null;
 
 	public function review( PortabilityCandidate $candidate, string $nonce ): PortabilityReviewResult {
@@ -344,7 +360,7 @@ final class AdminPostPortabilityFacade extends PortabilityFacade {
 		unset( $candidate, $nonce );
 		$this->expectedReviewFingerprint = $expectedFingerprint;
 
-		return new PortabilityApplyResult( 'adopted', 'adopted', 'Imported.', true );
+		return new PortabilityApplyResult( $this->applyStatus, $this->applyStatus, 'Imported.', true );
 	}
 }
 

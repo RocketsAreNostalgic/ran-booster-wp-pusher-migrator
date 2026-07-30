@@ -73,8 +73,8 @@ final class SourceCardViewTest extends TestCase {
 		self::assertStringContainsString( 'name="credential_id"', $output );
 		self::assertStringContainsString( ' required', $output );
 		self::assertStringContainsString( 'Saved WP Pusher settings were found.', $output );
-		self::assertStringContainsString( 'Check package', $output );
-		self::assertStringNotContainsString( '>Import</button>', $output );
+		self::assertStringContainsString( '>Check</button>', $output );
+		self::assertStringNotContainsString( '>Adopt</button>', $output );
 		self::assertStringNotContainsString( 'temporary bridge reads retained', $output );
 		self::assertStringContainsString( 'name="_wpnonce"', $output );
 		self::assertStringContainsString(
@@ -106,20 +106,37 @@ final class SourceCardViewTest extends TestCase {
 	public function testPublicPackageDoesNotAskForCredentials(): void {
 		$output = $this->renderPublicPackage();
 
-		self::assertStringContainsString( 'Check package', $output );
+		self::assertStringContainsString( '>Check</button>', $output );
 		self::assertStringNotContainsString( 'name="credential_id"', $output );
 	}
 
-	public function testActionableCheckedPackageReplacesCheckWithImport(): void {
+	public function testActionableCheckedPackageReplacesCheckWithAdopt(): void {
 		$output = $this->renderPublicPackage( 'adopt' );
 
+		self::assertStringContainsString( '<strong> Ready to adopt </strong>', preg_replace( '/\\s+/', ' ', $output ) ?? '' );
 		self::assertStringContainsString( 'value="apply"', $output );
-		self::assertStringContainsString( '>Import</button>', $output );
-		self::assertStringNotContainsString( 'Check package', $output );
+		self::assertStringContainsString( '>Adopt</button>', $output );
+		self::assertStringNotContainsString( '>Check</button>', $output );
 		self::assertStringNotContainsString( 'Move to Booster (deployments off)', $output );
 	}
 
-	public function testEnhancedCheckAndImportUseCoreRowFacade(): void {
+	public function testManagedReviewUsesOneLineVerifiedStatus(): void {
+		$output = $this->renderPublicPackage( 'managed' );
+
+		self::assertStringContainsString( '<strong> Adoption verified </strong>', preg_replace( '/\\s+/', ' ', $output ) ?? '' );
+		self::assertStringNotContainsString( '<strong>Checked</strong>', $output );
+		self::assertStringContainsString( '>Adopt</button>', $output );
+	}
+
+	public function testBlockedReviewKeepsItsReasonBelowAConciseHeading(): void {
+		$output = $this->renderPublicPackage( 'blocked' );
+
+		self::assertStringContainsString( '<strong>Cannot adopt</strong>', $output );
+		self::assertStringContainsString( '<span>Repository access could not be verified.</span>', $output );
+		self::assertStringContainsString( '>Check</button>', $output );
+	}
+
+	public function testEnhancedCheckAndAdoptUseCoreRowFacade(): void {
 		$interaction = new SourceCardInteractionSpy();
 		$check       = $this->renderPublicPackage( null, $interaction );
 
@@ -134,7 +151,7 @@ final class SourceCardViewTest extends TestCase {
 		$import = $this->renderPublicPackage( 'adopt', $interaction );
 
 		self::assertStringContainsString( 'data-test-operation="wp-pusher:import-package"', $import );
-		self::assertStringContainsString( '>Import</button>', $import );
+		self::assertStringContainsString( '>Adopt</button>', $import );
 		self::assertSame(
 			array( 'wp-pusher:check-package', 'wp-pusher:import-package' ),
 			$interaction->renderedOperations
@@ -144,15 +161,15 @@ final class SourceCardViewTest extends TestCase {
 	public function testImportedPackageReplacesActionsWithManageSettingsLink(): void {
 		$output = $this->renderPublicPackage( null, null, true );
 
-		self::assertStringContainsString( '<strong>Imported</strong>', $output );
+		self::assertStringContainsString( '<strong>Adopted by Booster</strong>', $output );
 		self::assertStringContainsString( '<td class="ran-booster-wp-pusher-migrator__action-cell">', $output );
 		self::assertStringContainsString( '>Plugin settings</a>', $output );
 		self::assertStringContainsString(
 			'href="https://example.test/wp-admin/admin.php?page=ran-booster-plugins&amp;package=fixture%2Ffixture.php"',
 			$output
 		);
-		self::assertStringNotContainsString( 'Check package', $output );
-		self::assertStringNotContainsString( '>Import</button>', $output );
+		self::assertStringNotContainsString( '>Check</button>', $output );
+		self::assertStringNotContainsString( '>Adopt</button>', $output );
 	}
 
 	private function renderPublicPackage(
@@ -188,12 +205,13 @@ final class SourceCardViewTest extends TestCase {
 				$candidate,
 				$reviewAction,
 				'ready',
-				'Ready to import.',
+				'blocked' === $reviewAction ? 'Repository access could not be verified.' : 'Ready to adopt.',
 				'v1:' . str_repeat( 'a', 64 )
 			);
 		$row       = $this->row( $source, $candidate, $review, $interaction );
 		if ( $imported ) {
 			$row['imported']     = true;
+			$row['status_label'] = 'Adopted by Booster';
 			$row['manage_url']   = 'https://example.test/wp-admin/admin.php?page=ran-booster-plugins&package=fixture%2Ffixture.php';
 			$row['manage_label'] = 'Plugin settings';
 		}
@@ -236,6 +254,7 @@ final class SourceCardViewTest extends TestCase {
 			'error'           => '',
 			'review'          => $review,
 			'imported'        => false,
+			'status_label'    => '',
 			'manage_url'      => '',
 			'manage_label'    => '',
 			'check_request'   => null === $interaction

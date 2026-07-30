@@ -26,13 +26,20 @@ $actionableReview = null !== $review && in_array( $review->action, array( 'adopt
 	<td><code><?php echo esc_html( $source->repository ); ?></code></td>
 	<td>
 		<?php if ( $imported ) { ?>
-			<strong><?php esc_html_e( 'Imported', 'ran-booster-wp-pusher-migrator' ); ?></strong>
-			<span><?php esc_html_e( 'Managed by Booster.', 'ran-booster-wp-pusher-migrator' ); ?></span>
+			<strong><?php echo esc_html( $row['status_label'] ); ?></strong>
 		<?php } elseif ( '' !== $row['error'] ) { ?>
-			<strong><?php esc_html_e( 'Cannot migrate', 'ran-booster-wp-pusher-migrator' ); ?></strong>
+			<strong><?php esc_html_e( 'Cannot adopt', 'ran-booster-wp-pusher-migrator' ); ?></strong>
 			<span><?php echo esc_html( $row['error'] ); ?></span>
+		<?php } elseif ( $actionableReview ) { ?>
+			<strong>
+				<?php
+				'managed' === $review->action
+					? esc_html_e( 'Adoption verified', 'ran-booster-wp-pusher-migrator' )
+					: esc_html_e( 'Ready to adopt', 'ran-booster-wp-pusher-migrator' );
+				?>
+			</strong>
 		<?php } elseif ( null !== $review ) { ?>
-			<strong><?php esc_html_e( 'Checked', 'ran-booster-wp-pusher-migrator' ); ?></strong>
+			<strong><?php esc_html_e( 'Cannot adopt', 'ran-booster-wp-pusher-migrator' ); ?></strong>
 			<span><?php echo esc_html( $review->message ); ?></span>
 		<?php } else { ?>
 			<?php esc_html_e( 'Ready to check', 'ran-booster-wp-pusher-migrator' ); ?>
@@ -62,7 +69,7 @@ $actionableReview = null !== $review && in_array( $review->action, array( 'adopt
 								<input type="text" name="credential_id" maxlength="64" pattern="[A-Za-z0-9_-]{3,64}" autocomplete="off" required>
 							</label>
 						<?php } ?>
-						<button class="button" type="submit"><?php esc_html_e( 'Check package', 'ran-booster-wp-pusher-migrator' ); ?></button>
+						<button class="button" type="submit"><?php esc_html_e( 'Check', 'ran-booster-wp-pusher-migrator' ); ?></button>
 					</form>
 				<?php } else { ?>
 					<form method="post" action="<?php echo esc_url( $migrationUrl ); ?>"
@@ -78,7 +85,7 @@ $actionableReview = null !== $review && in_array( $review->action, array( 'adopt
 						<input type="hidden" name="review_fingerprint" value="<?php echo esc_attr( $review->fingerprint ); ?>">
 						<input type="hidden" name="credential_id" value="<?php echo esc_attr( (string) ( $review->candidate->credentialId ?? '' ) ); ?>">
 						<?php wp_nonce_field( $applyFormAction ); ?>
-						<button class="button button-primary" type="submit"><?php esc_html_e( 'Import', 'ran-booster-wp-pusher-migrator' ); ?></button>
+						<button class="button button-primary" type="submit"><?php esc_html_e( 'Adopt', 'ran-booster-wp-pusher-migrator' ); ?></button>
 					</form>
 				<?php } ?>
 			</div>
