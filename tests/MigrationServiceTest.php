@@ -67,6 +67,35 @@ final class MigrationServiceTest extends TestCase {
 		self::assertSame( 'apply:' . $review, $service->nonceAction( 'apply', $source, null, $review ) );
 	}
 
+	public function testForwardsBitbucketProviderAndReplacementCredentialThroughReviewAndApply(): void {
+		$database                          = new FakeDatabase();
+		$database->rows[0]['host']         = 'bb';
+		$database->rows[0]['private']      = '1';
+		$database->rows[0]['repository']   = 'fixture-workspace/private-plugin';
+		$database->rows[0]['subdirectory'] = 'packages/plugin';
+		$facade                            = new FakePortabilityFacade();
+		$service                           = $this->service( $facade, $database );
+		$source                            = $service->packages()[0];
+
+		$service->review( $source->id, $source->fingerprint(), 'bitbucket_profile', 'review-nonce' );
+
+		self::assertSame( 'bb', $facade->candidate?->providerCode );
+		self::assertSame( 'fixture-workspace/private-plugin', $facade->candidate?->repository );
+		self::assertSame( 'packages/plugin', $facade->candidate?->subdirectory );
+		self::assertSame( 'bitbucket_profile', $facade->candidate?->credentialId );
+
+		$service->apply(
+			$source->id,
+			$source->fingerprint(),
+			'bitbucket_profile',
+			'v1:' . str_repeat( 'b', 64 ),
+			'apply-nonce'
+		);
+
+		self::assertSame( 'bb', $facade->candidate?->providerCode );
+		self::assertSame( 'bitbucket_profile', $facade->candidate?->credentialId );
+	}
+
 	public function testCleanupRequiresVerifiedTargetAndExactSource(): void {
 		$database = new FakeDatabase();
 		$facade   = new FakePortabilityFacade();

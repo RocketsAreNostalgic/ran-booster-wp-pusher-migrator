@@ -101,6 +101,37 @@ final class PluginAdminPostTest extends TestCase {
 		self::assertSame( $source->fingerprint(), $portability->reviewedSourceFingerprint );
 	}
 
+	public function testPrivateBitbucketProviderAndReplacementCredentialReachReviewAndApply(): void {
+		$database                        = new AdminPostDatabase();
+		$database->rows[0]['host']       = 'bb';
+		$database->rows[0]['private']    = '1';
+		$database->rows[0]['repository'] = 'fixture-workspace/private-plugin';
+		$portability                     = new AdminPostPortabilityFacade();
+		$interaction                     = new AdminPostInteractionSpy();
+		$this->connect( $database, $portability, $interaction );
+		$source                 = $this->sourcePackage( $database );
+		$_POST                  = $this->reviewRequest( $source );
+		$_POST['credential_id'] = 'bitbucket_profile';
+
+		$this->runHandler();
+
+		self::assertSame( 'bb', $portability->candidate?->providerCode );
+		self::assertSame( 'fixture-workspace/private-plugin', $portability->candidate?->repository );
+		self::assertSame( 'bitbucket_profile', $portability->candidate?->credentialId );
+		self::assertStringContainsString( 'name="credential_id" value="bitbucket_profile"', $interaction->fragment );
+
+		$_POST = $this->applyRequest(
+			$source,
+			'v1:' . str_repeat( 'a', 64 ),
+			'bitbucket_profile'
+		);
+
+		$this->runHandler();
+
+		self::assertSame( 'bb', $portability->candidate?->providerCode );
+		self::assertSame( 'bitbucket_profile', $portability->candidate?->credentialId );
+	}
+
 	public function testStaleSourceFingerprintFailsLocallyWithoutApplying(): void {
 		$database    = new AdminPostDatabase();
 		$portability = new AdminPostPortabilityFacade();
@@ -313,14 +344,18 @@ final class PluginAdminPostTest extends TestCase {
 	}
 
 	/** @return array<string, string> */
-	private function applyRequest( WpPusherPackage $source, string $reviewFingerprint ): array {
+	private function applyRequest(
+		WpPusherPackage $source,
+		string $reviewFingerprint,
+		string $credentialId = ''
+	): array {
 		return array(
 			'action'                                => 'ran_booster_wp_pusher_migrator_package',
 			'ran_booster_wp_pusher_migrator_action' => 'apply',
 			'source_id'                             => (string) $source->id,
 			'source_fingerprint'                    => $source->fingerprint(),
 			'review_fingerprint'                    => $reviewFingerprint,
-			'credential_id'                         => '',
+			'credential_id'                         => $credentialId,
 			'_wpnonce'                              => 'ran-booster-wp-pusher-migrator-apply-v1',
 		);
 	}
@@ -373,6 +408,7 @@ final class AdminPostPortabilityFacade extends PortabilityFacade {
 	public string $expectedReviewFingerprint = '';
 	public string $applyStatus               = 'adopted';
 	public ?RuntimeException $reviewFailure  = null;
+	public ?PortabilityCandidate $candidate  = null;
 
 	public function review( PortabilityCandidate $candidate, string $nonce ): PortabilityReviewResult {
 		unset( $nonce );
@@ -380,6 +416,7 @@ final class AdminPostPortabilityFacade extends PortabilityFacade {
 		if ( $this->reviewFailure instanceof RuntimeException ) {
 			throw $this->reviewFailure;
 		}
+		$this->candidate                 = $candidate;
 		$this->reviewedSourceFingerprint = WpPusherPackage::fromRow( AdminPostDatabase::fixtureRow() )->fingerprint();
 
 		return new PortabilityReviewResult(
@@ -396,7 +433,8 @@ final class AdminPostPortabilityFacade extends PortabilityFacade {
 		string $expectedFingerprint,
 		string $nonce
 	): PortabilityApplyResult {
-		unset( $candidate, $nonce );
+		unset( $nonce );
+		$this->candidate                 = $candidate;
 		$this->expectedReviewFingerprint = $expectedFingerprint;
 
 		return new PortabilityApplyResult( $this->applyStatus, $this->applyStatus, 'Imported.', true );

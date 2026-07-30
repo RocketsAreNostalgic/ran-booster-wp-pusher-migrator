@@ -135,6 +135,32 @@ final class SourceCardViewTest extends TestCase {
 		self::assertStringContainsString( '>Check</button>', $output );
 	}
 
+	public function testGitLabPackageRendersUserVisibleUnsupportedRowWithoutActions(): void {
+		$source       = WpPusherPackage::fromRow(
+			array(
+				'id'           => '1',
+				'package'      => 'fixture/fixture.php',
+				'repository'   => 'fixture-group/gitlab-plugin',
+				'branch'       => 'main',
+				'type'         => '1',
+				'status'       => '1',
+				'ptd'          => '0',
+				'host'         => 'gl',
+				'private'      => '0',
+				'subdirectory' => null,
+			)
+		);
+		$row          = $this->row( $source, null, null );
+		$row['error'] = 'GitLab WP Pusher packages are not supported.';
+		$output       = $this->renderRows( array( $row ) );
+
+		self::assertStringContainsString( '<strong>Cannot adopt</strong>', $output );
+		self::assertStringContainsString( 'GitLab WP Pusher packages are not supported.', $output );
+		self::assertStringNotContainsString( '>Check</button>', $output );
+		self::assertStringNotContainsString( '>Adopt</button>', $output );
+		self::assertStringNotContainsString( 'name="credential_id"', $output );
+	}
+
 	public function testEnhancedCheckAndAdoptUseCoreRowFacade(): void {
 		$interaction = new SourceCardInteractionSpy();
 		$check       = $this->renderPublicPackage( null, $interaction );
@@ -281,9 +307,15 @@ final class SourceCardViewTest extends TestCase {
 	}
 
 	private function renderEmptyInventory(): string {
-		$rows             = array();
+		return $this->renderRows( array(), array( 'gh_token' => true ) );
+	}
+
+	/**
+	 * @param list<array<string, mixed>> $rows
+	 * @param array<string, bool>        $optionPresence
+	 */
+	private function renderRows( array $rows, array $optionPresence = array() ): string {
 		$error            = '';
-		$optionPresence   = array( 'gh_token' => true );
 		$formAction       = 'bridge-review';
 		$applyFormAction  = 'bridge-apply';
 		$apply            = null;
@@ -303,7 +335,7 @@ final class SourceCardViewTest extends TestCase {
 	 */
 	private function row(
 		WpPusherPackage $source,
-		PortabilityCandidate $candidate,
+		?PortabilityCandidate $candidate,
 		?PortabilityReviewResult $review,
 		?TransporterRowAdminInteractionFacade $interaction = null
 	): array {

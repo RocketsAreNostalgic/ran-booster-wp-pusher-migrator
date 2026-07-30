@@ -22,11 +22,15 @@ Before merging a release pull request:
    dependency directory, or repository metadata.
 4. Install the ZIP beside the exact released Booster generation exposing
    Portability API 1 and Logging API 1 in a disposable single-site WordPress
-   install.
+   install. For Bitbucket coverage, also install the compatible released RAN
+   Booster Bitbucket Cloud add-on.
 5. Exercise inactive and active WP Pusher, wrong version/schema, unsupported
-   providers, public/private plugin and theme rows, stale review/apply data,
-   conflicting managed targets, partial exact source-row deletion recovery,
-   and both plugin load orders.
+   providers, public/private plugin and theme rows, public Bitbucket adoption,
+   private Bitbucket adoption with an existing replacement Booster credential
+   profile, Bitbucket with the add-on missing or incompatible, stale review/apply
+   data, conflicting managed targets, partial exact source-row deletion
+   recovery, and both plugin load orders. Confirm GitLab rows remain visible as
+   unsupported with no adoption action.
 6. Confirm every adopted target is freshly verified and Disabled before exact
    source-row deletion. Verify the completion advisory links to Installed
    Plugins and the WP Pusher dashboard, describes WP Pusher-owned uninstall,

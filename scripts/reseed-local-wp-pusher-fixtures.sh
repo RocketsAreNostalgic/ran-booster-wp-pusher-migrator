@@ -33,6 +33,8 @@ slugs=(
 	booster-migration-delta
 	booster-migration-echo
 	booster-migration-foxtrot
+	booster-migration-bitbucket
+	booster-migration-gitlab
 )
 
 for slug in "${slugs[@]}"; do
@@ -87,21 +89,26 @@ INSERT INTO \`${table_prefix}wppusher_packages\`
 	(\`package\`, \`repository\`, \`branch\`, \`type\`, \`status\`, \`ptd\`, \`host\`, \`private\`, \`subdirectory\`)
 SELECT
 	CONCAT(slug, '/', slug, '.php'),
-	'RocketsAreNostalgic/booster-fixture-plugin',
+	repository,
 	'main',
 	1,
 	1,
 	0,
-	'gh',
+	host,
 	0,
 	NULL
 FROM (
-	SELECT 'booster-migration-alpha' AS slug
-	UNION ALL SELECT 'booster-migration-bravo'
-	UNION ALL SELECT 'booster-migration-charlie'
-	UNION ALL SELECT 'booster-migration-delta'
-	UNION ALL SELECT 'booster-migration-echo'
-	UNION ALL SELECT 'booster-migration-foxtrot'
+	SELECT
+		'booster-migration-alpha' AS slug,
+		'RocketsAreNostalgic/booster-fixture-plugin' AS repository,
+		'gh' AS host
+	UNION ALL SELECT 'booster-migration-bravo', 'RocketsAreNostalgic/booster-fixture-plugin', 'gh'
+	UNION ALL SELECT 'booster-migration-charlie', 'RocketsAreNostalgic/booster-fixture-plugin', 'gh'
+	UNION ALL SELECT 'booster-migration-delta', 'RocketsAreNostalgic/booster-fixture-plugin', 'gh'
+	UNION ALL SELECT 'booster-migration-echo', 'RocketsAreNostalgic/booster-fixture-plugin', 'gh'
+	UNION ALL SELECT 'booster-migration-foxtrot', 'RocketsAreNostalgic/booster-fixture-plugin', 'gh'
+	UNION ALL SELECT 'booster-migration-bitbucket', 'fixture-workspace/booster-migration-bitbucket', 'bb'
+	UNION ALL SELECT 'booster-migration-gitlab', 'fixture-group/booster-migration-gitlab', 'gl'
 ) AS fixtures
 WHERE NOT EXISTS (
 	SELECT 1

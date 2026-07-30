@@ -15,14 +15,30 @@ with deployment Disabled.
 - A compatible RAN Booster release exposing Portability API 1 and Logging API 1.
 - A single-site WordPress installation.
 - WP Pusher 3.0.13 installed but inactive.
-- An existing Booster credential profile for each private repository.
+- For Bitbucket Cloud packages, the compatible RAN Booster Bitbucket Cloud
+  add-on installed and active.
+- An existing replacement Booster credential profile for each private
+  repository, including private Bitbucket repositories. The bridge never copies
+  WP Pusher credentials.
+
+## Provider support
+
+- GitHub and Bitbucket Cloud package rows can be adopted when their matching
+  Booster provider is available. Public Bitbucket repositories do not need a
+  credential profile.
+- Private Bitbucket repositories require the compatible Bitbucket Cloud add-on
+  and an existing Bitbucket credential profile in Booster.
+- GitLab package rows are retained and shown as **Cannot adopt**. GitLab is not
+  supported by this bridge; migrate those packages manually before removing WP
+  Pusher.
 
 ## Migrate from WP Pusher
 
 1. Back up the site and deactivate WP Pusher.
 2. Install and activate this bridge beside a compatible RAN Booster release.
 3. Open Booster's Transporter screen, choose **Migrate from WP Pusher**, and
-   review one retained package at a time.
+   review one retained package at a time. Confirm the Bitbucket add-on is active
+   before reviewing any Bitbucket rows.
 4. Apply only candidates whose installed package and repository identity match.
 5. Confirm the adopted Booster package is Disabled before removing its exact
    retained WP Pusher row.
@@ -49,9 +65,10 @@ composer check
 
 ### Repeatable local migration fixtures
 
-The development-only fixture set provides six harmless installed plugins for
-repeated migration checks. Run the reseed script with the target WordPress
-public directory and its Local MySQL socket:
+The development-only fixture set provides eight harmless installed plugins:
+six repeatable GitHub adoption fixtures, one public Bitbucket provider/error
+fixture, and one unsupported GitLab fixture. Run the reseed script with the
+target WordPress public directory and its Local MySQL socket:
 
 ```sh
 bash scripts/reseed-local-wp-pusher-fixtures.sh \
@@ -64,7 +81,9 @@ The script verifies the expected site URL and exact WP Pusher table schema,
 refuses to replace existing plugin paths, and inserts only missing WP Pusher
 rows. It never deletes Booster management records. The first cycle tests
 adoption; later reseeded cycles test the already-managed review and exact
-source-row removal path.
+source-row removal path. The fake Bitbucket repository is deliberately
+unresolvable so **Check** exercises provider failure handling; the GitLab row
+renders **Cannot adopt** without offering an action.
 
 See [RELEASE.md](RELEASE.md) for the authoritative release procedure.
 
