@@ -1,10 +1,10 @@
 # Prerelease guide
 
 Release Please opens Alpha release pull requests from Conventional Commits. It
-owns the plugin-header version, `CHANGELOG.md`, and
-`.release-please-manifest.json`. A `fix` commit advances the patch prerelease
-line, a `feat` advances the minor prerelease line, and a breaking-change marker
-advances the pre-1.0 minor line.
+owns the synchronized plugin-header and `package.json` versions,
+`CHANGELOG.md`, and `.release-please-manifest.json`. A `fix` commit advances the
+patch prerelease line, a `feat` advances the minor prerelease line, and a
+breaking-change marker advances the pre-1.0 minor line.
 
 The `0.0.0` manifest value is an unreleased bootstrap boundary. The first
 release proposal must be `0.1.0-alpha.1` and must update the manifest, changelog,
@@ -15,21 +15,28 @@ add a manual `Release-As` footer.
 
 Before merging a release pull request:
 
-1. Run `composer validate --strict --no-check-publish` and `composer check`.
+1. Run `composer validate --strict --no-check-publish`, `pnpm install
+   --frozen-lockfile`, `pnpm check`, and `composer check`.
 2. Build twice from clean checkouts and confirm matching ZIP SHA-256 hashes.
 3. Inspect the allowlisted ZIP: one
    `ran-booster-wp-pusher-migrator/` root; no tests, tools, workflows, scripts,
    dependency directory, or repository metadata.
 4. Install the ZIP beside the exact released Booster generation exposing
    Portability API 1 and Logging API 1 in a disposable single-site WordPress
-   install.
+   install. For Bitbucket coverage, also install the compatible released RAN
+   Booster Bitbucket Cloud add-on.
 5. Exercise inactive and active WP Pusher, wrong version/schema, unsupported
-   providers, public/private plugin and theme rows, stale review/apply data,
-   conflicting managed targets, partial cleanup recovery, and both plugin load
-   orders.
+   providers, public/private plugin and theme rows, public Bitbucket adoption,
+   private Bitbucket adoption with an existing replacement Booster credential
+   profile, Bitbucket with the add-on missing or incompatible, stale review/apply
+   data, conflicting managed targets, partial exact source-row deletion
+   recovery, and both plugin load orders. Confirm GitLab rows remain visible as
+   unsupported with no adoption action.
 6. Confirm every adopted target is freshly verified and Disabled before exact
-   source-row deletion. Verify optional cleanup preserves the license key,
-   unknown options, plugin files, and remote webhooks.
+   source-row deletion. Verify the completion advisory links to Installed
+   Plugins and the WP Pusher dashboard, describes WP Pusher-owned uninstall,
+   and leaves settings, the empty package table, plugin files, and remote
+   webhooks untouched.
 
 Merging the reviewed Release Please pull request creates the `v<version>` tag
 and prerelease GitHub release. The same workflow checks out that exact tag,

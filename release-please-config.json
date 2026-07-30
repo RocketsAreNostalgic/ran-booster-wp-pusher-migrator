@@ -16,6 +16,11 @@
         {
           "type": "generic",
           "path": "ran-booster-wp-pusher-migrator.php"
+        },
+        {
+          "type": "json",
+          "path": "package.json",
+          "jsonpath": "$.version"
         }
       ]
     }

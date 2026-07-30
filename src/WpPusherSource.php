@@ -7,7 +7,7 @@ namespace RAN\BoosterWpPusherMigrator;
 use Closure;
 use RuntimeException;
 
-/** Exact-version WP Pusher source and confirmed local-cleanup boundary. */
+/** Exact-version WP Pusher source and package-record cleanup boundary. */
 final class WpPusherSource {
 
 	public const PLUGIN = 'wppusher/wppusher.php';
@@ -40,10 +40,6 @@ final class WpPusherSource {
 		'hide-wppusher-welcome',
 	);
 
-	private const PRESERVED_OPTIONS = array(
-		'wppusher_license_key',
-	);
-
 	private object $database;
 
 	/** @var Closure():array<string, array<string, mixed>> */
@@ -58,23 +54,18 @@ final class WpPusherSource {
 	/** @var Closure():bool */
 	private Closure $multisite;
 
-	/** @var Closure(string):bool */
-	private Closure $deleteOption;
-
 	/**
 	 * @param null|callable():array<string, array<string, mixed>> $plugins
 	 * @param null|callable():array<int, string>                  $activePlugins
 	 * @param null|callable():array<string, mixed>                $networkActivePlugins
 	 * @param null|callable():bool                                $multisite
-	 * @param null|callable(string):bool                          $deleteOption
 	 */
 	public function __construct(
 		?object $database = null,
 		?callable $plugins = null,
 		?callable $activePlugins = null,
 		?callable $networkActivePlugins = null,
-		?callable $multisite = null,
-		?callable $deleteOption = null
+		?callable $multisite = null
 	) {
 		global $wpdb;
 
@@ -83,7 +74,6 @@ final class WpPusherSource {
 		$this->activePlugins        = Closure::fromCallable( $activePlugins ?? static fn (): array => (array) get_option( 'active_plugins', array() ) );
 		$this->networkActivePlugins = Closure::fromCallable( $networkActivePlugins ?? static fn (): array => (array) get_site_option( 'active_sitewide_plugins', array() ) );
 		$this->multisite            = Closure::fromCallable( $multisite ?? static fn (): bool => is_multisite() );
-		$this->deleteOption         = Closure::fromCallable( $deleteOption ?? static fn ( string $name ): bool => delete_option( $name ) );
 	}
 
 	/** @return list<WpPusherPackage> */
@@ -93,10 +83,7 @@ final class WpPusherSource {
 			return array();
 		}
 		$table = $this->table();
-
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Exact validated table derived from wpdb prefix.
-		$schema = $this->database->get_results( "SHOW COLUMNS FROM `{$table}`", ARRAY_A );
-		$this->assertSchema( is_array( $schema ) ? $schema : array() );
+		$this->assertPackageTableSchema( $table );
 
 		$columns = implode( '`, `', array_keys( self::COLUMNS ) );
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Exact validated table and constant column allowlist.
@@ -133,56 +120,22 @@ final class WpPusherSource {
 		return array_map( static fn ( string $name ): bool => isset( $found[ $name ] ), array_combine( self::OPTIONS, self::OPTIONS ) );
 	}
 
-	public function packageTablePresent(): bool {
-		$this->assertSupported();
-
-		return $this->packageTableExists();
-	}
-
-	public function deleteUnusedOptions(): bool {
-		if ( array() !== $this->packages() ) {
-			return false;
-		}
-
-		$options = array_values( array_diff( self::OPTIONS, self::PRESERVED_OPTIONS ) );
-		foreach ( $options as $option ) {
-			( $this->deleteOption )( $option );
-		}
-
-		return ! in_array( true, array_intersect_key( $this->optionPresence(), array_flip( $options ) ), true );
-	}
-
-	public function dropEmptyPackageTable(): bool {
+	public function supportedPackageTablePresent(): bool {
 		$this->assertSupported();
 		if ( ! $this->packageTableExists() ) {
-			return true;
+			return false;
 		}
 
 		$table = $this->table();
+		$this->assertPackageTableSchema( $table );
+
+		return true;
+	}
+
+	private function assertPackageTableSchema( string $table ): void {
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Exact validated table derived from wpdb prefix.
-		if ( false === $this->database->query( "LOCK TABLES `{$table}` WRITE" ) ) {
-			return false;
-		}
-
-		$dropped = false;
-		try {
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Exact validated and locked table.
-			$schema = $this->database->get_results( "SHOW COLUMNS FROM `{$table}`", ARRAY_A );
-			$this->assertSchema( is_array( $schema ) ? $schema : array() );
-
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Exact validated and locked table.
-			if ( 0 !== (int) $this->database->get_var( "SELECT COUNT(*) FROM `{$table}`" ) ) {
-				return false;
-			}
-
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Exact validated, locked, and freshly empty table.
-			$dropped = false !== $this->database->query( "DROP TABLE `{$table}`" );
-		} finally {
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Releases the request-local table lock.
-			$this->database->query( 'UNLOCK TABLES' );
-		}
-
-		return $dropped && ! $this->packageTableExists();
+		$schema = $this->database->get_results( "SHOW COLUMNS FROM `{$table}`", ARRAY_A );
+		$this->assertSchema( is_array( $schema ) ? $schema : array() );
 	}
 
 	public function deleteExact( WpPusherPackage $expected ): bool {

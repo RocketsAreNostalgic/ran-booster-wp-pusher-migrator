@@ -15,34 +15,77 @@ with deployment Disabled.
 - A compatible RAN Booster release exposing Portability API 1 and Logging API 1.
 - A single-site WordPress installation.
 - WP Pusher 3.0.13 installed but inactive.
-- An existing Booster credential profile for each private repository.
+- For Bitbucket Cloud packages, the compatible RAN Booster Bitbucket Cloud
+  add-on installed and active.
+- An existing replacement Booster credential profile for each private
+  repository, including private Bitbucket repositories. The bridge never copies
+  WP Pusher credentials.
 
-## Migration
+## Provider support
+
+- GitHub and Bitbucket Cloud package rows can be adopted when their matching
+  Booster provider is available. Public Bitbucket repositories do not need a
+  credential profile.
+- Private Bitbucket repositories require the compatible Bitbucket Cloud add-on
+  and an existing Bitbucket credential profile in Booster.
+- GitLab package rows are retained and shown as **Cannot adopt**. GitLab is not
+  supported by this bridge; migrate those packages manually before removing WP
+  Pusher.
+
+## Migrate from WP Pusher
 
 1. Back up the site and deactivate WP Pusher.
 2. Install and activate this bridge beside a compatible RAN Booster release.
-3. Open Booster's Portability screen and review one retained package at a time.
+3. Open Booster's Transporter screen, choose **Migrate from WP Pusher**, and
+   review one retained package at a time. Confirm the Bitbucket add-on is active
+   before reviewing any Bitbucket rows.
 4. Apply only candidates whose installed package and repository identity match.
 5. Confirm the adopted Booster package is Disabled before removing its exact
    retained WP Pusher row.
-6. After all rows are migrated, optionally remove only the known unused options
-   and freshly verified empty package table offered by the bridge.
-7. Verify the migrated packages, remove any provider-side deployment webhooks,
-   then remove this bridge.
+6. After all rows are migrated, delete WP Pusher through WordPress. WP Pusher's
+   uninstaller removes its local data and attempts to revoke the site's license
+   activation.
+7. Confirm the site activation is gone in the WP Pusher dashboard and review
+   any provider-side deployment webhooks separately.
+8. Verify the migrated packages, then remove this bridge.
 
-The bridge preserves the WP Pusher license key and unknown options. WordPress
-plugin deletion can invoke WP Pusher's own uninstall behavior, so review that
-separately.
+The bridge leaves WP Pusher's settings and empty package table for WP Pusher's
+own uninstaller. It does not delete WP Pusher, contact WP Pusher, or remove
+provider webhooks.
 
 ## Development
 
-Composer installs development tools only; the release ZIP contains no `vendor/`
-directory.
+Composer and pnpm install development tools only; the release ZIP contains
+neither dependency directory.
 
 ```sh
 composer install --no-interaction --prefer-dist
+pnpm install --frozen-lockfile
+pnpm check
 composer check
 ```
+
+### Repeatable local migration fixtures
+
+The development-only fixture set provides eight harmless installed plugins:
+six repeatable GitHub adoption fixtures, one public Bitbucket provider/error
+fixture, and one unsupported GitLab fixture. Run the reseed script with the
+target WordPress public directory and its Local MySQL socket:
+
+```sh
+bash scripts/reseed-local-wp-pusher-fixtures.sh \
+  "/path/to/site/app/public" \
+  "/path/to/Local/run/site-id/mysql/mysqld.sock" \
+  "http://localhost:10023"
+```
+
+The script verifies the expected site URL and exact WP Pusher table schema,
+refuses to replace existing plugin paths, and inserts only missing WP Pusher
+rows. It never deletes Booster management records. The first cycle tests
+adoption; later reseeded cycles test the already-managed review and exact
+source-row removal path. The fake Bitbucket repository is deliberately
+unresolvable so **Check** exercises provider failure handling; the GitLab row
+renders **Cannot adopt** without offering an action.
 
 See [RELEASE.md](RELEASE.md) for the authoritative release procedure.
 

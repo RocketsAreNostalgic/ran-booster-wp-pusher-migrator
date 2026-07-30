@@ -54,6 +54,58 @@ final class CandidateFactoryTest extends TestCase {
 		self::assertSame( 'profile_123', $candidate['credential_id'] );
 	}
 
+	public function testMapsPublicBitbucketPluginWithoutCredential(): void {
+		$candidate = $this->factory()->candidate(
+			$this->package(
+				array(
+					'host'       => 'bb',
+					'repository' => 'fixture-workspace/public-plugin',
+					'branch'     => 'stable',
+				)
+			)
+		);
+
+		self::assertSame(
+			array(
+				'type'          => 'plugin',
+				'identifier'    => 'fixture/fixture.php',
+				'display_name'  => 'Fixture Plugin',
+				'provider'      => 'bb',
+				'repository'    => 'fixture-workspace/public-plugin',
+				'branch'        => 'stable',
+				'subdirectory'  => null,
+				'credential_id' => null,
+			),
+			$candidate
+		);
+	}
+
+	public function testMapsPrivateBitbucketPluginWithReplacementCredential(): void {
+		$candidate = $this->factory()->candidate(
+			$this->package(
+				array(
+					'host'         => 'bb',
+					'private'      => '1',
+					'repository'   => 'fixture-workspace/private-plugin',
+					'subdirectory' => 'packages/plugin',
+				)
+			),
+			'bitbucket_profile'
+		);
+
+		self::assertSame( 'bb', $candidate['provider'] );
+		self::assertSame( 'fixture-workspace/private-plugin', $candidate['repository'] );
+		self::assertSame( 'packages/plugin', $candidate['subdirectory'] );
+		self::assertSame( 'bitbucket_profile', $candidate['credential_id'] );
+	}
+
+	public function testRejectsGitLabWithUserVisibleMessage(): void {
+		$this->expectException( RuntimeException::class );
+		$this->expectExceptionMessage( 'GitLab WP Pusher packages are not supported.' );
+
+		$this->factory()->candidate( $this->package( array( 'host' => 'gl' ) ) );
+	}
+
 	#[DataProvider( 'unsupportedCandidateProvider' )]
 	public function testRejectsUnsupportedOrMissingCandidate(
 		WpPusherPackage $package,
@@ -67,7 +119,6 @@ final class CandidateFactoryTest extends TestCase {
 
 	/** @return iterable<string, array{WpPusherPackage, array<string, array<string, string>>, bool, string|null}> */
 	public static function unsupportedCandidateProvider(): iterable {
-		yield 'gitlab' => array( self::staticPackage( array( 'host' => 'gl' ) ), array(), true, null );
 		yield 'missing plugin' => array( self::staticPackage(), array(), true, null );
 		yield 'missing theme' => array(
 			self::staticPackage(
