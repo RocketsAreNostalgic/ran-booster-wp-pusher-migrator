@@ -163,7 +163,7 @@ final class SourceCardViewTest extends TestCase {
 
 		self::assertStringContainsString( '<strong>Adopted by Booster</strong>', $output );
 		self::assertStringContainsString( '<td class="ran-booster-wp-pusher-migrator__action-cell">', $output );
-		self::assertStringContainsString( '>Plugin settings</a>', $output );
+		self::assertStringContainsString( '>Settings</a>', $output );
 		self::assertStringContainsString(
 			'href="https://example.test/wp-admin/admin.php?page=ran-booster-plugins&amp;package=fixture%2Ffixture.php"',
 			$output
@@ -213,7 +213,7 @@ final class SourceCardViewTest extends TestCase {
 			$row['imported']     = true;
 			$row['status_label'] = 'Adopted by Booster';
 			$row['manage_url']   = 'https://example.test/wp-admin/admin.php?page=ran-booster-plugins&package=fixture%2Ffixture.php';
-			$row['manage_label'] = 'Plugin settings';
+			$row['manage_label'] = 'Settings';
 		}
 		$rows             = array( $row );
 		$error            = '';

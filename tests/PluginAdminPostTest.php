@@ -134,7 +134,7 @@ final class PluginAdminPostTest extends TestCase {
 		self::assertSame( $reviewFingerprint, $portability->expectedReviewFingerprint );
 		self::assertSame( array(), $database->rows );
 		self::assertStringContainsString( '<strong>Adopted by Booster</strong>', $interaction->fragment );
-		self::assertStringContainsString( '>Plugin settings</a>', $interaction->fragment );
+		self::assertStringContainsString( '>Settings</a>', $interaction->fragment );
 		self::assertStringContainsString(
 			'href="https://example.test/wp-admin/admin.php?page=ran-booster-plugins&amp;package=fixture%2Ffixture.php"',
 			$interaction->fragment
@@ -155,7 +155,7 @@ final class PluginAdminPostTest extends TestCase {
 
 		self::assertStringContainsString( '<strong>Adoption verified</strong>', $interaction->fragment );
 		self::assertStringNotContainsString( 'Managed by Booster.', $interaction->fragment );
-		self::assertStringContainsString( '>Plugin settings</a>', $interaction->fragment );
+		self::assertStringContainsString( '>Settings</a>', $interaction->fragment );
 	}
 
 	public function testCleanupPendingUsesBoundedLocalFailureAndKeepsSource(): void {

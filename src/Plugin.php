@@ -485,9 +485,7 @@ final class Plugin {
 			'admin.php?page=' . ( 1 === $source->type ? 'ran-booster-plugins' : 'ran-booster-themes' )
 			. '&package=' . rawurlencode( $source->package )
 		);
-		$row['manage_label'] = 1 === $source->type
-			? __( 'Plugin settings', 'ran-booster-wp-pusher-migrator' )
-			: __( 'Theme settings', 'ran-booster-wp-pusher-migrator' );
+		$row['manage_label'] = __( 'Settings', 'ran-booster-wp-pusher-migrator' );
 
 		return $row;
 	}
