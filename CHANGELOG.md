@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.0-alpha.4](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/compare/v0.1.0-alpha.3...v0.1.0-alpha.4) (2026-08-01)
+
+
+### Miscellaneous Chores
+
+* ignore private Booster planning state ([03c66e7](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/03c66e7ce5bb130b82b360486c63e6467a078c6e))
+
 ## [0.1.0-alpha.3](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/compare/v0.1.0-alpha.2...v0.1.0-alpha.3) (2026-07-30)
 
 
