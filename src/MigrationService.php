@@ -10,7 +10,7 @@ use RAN\AddOn\Portability\PortabilityFacade;
 use RAN\AddOn\Portability\PortabilityReviewResult;
 use RuntimeException;
 
-/** Request-local adapter from one exact source row to Portability API 1. */
+/** Request-local adapter from one exact source row to Portability API 2. */
 final readonly class MigrationService {
 
 	public function __construct(

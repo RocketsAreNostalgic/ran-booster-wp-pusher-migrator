@@ -23,7 +23,8 @@ Before merging a release pull request:
    `ran-booster-wp-pusher-migrator/` root; no tests, tools, workflows, scripts,
    dependency directory, or repository metadata.
 4. Install the ZIP beside the exact released Booster generation exposing
-   Portability API 1 and Logging API 1 in a disposable single-site WordPress
+   Portability API 2 and Admin Interaction API 2, with no add-on Logging API,
+   in a disposable single-site WordPress
    install. For Bitbucket coverage, also install the compatible released RAN
    Booster Bitbucket Cloud add-on.
 5. Exercise inactive and active WP Pusher, wrong version/schema, unsupported
