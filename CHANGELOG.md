@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.0-beta.2](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/compare/v0.1.0-beta.1...v0.1.0-beta.2) (2026-08-02)
+
+
+### Miscellaneous Chores
+
+* ignore private agent artifacts ([a4c49dc](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/a4c49dcd9c543487672289aef69809dd44cc41ae))
+
 ## 0.1.0-beta.1 (2026-08-02)
 
 
