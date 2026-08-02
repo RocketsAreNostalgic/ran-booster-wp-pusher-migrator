@@ -1,15 +1,16 @@
 # Prerelease guide
 
-Release Please opens Alpha release pull requests from Conventional Commits. It
+Release Please opens Beta release pull requests from Conventional Commits. It
 owns the synchronized plugin-header and `package.json` versions,
 `CHANGELOG.md`, and `.release-please-manifest.json`. A `fix` commit advances the
 patch prerelease line, a `feat` advances the minor prerelease line, and a
 breaking-change marker advances the pre-1.0 minor line.
 
-The `0.0.0` manifest value is an unreleased bootstrap boundary. The first
-release proposal must be `0.1.0-alpha.1` and must update the manifest, changelog,
-and annotated plugin header together. Do not edit those generated changes or
-add a manual `Release-As` footer.
+The `0.0.0` manifest value is the intentional boundary for rebooting the
+prerelease line after retiring the Alpha releases. The first proposal from this
+boundary must be `0.1.0-beta.1` and must update the manifest, changelog,
+`package.json`, and annotated plugin header together. Do not edit those
+generated version changes or add a manual `Release-As` footer.
 
 ## Release gate
 
