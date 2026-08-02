@@ -44,7 +44,7 @@ final readonly class PortabilityApplyResult {
 
 abstract class PortabilityFacade {
 
-	public const API_VERSION = 1;
+	public const API_VERSION = 2;
 
 	public function nonceAction(
 		string $operation,

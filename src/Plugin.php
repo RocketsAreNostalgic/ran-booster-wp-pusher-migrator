@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace RAN\BoosterWpPusherMigrator;
 
-use RAN\AddOn\Logging\LoggingFacade;
 use RAN\AddOn\Portability\PortabilityApplyResult;
 use RAN\AddOn\Portability\PortabilityFacade;
 use RAN\AddOn\Portability\PortabilityReviewResult;
@@ -16,6 +15,8 @@ use Throwable;
 
 /** WordPress hooks and request-local migration presentation. */
 final class Plugin {
+	private const REQUIRED_PORTABILITY_API_VERSION       = 2;
+	private const REQUIRED_ADMIN_INTERACTION_API_VERSION = 2;
 
 	private const FORM_ACTION       = 'ran-booster-wp-pusher-migrator-review-v1';
 	private const APPLY_FORM_ACTION = 'ran-booster-wp-pusher-migrator-apply-v1';
@@ -24,11 +25,10 @@ final class Plugin {
 	private static ?MigrationService $migration              = null;
 	private static ?WpPusherSource $source                   = null;
 	private static ?AdminInteractionFacade $adminInteraction = null;
-	private static ?LoggingFacade $logging                   = null;
 
 	public static function register(): void {
-		add_action( 'ran_booster_portability_ready', array( self::class, 'connect' ), 10, 2 );
-		add_action( 'ran_booster_admin_interaction_ready', array( self::class, 'captureAdminInteraction' ), 10, 2 );
+		add_action( 'ran_booster_portability_ready', array( self::class, 'connect' ), 10, 1 );
+		add_action( 'ran_booster_admin_interaction_ready', array( self::class, 'captureAdminInteraction' ), 10, 1 );
 		add_action( 'ran_booster_portability_render_migration_modes', array( self::class, 'renderMode' ), 20 );
 		add_action( 'ran_booster_portability_render_migration_flows', array( self::class, 'renderPanel' ), 20 );
 		add_action( 'ran_booster_overview_render_migration_prompt', array( self::class, 'renderOverviewPrompt' ), 20 );
@@ -36,25 +36,22 @@ final class Plugin {
 		add_action( 'admin_enqueue_scripts', array( self::class, 'enqueueAssets' ), 20 );
 	}
 
-	public static function connect( object $portability, object $logging ): void {
+	public static function connect( object $portability ): void {
 		if ( ! defined( 'RAN_BOOSTER_PORTABILITY_API_VERSION' )
-			|| 1 !== RAN_BOOSTER_PORTABILITY_API_VERSION
-			|| ! defined( 'RAN_BOOSTER_LOGGING_API_VERSION' )
-			|| 1 !== RAN_BOOSTER_LOGGING_API_VERSION
-			|| ! $portability instanceof PortabilityFacade
-			|| ! $logging instanceof LoggingFacade ) {
+			|| self::REQUIRED_PORTABILITY_API_VERSION !== RAN_BOOSTER_PORTABILITY_API_VERSION
+			|| self::REQUIRED_PORTABILITY_API_VERSION !== PortabilityFacade::API_VERSION
+			|| ! $portability instanceof PortabilityFacade ) {
 			return;
 		}
 
 		self::$source    = new WpPusherSource();
 		self::$migration = new MigrationService( self::$source, new CandidateFactory(), $portability );
-		self::$logging   = $logging;
 	}
 
-	public static function captureAdminInteraction( mixed $facade, mixed $logging ): void {
-		unset( $logging );
+	public static function captureAdminInteraction( mixed $facade ): void {
 		if ( ! defined( 'RAN_BOOSTER_ADMIN_INTERACTION_API_VERSION' )
-			|| AdminInteractionFacade::API_VERSION !== constant( 'RAN_BOOSTER_ADMIN_INTERACTION_API_VERSION' )
+			|| self::REQUIRED_ADMIN_INTERACTION_API_VERSION !== constant( 'RAN_BOOSTER_ADMIN_INTERACTION_API_VERSION' )
+			|| self::REQUIRED_ADMIN_INTERACTION_API_VERSION !== AdminInteractionFacade::API_VERSION
 			|| ! interface_exists( TransporterRowAdminInteractionFacade::class )
 			|| ! $facade instanceof AdminInteractionFacade
 			|| ! $facade instanceof TransporterRowAdminInteractionFacade ) {
@@ -226,16 +223,6 @@ final class Plugin {
 			if ( $source instanceof WpPusherPackage
 				&& $interactionRequest instanceof AdminInteractionRequest ) {
 				$message = self::expectedFailureMessage( $failure );
-				if ( null === $message ) {
-					self::$logging?->logException(
-						'WP Pusher package migration interaction failed.',
-						$failure,
-						array(
-							'operation'    => $operation,
-							'package_type' => 1 === $source->type ? 'plugin' : 'theme',
-						)
-					);
-				}
 				self::$adminInteraction->respondWithTransporterRowFragment(
 					null === $message
 						? AdminInteractionOutcome::unexpectedFailure( $interactionRequest )
@@ -245,11 +232,6 @@ final class Plugin {
 				);
 			}
 
-			self::$logging?->logException(
-				'WP Pusher package migration request failed before a row response was available.',
-				$failure,
-				array( 'operation' => $operation )
-			);
 			wp_die(
 				esc_html__( 'Booster could not safely process this WP Pusher package. Reload Transporter and try again.', 'ran-booster-wp-pusher-migrator' ),
 				esc_html__( 'Migration request failed', 'ran-booster-wp-pusher-migrator' ),
@@ -462,12 +444,7 @@ final class Plugin {
 	private static function migrationComplete(): bool {
 		try {
 			return null !== self::$migration && array() === self::$migration->packages();
-		} catch ( Throwable $failure ) {
-			self::$logging?->logException(
-				'WP Pusher migration completion could not be verified.',
-				$failure
-			);
-
+		} catch ( Throwable ) {
 			return false;
 		}
 	}
