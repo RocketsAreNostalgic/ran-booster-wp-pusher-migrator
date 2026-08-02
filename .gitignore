@@ -8,6 +8,8 @@
 # private workbench, never in this distributable source repository.
 /.dex/
 /.agents/plans/
+/.agents/decks/
+/.agents/blueprints/
 /docs/plans/
 /docs/proposals/
 /docs/reviews/
