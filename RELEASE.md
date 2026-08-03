@@ -40,6 +40,11 @@ Before merging a release pull request:
    and leaves settings, the empty package table, plugin files, and remote
    webhooks untouched.
 
+For the `0.1.0-beta.3` train, the exact compatible Booster release used by this
+gate is `v1.0.0-beta.3` at
+`f24eb3cc3775d1387e7eca956c2a8f78663aca36`. The bridge consumes Portability
+API 2 and Admin Interaction API 2; this proof record is not a runtime Core pin.
+
 Merging the reviewed Release Please pull request advances the reviewed
 manifest. The same workflow resolves that manifest-changing commit, checks it
 out detached, repeats the complete Composer and pnpm gates, and proves a second

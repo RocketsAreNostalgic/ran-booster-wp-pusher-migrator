@@ -7,6 +7,24 @@ namespace Tests;
 use PHPUnit\Framework\TestCase;
 
 final class ReleaseWorkflowTest extends TestCase {
+	private const TESTED_CORE_TAG = 'v1.0.0-beta.3';
+
+	private const TESTED_CORE_COMMIT = 'f24eb3cc3775d1387e7eca956c2a8f78663aca36';
+
+	public function testDocumentationRecordsTheExactTestedCoreReleaseWithoutClaimingARuntimePin(): void {
+		foreach ( array( 'README.md', 'RELEASE.md' ) as $documentName ) {
+			$document = file_get_contents( dirname( __DIR__ ) . '/' . $documentName ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local release-contract document.
+			self::assertIsString( $document );
+			self::assertStringContainsString( self::TESTED_CORE_TAG, $document );
+			self::assertStringContainsString( self::TESTED_CORE_COMMIT, $document );
+			self::assertStringContainsString( 'Portability API 2', $document );
+			self::assertStringContainsString( 'Admin Interaction API 2', $document );
+		}
+
+		$readme = file_get_contents( dirname( __DIR__ ) . '/README.md' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local release-contract document.
+		self::assertIsString( $readme );
+		self::assertStringContainsString( 'the bridge remains coupled to those public API generations', $readme );
+	}
 
 	public function testRepositoryWorkflowsPinEveryActionToAnExactCommit(): void {
 		foreach ( array( 'quality.yml', 'release-please.yml' ) as $workflowName ) {
