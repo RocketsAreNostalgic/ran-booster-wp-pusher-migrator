@@ -21,8 +21,8 @@ with deployment Disabled.
   repository, including private Bitbucket repositories. The bridge never copies
   WP Pusher credentials.
 
-The current tested release train is RAN Booster `v1.0.0-beta.3` at commit
-`f24eb3cc3775d1387e7eca956c2a8f78663aca36`, exposing Portability API 2 and
+The current tested release train is RAN Booster `v1.0.0-beta.4` at commit
+`96a2c93ae538bd107fadf2e7c1fb4eba4b726252`, exposing Portability API 2 and
 Admin Interaction API 2. This records the release used for compatibility proof;
 the bridge remains coupled to those public API generations rather than to a
 particular Core implementation commit.
