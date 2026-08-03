@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.1.0-beta.2](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/compare/v0.1.0-beta.1...v0.1.0-beta.2) (2026-08-03)
+
+
+### ⚠ BREAKING CHANGES
+
+* close P0 release and Core compatibility contracts ([#13](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/13))
+
+### Bug Fixes
+
+* close add-on logging contract ([1f01e0f](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/1f01e0f7791fcc6df204cb458cf0b9aa66877f5b))
+* close P0 release and Core compatibility contracts ([#13](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/13)) ([9f453a4](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/9f453a4010f5f6ce7b85b7e03d7d9195f1d649ec))
+* **release:** require immutable plugin artifacts ([c04a94b](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/c04a94b8b603070b2ce398109f1bcd44d0f0121e))
+* **release:** resume exact draft publications ([3e3af3a](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/3e3af3a33361e1be4603f087e1972314bb3417d7))
+
+
+### Miscellaneous Chores
+
+* ignore private agent artifacts ([a4c49dc](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/a4c49dcd9c543487672289aef69809dd44cc41ae))
+
 ## 0.1.0-beta.1 (2026-08-02)
 
 
