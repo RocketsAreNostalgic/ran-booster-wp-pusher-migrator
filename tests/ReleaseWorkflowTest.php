@@ -38,9 +38,12 @@ final class ReleaseWorkflowTest extends TestCase {
 		self::assertIsString( $workflow );
 
 		self::assertStringContainsString( 'skip-github-release: true', $workflow );
+		self::assertStringContainsString( 'git diff --quiet HEAD^ HEAD -- .release-please-manifest.json && manifest_changed=false', $workflow );
+		self::assertStringContainsString( 'gh api --paginate --slurp "repos/${GITHUB_REPOSITORY}/releases?per_page=100"', $workflow );
+		self::assertStringContainsString( 'select(.tag_name == $tag)', $workflow );
+		self::assertStringContainsString( '"$manifest_changed" == false', $workflow );
 		self::assertStringContainsString( 'git log -1 --format=%H -- .release-please-manifest.json', $workflow );
-		self::assertStringContainsString( 'isDraft,isImmutable,targetCommitish', $workflow );
-		self::assertStringContainsString( "*'(HTTP 404)'*", $workflow );
+		self::assertStringContainsString( "'.target_commitish'", $workflow );
 		self::assertStringContainsString( 'The published release is not immutable', $workflow );
 		self::assertStringContainsString( 'git checkout --detach "${RAN_RELEASE_COMMIT}"', $workflow );
 		self::assertStringContainsString( '--target "${RAN_RELEASE_COMMIT}"', $workflow );
