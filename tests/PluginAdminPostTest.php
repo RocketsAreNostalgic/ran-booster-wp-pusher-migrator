@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests;
 
 use PHPUnit\Framework\TestCase;
-use RAN\AddOn\Logging\LoggingFacade;
 use RAN\AddOn\Portability\PortabilityApplyResult;
 use RAN\AddOn\Portability\PortabilityCandidate;
 use RAN\AddOn\Portability\PortabilityFacade;
@@ -36,7 +35,7 @@ final class PluginAdminPostTest extends TestCase {
 
 	protected function tearDown(): void {
 		$_POST = array();
-		foreach ( array( 'migration', 'source', 'adminInteraction', 'logging' ) as $property ) {
+		foreach ( array( 'migration', 'source', 'adminInteraction' ) as $property ) {
 			$this->setPluginProperty( $property, null );
 		}
 		parent::tearDown();
@@ -194,22 +193,18 @@ final class PluginAdminPostTest extends TestCase {
 		self::assertStringNotContainsString( 'data-ran-booster-wp-pusher-migration-complete', $interaction->fragment );
 	}
 
-	public function testCompletionReadbackFailureIsLoggedAndDoesNotClaimCompletion(): void {
+	public function testCompletionReadbackFailureDoesNotClaimCompletion(): void {
 		$database                               = new AdminPostDatabase();
 		$database->failInventoryReadAfterDelete = true;
 		$portability                            = new AdminPostPortabilityFacade();
 		$interaction                            = new AdminPostInteractionSpy();
-		$logging                                = new AdminPostLoggingSpy();
 		$this->connect( $database, $portability, $interaction );
-		$this->setPluginProperty( 'logging', $logging );
 		$source = $this->sourcePackage( $database );
 		$_POST  = $this->applyRequest( $source, 'v1:' . str_repeat( '9', 64 ) );
 
 		$this->runHandler();
 
 		self::assertStringNotContainsString( 'data-ran-booster-wp-pusher-migration-complete', $interaction->fragment );
-		self::assertSame( 'WP Pusher migration completion could not be verified.', $logging->message );
-		self::assertSame( 'Inventory readback failed.', $logging->exception?->getMessage() );
 	}
 
 	public function testAlreadyManagedApplyReturnsOneLineVerifiedStatus(): void {
@@ -269,14 +264,12 @@ final class PluginAdminPostTest extends TestCase {
 		self::assertSame( 0, $portability->reviewCalls );
 	}
 
-	public function testUnexpectedSourceFailureIsLoggedAndReturnsGenericLocalFailure(): void {
+	public function testUnexpectedSourceFailureReturnsGenericLocalFailure(): void {
 		$database                   = new AdminPostDatabase();
 		$portability                = new AdminPostPortabilityFacade();
 		$portability->reviewFailure = new RuntimeException( 'SECRET-CANARY /private/source.php' );
 		$interaction                = new AdminPostInteractionSpy();
-		$logging                    = new AdminPostLoggingSpy();
 		$this->connect( $database, $portability, $interaction );
-		$this->setPluginProperty( 'logging', $logging );
 		$source = $this->sourcePackage( $database );
 		$_POST  = $this->reviewRequest( $source );
 
@@ -285,8 +278,6 @@ final class PluginAdminPostTest extends TestCase {
 		self::assertSame( 'unexpected_failure', $interaction->outcome?->kind() );
 		self::assertSame( 'We could not complete that request. Please try again.', $interaction->outcome?->message() );
 		self::assertStringNotContainsString( 'SECRET-CANARY', (string) $interaction->outcome?->message() );
-		self::assertSame( 'WP Pusher package migration interaction failed.', $logging->message );
-		self::assertSame( $portability->reviewFailure, $logging->exception );
 	}
 
 	private function runHandler(): void {
@@ -438,21 +429,6 @@ final class AdminPostPortabilityFacade extends PortabilityFacade {
 		$this->expectedReviewFingerprint = $expectedFingerprint;
 
 		return new PortabilityApplyResult( $this->applyStatus, $this->applyStatus, 'Imported.', true );
-	}
-}
-
-final class AdminPostLoggingSpy extends LoggingFacade {
-
-	public string $message        = '';
-	public ?\Throwable $exception = null;
-	/** @var array<string, mixed> */
-	public array $context = array();
-
-	/** @param array<string, mixed> $context */
-	public function logException( string $message, \Throwable $exception, array $context = array() ): void {
-		$this->message   = $message;
-		$this->exception = $exception;
-		$this->context   = $context;
 	}
 }
 

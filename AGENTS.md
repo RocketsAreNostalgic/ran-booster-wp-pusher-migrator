@@ -5,8 +5,9 @@ Keep the WP Pusher 3.0.13 reader strict and read-only until Core has freshly
 verified a Disabled adopted target. Never import legacy credentials, enable
 deployment, contact providers, delete plugin files, or run WP Pusher uninstall.
 
-Use Core Portability API 1 and Logging API 1 at their published request-local
-boundary. Do not duplicate Core identity, repository resolution, adoption, or
+Use Core Portability API 2 and Admin Interaction API 2 at their published
+request-local boundaries. Core publishes no logging capability to this add-on.
+Do not duplicate Core identity, repository resolution, adoption, or
 package mutation logic.
 
 Preserve the PHP 8.2 baseline, the `RAN\BoosterWpPusherMigrator` namespace,

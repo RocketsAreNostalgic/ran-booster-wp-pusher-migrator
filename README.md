@@ -6,13 +6,13 @@ from an inactive WP Pusher 3.0.13 installation into RAN Booster.
 The bridge reads only the exact supported WP Pusher package schema. It does not
 import legacy credentials, install package files, enable deployments, contact
 WP Pusher, or run WP Pusher's uninstall routine. Every candidate is freshly
-reviewed and applied through Booster Portability API 1. Adopted packages start
+reviewed and applied through Booster Portability API 2. Adopted packages start
 with deployment Disabled.
 
 ## Requirements
 
 - WordPress 7.0 or newer and PHP 8.2 or newer.
-- A compatible RAN Booster release exposing Portability API 1 and Logging API 1.
+- A compatible RAN Booster release exposing Portability API 2 and Admin Interaction API 2.
 - A single-site WordPress installation.
 - WP Pusher 3.0.13 installed but inactive.
 - For Bitbucket Cloud packages, the compatible RAN Booster Bitbucket Cloud

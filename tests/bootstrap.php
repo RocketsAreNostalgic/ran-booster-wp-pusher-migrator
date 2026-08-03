@@ -96,7 +96,6 @@ function get_plugins(): array {
 }
 
 require_once __DIR__ . '/fixtures/WpDieException.php';
-require_once __DIR__ . '/fixtures/LoggingApi.php';
 require_once __DIR__ . '/fixtures/PortabilityApi.php';
 require_once __DIR__ . '/fixtures/AdminInteractionApi.php';
 require_once dirname( __DIR__ ) . '/src/Autoloader.php';
