@@ -40,11 +40,21 @@ Before merging a release pull request:
    and leaves settings, the empty package table, plugin files, and remote
    webhooks untouched.
 
-Merging the reviewed Release Please pull request creates the `v<version>` tag
-and prerelease GitHub release. The same workflow checks out that exact tag,
-repeats the full Composer gate, proves a second deterministic build, and
-attaches the ZIP, portable checksum, and updater manifest. A release is
-incomplete until all three verified assets are attached.
+Merging the reviewed Release Please pull request advances the reviewed
+manifest. The same workflow resolves that manifest-changing commit, checks it
+out detached, repeats the complete Composer and pnpm gates, and proves a second
+deterministic build. It then creates or resumes a draft tied to that exact
+commit, attaches the ZIP, portable checksum, and updater manifest, downloads
+all three assets, and verifies that their bytes match the local artifacts.
+
+Publication is fail-closed. First enable GitHub immutable releases for this
+repository, then set the repository Actions variable
+`RAN_IMMUTABLE_RELEASES_ENABLED=true`. The workflow publishes the verified
+draft only when both conditions hold and the published API response reports
+the release as immutable. Until then the verified release remains a draft; do
+not publish it manually or hand its assets to a customer or deployment
+workflow. A release is incomplete until all three verified assets are attached
+and immutable publication has been read back successfully.
 
 GitHub's generated source archives are not installable plugin packages. This
 repository does not publish to WordPress.org, deploy a site, delete WP Pusher,
