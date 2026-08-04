@@ -40,9 +40,9 @@ Before merging a release pull request:
    and leaves settings, the empty package table, plugin files, and remote
    webhooks untouched.
 
-For the `0.1.0-beta.4` train, the exact compatible Booster release used by this
-gate is `v1.0.0-beta.4` at
-`96a2c93ae538bd107fadf2e7c1fb4eba4b726252`. The bridge consumes Portability
+For the `0.1.0-beta.5` train, the exact compatible Booster release used by this
+gate is `v1.0.0-beta.5` at
+`c992d612a827bef2bc6dea6993e25045087b6d52`. The bridge consumes Portability
 API 2 and Admin Interaction API 2; this proof record is not a runtime Core pin.
 
 Merging the reviewed Release Please pull request advances the reviewed
