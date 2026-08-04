@@ -7,9 +7,9 @@ namespace Tests;
 use PHPUnit\Framework\TestCase;
 
 final class ReleaseWorkflowTest extends TestCase {
-	private const TESTED_CORE_TAG = 'v1.0.0-beta.4';
+	private const TESTED_CORE_TAG = 'v1.0.0-beta.5';
 
-	private const TESTED_CORE_COMMIT = '96a2c93ae538bd107fadf2e7c1fb4eba4b726252';
+	private const TESTED_CORE_COMMIT = 'c992d612a827bef2bc6dea6993e25045087b6d52';
 
 	public function testDocumentationRecordsTheExactTestedCoreReleaseWithoutClaimingARuntimePin(): void {
 		foreach ( array( 'README.md', 'RELEASE.md' ) as $documentName ) {
