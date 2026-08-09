@@ -7,14 +7,113 @@ on:
       - main
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  group: quality-${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
 
 jobs:
+  runtime-archive:
+    name: Runtime archive
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+    timeout-minutes: 10
+    outputs:
+      artifact-name: ${{ steps.archive.outputs.artifact-name }}
+      archive-sha256: ${{ steps.archive.outputs.archive-sha256 }}
+      release-candidate: ${{ steps.archive.outputs.release-candidate }}
+      source-commit: ${{ steps.archive.outputs.source-commit }}
+      version: ${{ steps.archive.outputs.version }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: '8.2'
+          coverage: none
+
+      - name: Build and verify the runtime archive once
+        id: archive
+        shell: bash
+        env:
+          RAN_PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          RAN_PR_BASE: ${{ github.event.pull_request.base.ref }}
+          RAN_PR_HEAD: ${{ github.event.pull_request.head.ref }}
+          RAN_PR_HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+        run: |
+          set -euo pipefail
+
+          release_candidate=false
+          if [[ "$GITHUB_EVENT_NAME" == pull_request \
+            && "$RAN_PR_AUTHOR" == 'github-actions[bot]' \
+            && "$RAN_PR_BASE" == main \
+            && "$RAN_PR_HEAD" == 'release-please--branches--main--components--ran-booster-wp-pusher-migrator' \
+            && "$RAN_PR_HEAD_REPOSITORY" == "$GITHUB_REPOSITORY" ]]; then
+            release_candidate=true
+          fi
+
+          source_commit="$GITHUB_SHA"
+          if [[ "$GITHUB_EVENT_NAME" == push ]] \
+            && ! git diff --quiet "${GITHUB_SHA}^1" "$GITHUB_SHA" -- .release-please-manifest.json; then
+            source_commit="$(git rev-parse "${GITHUB_SHA}^2")"
+            test "$(git log -1 --format=%H "$GITHUB_SHA" -- .release-please-manifest.json)" = "$source_commit"
+            test "$(git rev-parse "${GITHUB_SHA}^{tree}")" = "$(git rev-parse "${source_commit}^{tree}")"
+          fi
+          git checkout --detach "$source_commit"
+
+          version="$(sed -nE 's/^[[:space:]]*\*[[:space:]]*Version:[[:space:]]*([^[:space:]]+).*/\1/p' ran-booster-wp-pusher-migrator.php)"
+          test -n "$version"
+          test "$(jq -er '."."' .release-please-manifest.json)" = "$version"
+          test "$(node -p "require('./package.json').version")" = "$version"
+          bash scripts/build-release.sh
+
+          archive="dist/ran-booster-wp-pusher-migrator-${version}.zip"
+          archive_sha256="$(sha256sum "$archive" | awk '{ print $1 }')"
+          artifact_name="ran-booster-wp-pusher-migrator-runtime-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+
+          jq -n \
+            --arg quality_commit "$GITHUB_SHA" \
+            --arg source_commit "$source_commit" \
+            --arg version "$version" \
+            --arg sha256 "$archive_sha256" \
+            '{
+              schema: "ran-booster-wp-pusher-migrator-ci-runtime",
+              schema_version: 1,
+              quality_commit: $quality_commit,
+              source_commit: $source_commit,
+              version: $version,
+              sha256: $sha256
+            }' > dist/ran-booster-wp-pusher-migrator-ci-runtime.json
+
+          {
+            printf 'artifact-name=%s\n' "$artifact_name"
+            printf 'archive-sha256=%s\n' "$archive_sha256"
+            printf 'release-candidate=%s\n' "$release_candidate"
+            printf 'source-commit=%s\n' "$source_commit"
+            printf 'version=%s\n' "$version"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Upload the verified runtime archive
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ steps.archive.outputs.artifact-name }}
+          path: |
+            dist/ran-booster-wp-pusher-migrator-${{ steps.archive.outputs.version }}.zip
+            dist/ran-booster-wp-pusher-migrator-${{ steps.archive.outputs.version }}.zip.sha256
+            dist/ran-booster-wp-pusher-migrator-${{ steps.archive.outputs.version }}.json
+            dist/ran-booster-wp-pusher-migrator-ci-runtime.json
+          if-no-files-found: error
+          retention-days: 7
+
   quality:
+    name: Quality
+    needs: runtime-archive
+    if: ${{ needs.runtime-archive.outputs.release-candidate != 'true' }}
     runs-on: blacksmith-2vcpu-ubuntu-2404
     timeout-minutes: 10
     steps:
@@ -28,7 +127,7 @@ jobs:
         with:
           node-version-file: package.json
           cache: pnpm
-      - uses: shivammathur/setup-php@44454db4f0199b8b9685a5d763dc37cbf79108e1 # 2.36.0
+      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
         with:
           php-version: '8.2'
           coverage: none
@@ -37,4 +136,8 @@ jobs:
       - run: composer install --no-interaction --prefer-dist --no-progress
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
-      - run: composer check
+      - name: Run non-archive Composer quality gates
+        run: |
+          composer lint:php
+          composer standards
+          composer test

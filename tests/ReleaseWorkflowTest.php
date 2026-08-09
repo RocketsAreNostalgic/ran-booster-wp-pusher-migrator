@@ -51,37 +51,56 @@ final class ReleaseWorkflowTest extends TestCase {
 		);
 	}
 
-	public function testPackageReleaseIsBoundToTheManifestChangingCommit(): void {
+	public function testQualityBuildsOneArchiveAndReleaseReusesItsExactArtifact(): void {
+		$quality = file_get_contents( dirname( __DIR__ ) . '/.github/workflows/quality.yml' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local workflow contract.
+		$release = file_get_contents( dirname( __DIR__ ) . '/.github/workflows/release-please.yml' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local workflow contract.
+		self::assertIsString( $quality );
+		self::assertIsString( $release );
+
+		self::assertSame( 1, substr_count( $quality, 'bash scripts/build-release.sh' ) );
+		self::assertStringContainsString( 'actions/upload-artifact@', $quality );
+		self::assertStringNotContainsString( 'bash scripts/build-release.sh', $release );
+		self::assertStringContainsString( 'actions/download-artifact@', $release );
+		self::assertStringContainsString( 'run-id: ${{ github.event.workflow_run.id }}', $release );
+		self::assertStringNotContainsString( 'package-release:', $release );
+	}
+
+	public function testPackageReleaseIsBoundToSuccessfulQualityAndTheExactMergedPullRequest(): void {
 		$workflow = file_get_contents( dirname( __DIR__ ) . '/.github/workflows/release-please.yml' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local workflow contract.
 		self::assertIsString( $workflow );
 
 		self::assertStringContainsString( 'skip-github-release: true', $workflow );
-		self::assertStringContainsString( 'git diff --quiet HEAD^ HEAD -- .release-please-manifest.json && manifest_changed=false', $workflow );
+		self::assertStringContainsString( 'workflow_run:', $workflow );
+		self::assertStringContainsString( "github.event.workflow_run.conclusion == 'success'", $workflow );
+		self::assertStringContainsString( "github.event.workflow_run.event == 'push'", $workflow );
+		self::assertStringContainsString( 'ref: ${{ github.event.workflow_run.head_sha }}', $workflow );
+		self::assertStringContainsString( 'github.event.workflow_run.head_repository.full_name == github.repository', $workflow );
+		self::assertStringContainsString( 'git diff --quiet "${RAN_QUALITY_COMMIT}^1"', $workflow );
 		self::assertStringContainsString( 'gh api --paginate --slurp "repos/${GITHUB_REPOSITORY}/releases?per_page=100"', $workflow );
 		self::assertStringContainsString( 'select(.tag_name == $tag)', $workflow );
-		self::assertStringContainsString( '"$manifest_changed" == false', $workflow );
-		self::assertStringContainsString( 'git log -1 --format=%H -- .release-please-manifest.json', $workflow );
-		self::assertStringContainsString( "'.target_commitish'", $workflow );
+		self::assertStringContainsString( 'git log -1 --format=%H "$RAN_QUALITY_COMMIT" -- .release-please-manifest.json', $workflow );
+		self::assertStringContainsString( '.merge_commit_sha == $quality', $workflow );
+		self::assertStringContainsString( '.head.ref == $head', $workflow );
+		self::assertStringContainsString( '.user.login == $bot', $workflow );
+		self::assertStringContainsString( 'test "$pending" = true', $workflow );
 		self::assertStringContainsString( 'The published release is not immutable', $workflow );
-		self::assertStringContainsString( 'git checkout --detach "${RAN_RELEASE_COMMIT}"', $workflow );
-		self::assertStringContainsString( '--target "${RAN_RELEASE_COMMIT}"', $workflow );
-		self::assertStringNotContainsString( "needs.release-please.outputs.release_created == 'true'", $workflow );
+		self::assertStringContainsString( '--target "$RAN_RELEASE_COMMIT"', $workflow );
 	}
 
 	public function testVerifiedDraftAssetsPrecedeImmutablePublication(): void {
 		$workflow = file_get_contents( dirname( __DIR__ ) . '/.github/workflows/release-please.yml' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local workflow contract.
 		self::assertIsString( $workflow );
 
-		self::assertStringContainsString( 'gh release create "${RAN_RELEASE_TAG}" --draft', $workflow );
-		self::assertStringContainsString( 'gh release upload "${RAN_RELEASE_TAG}"', $workflow );
-		self::assertStringContainsString( 'gh release download "${RAN_RELEASE_TAG}"', $workflow );
+		self::assertStringContainsString( 'gh release create "$RAN_RELEASE_TAG" --draft', $workflow );
+		self::assertStringContainsString( 'gh release upload "$RAN_RELEASE_TAG"', $workflow );
+		self::assertStringContainsString( 'gh release download "$RAN_RELEASE_TAG"', $workflow );
 		self::assertStringContainsString( 'ran-booster-wp-pusher-migrator-${RAN_RELEASE_VERSION}.zip', $workflow );
 		self::assertStringContainsString( 'ran-booster-wp-pusher-migrator-${RAN_RELEASE_VERSION}.zip.sha256', $workflow );
 		self::assertStringContainsString( 'ran-booster-wp-pusher-migrator-${RAN_RELEASE_VERSION}.json', $workflow );
 		self::assertSame( 3, substr_count( $workflow, 'cmp -s "dist/ran-booster-wp-pusher-migrator-' ) );
 		self::assertStringContainsString( 'RAN_IMMUTABLE_RELEASES_ENABLED', $workflow );
 		self::assertStringContainsString( 'The verified release remains a draft.', $workflow );
-		self::assertStringContainsString( 'gh release edit "${RAN_RELEASE_TAG}" --draft=false', $workflow );
+		self::assertStringContainsString( 'gh release edit "$RAN_RELEASE_TAG" --draft=false', $workflow );
 		self::assertStringContainsString( "--jq '.immutable'", $workflow );
 		self::assertStringContainsString( 'for delay in 0 2 2 2 2', $workflow );
 	}

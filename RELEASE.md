@@ -46,11 +46,13 @@ gate is `v1.0.0-beta.5` at
 API 2 and Admin Interaction API 2; this proof record is not a runtime Core pin.
 
 Merging the reviewed Release Please pull request advances the reviewed
-manifest. The same workflow resolves that manifest-changing commit, checks it
-out detached, repeats the complete Composer and pnpm gates, and proves a second
-deterministic build. It then creates or resumes a draft tied to that exact
-commit, attaches the ZIP, portable checksum, and updater manifest, downloads
-all three assets, and verifies that their bytes match the local artifacts.
+manifest. Quality resolves that manifest-changing commit, builds and verifies
+the ZIP, portable checksum, and updater manifest once, and stores those exact
+artifacts with their source and Quality commit identities. Only after that
+main-push Quality run succeeds does the release workflow prove the exact merged
+Release Please pull request and pending label, download the tested artifacts,
+create or resume a draft tied to the source commit, attach all three assets, and
+verify that their downloaded bytes match.
 
 Publication is fail-closed. First enable GitHub immutable releases for this
 repository, then set the repository Actions variable
