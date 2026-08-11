@@ -21,11 +21,13 @@ with deployment Disabled.
   repository, including private Bitbucket repositories. The bridge never copies
   WP Pusher credentials.
 
-The current tested release train is RAN Booster `v1.0.0-beta.5` at commit
-`c992d612a827bef2bc6dea6993e25045087b6d52`, exposing Portability API 2 and
-Admin Interaction API 2. This records the release used for compatibility proof;
-the bridge remains coupled to those public API generations rather than to a
-particular Core implementation commit.
+The current source/CI certification uses the immutable RAN Booster
+`v1.0.0-beta.14` release, exposing Portability API 2 and Admin Interaction API
+2. The exact tag/full-commit tuple has one machine-readable owner:
+`extra.ran-booster-core-certification` in `composer.json`. This source proof
+does not establish that a Migrator ZIP has passed the separate installed-site
+and both-load-orders gate; the bridge remains coupled to the public API
+generations rather than to a particular Core implementation commit.
 
 ## Provider support
 
@@ -94,6 +96,9 @@ unresolvable so **Check** exercises provider failure handling; the GitLab row
 renders **Cannot adopt** without offering an action.
 
 See [RELEASE.md](RELEASE.md) for the authoritative release procedure.
+The [Phase 0 source-certification evidence](docs/phase-0-source-certification.md)
+records the frozen counters, current lifecycle shortcomings, exact archive
+invariants and the remaining installed-runtime gate.
 
 ## License
 

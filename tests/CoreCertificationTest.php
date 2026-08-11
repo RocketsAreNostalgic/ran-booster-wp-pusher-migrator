@@ -79,6 +79,17 @@ final class CoreCertificationTest extends TestCase {
 		}
 	}
 
+	public function testPublicEvidenceNamesTheCertifiedTagWithoutDuplicatingItsCommit(): void {
+		$tuple = \RAN\BoosterWpPusherMigrator\Certification\read_core_certification( dirname( __DIR__ ) . '/composer.json' );
+		foreach ( array( 'README.md', 'RELEASE.md', 'docs/phase-0-source-certification.md' ) as $relativePath ) {
+			$copy = file_get_contents( dirname( __DIR__ ) . '/' . $relativePath ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local source contract.
+			self::assertIsString( $copy );
+			self::assertStringContainsString( $tuple['tag'], $copy, $relativePath );
+			self::assertStringNotContainsString( $tuple['commit'], $copy, $relativePath );
+			self::assertStringContainsString( 'installed', strtolower( $copy ), $relativePath );
+		}
+	}
+
 	private function temporaryManifest( string $contents ): string {
 		$path = tempnam( sys_get_temp_dir(), 'ran-migrator-certification-' );
 		self::assertIsString( $path );

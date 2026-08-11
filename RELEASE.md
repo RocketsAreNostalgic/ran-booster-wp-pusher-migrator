@@ -40,10 +40,27 @@ Before merging a release pull request:
    and leaves settings, the empty package table, plugin files, and remote
    webhooks untouched.
 
-For the `0.1.0-beta.5` train, the exact compatible Booster release used by this
-gate is `v1.0.0-beta.5` at
-`c992d612a827bef2bc6dea6993e25045087b6d52`. The bridge consumes Portability
-API 2 and Admin Interaction API 2; this proof record is not a runtime Core pin.
+The current source/CI certification uses immutable Booster
+`v1.0.0-beta.14`. The sole machine-readable tag/full-commit tuple is
+`extra.ran-booster-core-certification` in `composer.json`; release tooling must
+parse that exact two-key object fail closed. The bridge consumes Portability
+API 2 and Admin Interaction API 2. This source certification is not a runtime
+Core pin and is not evidence that the retained Migrator ZIP passed the separate
+installed-site gate.
+
+Build and verify only from one explicitly selected full commit:
+
+```sh
+bash scripts/build-release.sh "<full-source-commit>"
+bash scripts/verify-release.sh \
+  "dist/ran-booster-wp-pusher-migrator-<version>.zip" \
+  "<same-full-source-commit>"
+```
+
+The manifest's version-derived `tag` field is release identity metadata, not
+proof that a Git tag or publication targets an untagged candidate commit. The
+source commit and ZIP SHA-256 are the retained candidate identity until the
+separate publication authority reads back an immutable release.
 
 Merging the reviewed Release Please pull request advances the reviewed
 manifest. Quality resolves that manifest-changing commit, builds and verifies
