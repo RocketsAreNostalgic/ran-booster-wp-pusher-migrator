@@ -11,13 +11,16 @@ use RAN\Admin\Interaction\AdminInteractionFacade;
 use RAN\Admin\Interaction\AdminInteractionOutcome;
 use RAN\Admin\Interaction\AdminInteractionRequest;
 use RAN\Admin\Interaction\TransporterRowAdminInteractionFacade;
+use RAN\BoosterWpPusherMigrator\CandidateFactory;
+use RAN\BoosterWpPusherMigrator\MigrationPresenter;
 use RAN\BoosterWpPusherMigrator\WpPusherPackage;
 use RuntimeException;
 
 final class SourceCardViewTest extends TestCase {
+	private ?SourceCardInteractionSpy $interaction = null;
 
 	public function testRendersEscapedAccessibleNoJavascriptReview(): void {
-		$source           = WpPusherPackage::fromRow(
+		$source            = WpPusherPackage::fromRow(
 			array(
 				'id'           => '1',
 				'package'      => 'fixture/fixture.php',
@@ -31,7 +34,7 @@ final class SourceCardViewTest extends TestCase {
 				'subdirectory' => null,
 			)
 		);
-		$candidate        = new PortabilityCandidate(
+		$candidate         = new PortabilityCandidate(
 			'plugin',
 			$source->package,
 			'Fixture',
@@ -39,23 +42,25 @@ final class SourceCardViewTest extends TestCase {
 			$source->repository,
 			'main'
 		);
-		$review           = new PortabilityReviewResult(
+		$review            = new PortabilityReviewResult(
 			$candidate,
 			'blocked',
 			'credential_required',
 			'Use <existing> Booster credentials.',
 			'v1:' . str_repeat( 'a', 64 )
 		);
-		$rows             = array( $this->row( $source, $candidate, $review ) );
-		$optionPresence   = array( 'gh_token' => true );
-		$error            = '';
-		$formAction       = 'bridge-review';
-		$applyFormAction  = 'bridge-apply';
-		$apply            = null;
-		$migrationUrl     = 'https://example.test/wp-admin/admin.php?page=ran-booster&tab=portability#ran-booster-portability-wp-pusher';
-		$adminPostAction  = 'bridge-package';
-		$adminInteraction = null;
-		$pluginsUrl       = 'https://example.test/wp-admin/plugins.php';
+		$rows              = array( $this->row( $source, $candidate, $review ) );
+		$error             = '';
+		$hasError          = false;
+		$legacyDataPresent = true;
+		$apply             = null;
+		$applyVisible      = false;
+		$applyClass        = 'notice-error';
+		$applyMessage      = '';
+		$cleanupPending    = false;
+		$completionVisible = false;
+		$pluginsUrl        = 'https://example.test/wp-admin/plugins.php';
+		$adminInteraction  = $this->interaction;
 
 		ob_start();
 		require dirname( __DIR__ ) . '/views/source-card.php';
@@ -136,7 +141,7 @@ final class SourceCardViewTest extends TestCase {
 	}
 
 	public function testGitLabPackageRendersUserVisibleUnsupportedRowWithoutActions(): void {
-		$source       = WpPusherPackage::fromRow(
+		$source = WpPusherPackage::fromRow(
 			array(
 				'id'           => '1',
 				'package'      => 'fixture/fixture.php',
@@ -150,15 +155,15 @@ final class SourceCardViewTest extends TestCase {
 				'subdirectory' => null,
 			)
 		);
-		$row          = $this->row( $source, null, null );
-		$row['error'] = 'GitLab WP Pusher packages are not supported.';
-		$output       = $this->renderRows( array( $row ) );
+		$row    = $this->row( $source, null, null );
+		$output = $this->renderRows( array( $row ) );
 
 		self::assertStringContainsString( '<strong>Cannot adopt</strong>', $output );
 		self::assertStringContainsString( 'GitLab WP Pusher packages are not supported.', $output );
 		self::assertStringNotContainsString( '>Check</button>', $output );
 		self::assertStringNotContainsString( '>Adopt</button>', $output );
 		self::assertStringNotContainsString( 'name="credential_id"', $output );
+		self::assertSame( array(), $this->interaction?->renderedOperations );
 	}
 
 	public function testEnhancedCheckAndAdoptUseCoreRowFacade(): void {
@@ -167,7 +172,7 @@ final class SourceCardViewTest extends TestCase {
 
 		self::assertStringContainsString( 'id="ran-booster-transporter-migration-source-', $check );
 		self::assertStringContainsString( 'data-test-operation="wp-pusher:check-package"', $check );
-		self::assertStringContainsString( 'name="action" value="bridge-package"', $check );
+		self::assertStringContainsString( 'name="action" value="ran_booster_wp_pusher_migrator_package"', $check );
 		self::assertStringContainsString(
 			'action="https://example.test/wp-admin/admin.php?page=ran-booster&amp;tab=portability#ran-booster-portability-wp-pusher"',
 			$check
@@ -195,6 +200,7 @@ final class SourceCardViewTest extends TestCase {
 		);
 		self::assertStringNotContainsString( '>Check</button>', $output );
 		self::assertStringNotContainsString( '>Adopt</button>', $output );
+		self::assertSame( array(), $this->interaction?->renderedOperations );
 	}
 
 	public function testFinalImportedRowRevealsThePendingCompletionPanel(): void {
@@ -246,7 +252,7 @@ final class SourceCardViewTest extends TestCase {
 
 	private function renderPublicPackage(
 		?string $reviewAction = null,
-		?TransporterRowAdminInteractionFacade $interaction = null,
+		?SourceCardInteractionSpy $interaction = null,
 		bool $imported = false,
 		bool $migrationComplete = false
 	): string {
@@ -283,27 +289,15 @@ final class SourceCardViewTest extends TestCase {
 			);
 		$row       = $this->row( $source, $candidate, $review, $interaction );
 		if ( $imported ) {
-			$row['imported']           = true;
 			$row['migration_complete'] = $migrationComplete;
-			$row['status_label']       = 'Adopted';
+			$row['status_heading']     = 'Adopted';
+			$row['status_strong']      = true;
+			$row['action']             = 'manage';
 			$row['manage_url']         = 'https://example.test/wp-admin/admin.php?page=ran-booster-plugins&package=fixture%2Ffixture.php';
 			$row['manage_label']       = 'Settings';
 		}
-		$rows             = array( $row );
-		$error            = '';
-		$optionPresence   = array();
-		$formAction       = 'bridge-review';
-		$applyFormAction  = 'bridge-apply';
-		$apply            = null;
-		$migrationUrl     = 'https://example.test/wp-admin/admin.php?page=ran-booster&tab=portability#ran-booster-portability-wp-pusher';
-		$adminPostAction  = 'bridge-package';
-		$adminInteraction = $interaction;
-		$pluginsUrl       = 'https://example.test/wp-admin/plugins.php';
 
-		ob_start();
-		require dirname( __DIR__ ) . '/views/source-card.php';
-
-		return (string) ob_get_clean();
+		return $this->renderRows( array( $row ) );
 	}
 
 	private function renderEmptyInventory(): string {
@@ -315,14 +309,17 @@ final class SourceCardViewTest extends TestCase {
 	 * @param array<string, bool>        $optionPresence
 	 */
 	private function renderRows( array $rows, array $optionPresence = array() ): string {
-		$error            = '';
-		$formAction       = 'bridge-review';
-		$applyFormAction  = 'bridge-apply';
-		$apply            = null;
-		$migrationUrl     = 'https://example.test/wp-admin/admin.php?page=ran-booster&tab=portability#ran-booster-portability-wp-pusher';
-		$adminPostAction  = 'bridge-package';
-		$adminInteraction = null;
-		$pluginsUrl       = 'https://example.test/wp-admin/plugins.php';
+		$error             = '';
+		$hasError          = false;
+		$legacyDataPresent = in_array( true, $optionPresence, true );
+		$apply             = null;
+		$applyVisible      = false;
+		$applyClass        = 'notice-error';
+		$applyMessage      = '';
+		$cleanupPending    = false;
+		$completionVisible = array() === $rows;
+		$pluginsUrl        = 'https://example.test/wp-admin/plugins.php';
+		$adminInteraction  = $this->interaction ?? new SourceCardInteractionSpy();
 
 		ob_start();
 		require dirname( __DIR__ ) . '/views/source-card.php';
@@ -337,40 +334,19 @@ final class SourceCardViewTest extends TestCase {
 		WpPusherPackage $source,
 		?PortabilityCandidate $candidate,
 		?PortabilityReviewResult $review,
-		?TransporterRowAdminInteractionFacade $interaction = null
+		?SourceCardInteractionSpy $interaction = null
 	): array {
-		$migrationUrl = 'https://example.test/wp-admin/admin.php?page=ran-booster&tab=portability#ran-booster-portability-wp-pusher';
-		$rowNamespace = 'wp-pusher:package-' . substr( hash( 'sha256', $source->type . ':' . $source->package ), 0, 40 );
-		$errorRegion  = 'ran-booster-wp-pusher-row-error-' . substr( hash( 'sha256', $source->type . ':' . $source->package ), 0, 32 );
-
-		return array(
-			'source'             => $source,
-			'candidate'          => $candidate,
-			'error'              => '',
-			'review'             => $review,
-			'imported'           => false,
-			'migration_complete' => false,
-			'status_label'       => '',
-			'manage_url'         => '',
-			'manage_label'       => '',
-			'check_request'      => null === $interaction
-				? null
-				: AdminInteractionRequest::transporterMigrationSourceRow(
-					'wp-pusher:check-package',
-					$rowNamespace,
-					$migrationUrl,
-					$errorRegion
-				),
-			'import_request'     => null === $interaction
-				? null
-				: AdminInteractionRequest::transporterMigrationSourceRow(
-					'wp-pusher:import-package',
-					$rowNamespace,
-					$migrationUrl,
-					$errorRegion
-				),
-			'error_region_id'    => $errorRegion,
+		unset( $candidate );
+		$interaction     ??= new SourceCardInteractionSpy();
+		$this->interaction = $interaction;
+		$presenter         = new MigrationPresenter(
+			new CandidateFactory(
+				static fn (): array => array( 'fixture/fixture.php' => array( 'Name' => 'Fixture Plugin' ) )
+			),
+			$interaction
 		);
+
+		return $presenter->row( $source, $review );
 	}
 }
 

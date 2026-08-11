@@ -15,13 +15,14 @@ use RAN\Admin\Interaction\AdminInteractionRequest;
 use RAN\Admin\Interaction\TransporterRowAdminInteractionFacade;
 use RAN\BoosterWpPusherMigrator\CandidateFactory;
 use RAN\BoosterWpPusherMigrator\MigrationService;
-use RAN\BoosterWpPusherMigrator\Plugin;
+use RAN\BoosterWpPusherMigrator\MigrationPresenter;
+use RAN\BoosterWpPusherMigrator\MigrationRequestController;
 use RAN\BoosterWpPusherMigrator\WpPusherPackage;
 use RAN\BoosterWpPusherMigrator\WpPusherSource;
-use ReflectionProperty;
 use RuntimeException;
 
 final class PluginAdminPostTest extends TestCase {
+	private MigrationRequestController $controller;
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -36,10 +37,6 @@ final class PluginAdminPostTest extends TestCase {
 
 	protected function tearDown(): void {
 		$_POST = array();
-		foreach ( array( 'migration', 'source', 'adminInteraction' ) as $property ) {
-			$this->setPluginProperty( $property, null );
-		}
-		$this->setPluginProperty( 'featuresRegistered', false );
 		$GLOBALS['ran_booster_wp_pusher_test_capabilities'] = array();
 		parent::tearDown();
 	}
@@ -55,7 +52,7 @@ final class PluginAdminPostTest extends TestCase {
 		$GLOBALS['ran_booster_wp_pusher_test_can_manage'] = false;
 		$_POST = array( 'ran_booster_wp_pusher_migrator_action' => 'wrong' );
 		try {
-			Plugin::handleAdminPost();
+			$this->controller->handleAdminPost();
 			self::fail( 'Invalid operation did not stop.' );
 		} catch ( \WpDieException $failure ) {
 			self::assertSame( 400, $failure->args['response'] );
@@ -64,7 +61,7 @@ final class PluginAdminPostTest extends TestCase {
 
 		$_POST = $this->reviewRequest( $source );
 		try {
-			Plugin::handleAdminPost();
+			$this->controller->handleAdminPost();
 			self::fail( 'Unauthorized request did not stop.' );
 		} catch ( \WpDieException $failure ) {
 			self::assertSame( 403, $failure->args['response'] );
@@ -75,7 +72,7 @@ final class PluginAdminPostTest extends TestCase {
 		$GLOBALS['ran_booster_wp_pusher_test_events']     = array();
 		$_POST = $this->reviewRequest( $source, 'wrong-nonce' );
 		try {
-			Plugin::handleAdminPost();
+			$this->controller->handleAdminPost();
 			self::fail( 'Invalid nonce did not stop.' );
 		} catch ( \WpDieException $failure ) {
 			self::assertSame( 403, $failure->args['response'] );
@@ -92,7 +89,7 @@ final class PluginAdminPostTest extends TestCase {
 		$_POST                                        = $this->applyRequest( $source, 'v1:' . str_repeat( 'a', 64 ) );
 		$_POST['_wpnonce']                            = 'wrong-nonce';
 		try {
-			Plugin::handleAdminPost();
+			$this->controller->handleAdminPost();
 			self::fail( 'Invalid Apply nonce did not stop.' );
 		} catch ( \WpDieException $failure ) {
 			self::assertSame( 403, $failure->args['response'] );
@@ -119,7 +116,7 @@ final class PluginAdminPostTest extends TestCase {
 		$_POST = array( 'action' => 'ran_booster_wp_pusher_migrator_package' );
 
 		try {
-			Plugin::renderPanel();
+			$this->controller->renderPanel();
 			self::fail( 'Malformed native submission did not stop.' );
 		} catch ( \WpDieException $failure ) {
 			self::assertSame( 400, $failure->args['response'] );
@@ -142,7 +139,7 @@ final class PluginAdminPostTest extends TestCase {
 		$GLOBALS['ran_booster_wp_pusher_test_can_manage'] = false;
 		$_POST = $this->reviewRequest( $source );
 		ob_start();
-		Plugin::renderPanel();
+		$this->controller->renderPanel();
 		self::assertSame( '', (string) ob_get_clean() );
 		self::assertSame( array( 'capability:manage_options' ), $GLOBALS['ran_booster_wp_pusher_test_events'] );
 
@@ -154,7 +151,7 @@ final class PluginAdminPostTest extends TestCase {
 				: $this->applyRequest( $source, 'v1:' . str_repeat( 'a', 64 ) );
 			$_POST['_wpnonce']                            = 'wrong-nonce';
 			try {
-				Plugin::renderPanel();
+				$this->controller->renderPanel();
 				self::fail( 'Invalid native nonce did not stop.' );
 			} catch ( \WpDieException $failure ) {
 				self::assertSame( 403, $failure->args['response'] );
@@ -181,7 +178,7 @@ final class PluginAdminPostTest extends TestCase {
 		$_POST                                        = array();
 
 		ob_start();
-		Plugin::renderPanel();
+		$this->controller->renderPanel();
 		$output = (string) ob_get_clean();
 
 		self::assertSame( 'capability:manage_options', $GLOBALS['ran_booster_wp_pusher_test_events'][0] ?? null );
@@ -200,7 +197,7 @@ final class PluginAdminPostTest extends TestCase {
 		$_POST                                        = $this->reviewRequest( $source );
 
 		ob_start();
-		Plugin::renderPanel();
+		$this->controller->renderPanel();
 		$output = (string) ob_get_clean();
 
 		self::assertSame(
@@ -226,7 +223,7 @@ final class PluginAdminPostTest extends TestCase {
 		$_POST['source_fingerprint'] = 'v1:' . str_repeat( 'b', 64 );
 
 		ob_start();
-		Plugin::renderPanel();
+		$this->controller->renderPanel();
 		$native = (string) ob_get_clean();
 		$this->runHandler();
 
@@ -246,7 +243,7 @@ final class PluginAdminPostTest extends TestCase {
 		$_POST  = $this->applyRequest( $source, 'v1:' . str_repeat( 'a', 64 ) );
 
 		ob_start();
-		Plugin::renderPanel();
+		$this->controller->renderPanel();
 		$output = (string) ob_get_clean();
 
 		self::assertCount( 1, $database->rows );
@@ -266,7 +263,7 @@ final class PluginAdminPostTest extends TestCase {
 		$_POST  = $this->applyRequest( $source, 'v1:' . str_repeat( 'a', 64 ) );
 
 		ob_start();
-		Plugin::renderPanel();
+		$this->controller->renderPanel();
 		$output = (string) ob_get_clean();
 
 		self::assertCount( 1, $database->rows );
@@ -451,7 +448,7 @@ final class PluginAdminPostTest extends TestCase {
 		$_POST['source_id'] = '999';
 
 		try {
-			Plugin::handleAdminPost();
+			$this->controller->handleAdminPost();
 			self::fail( 'Missing source did not stop.' );
 		} catch ( \WpDieException $failure ) {
 			self::assertSame( 409, $failure->args['response'] );
@@ -480,7 +477,7 @@ final class PluginAdminPostTest extends TestCase {
 
 	private function runHandler(): void {
 		try {
-			Plugin::handleAdminPost();
+			$this->controller->handleAdminPost();
 			self::fail( 'The administration interaction did not terminate the response.' );
 		} catch ( AdminPostResponse $response ) {
 			self::assertSame( '', $response->getMessage() );
@@ -492,21 +489,19 @@ final class PluginAdminPostTest extends TestCase {
 		AdminPostPortabilityFacade $portability,
 		AdminPostInteractionSpy $interaction
 	): void {
-		$source  = new WpPusherSource(
+		$source           = new WpPusherSource(
 			$database,
 			static fn (): array => array( WpPusherSource::PLUGIN => array( 'Version' => '3.0.13' ) ),
 			static fn (): array => array(),
 			static fn (): array => array(),
 			static fn (): bool => false
 		);
-		$factory = new CandidateFactory(
+		$factory          = new CandidateFactory(
 			static fn (): array => array( 'fixture/fixture.php' => array( 'Name' => 'Fixture Plugin' ) )
 		);
-		$service = new MigrationService( $source, $factory, $portability );
-
-		$this->setPluginProperty( 'migration', $service );
-		$this->setPluginProperty( 'source', $source );
-		$this->setPluginProperty( 'adminInteraction', $interaction );
+		$service          = new MigrationService( $source, $factory, $portability );
+		$presenter        = new MigrationPresenter( $factory, $interaction );
+		$this->controller = new MigrationRequestController( $service, $source, $presenter, $interaction );
 	}
 
 	private function sourcePackage( AdminPostDatabase $database ): WpPusherPackage {
@@ -547,11 +542,6 @@ final class PluginAdminPostTest extends TestCase {
 			'credential_id'                         => $credentialId,
 			'_wpnonce'                              => 'ran-booster-wp-pusher-migrator-apply-v1',
 		);
-	}
-
-	private function setPluginProperty( string $property, mixed $value ): void {
-		$reflection = new ReflectionProperty( Plugin::class, $property );
-		$reflection->setValue( null, $value );
 	}
 }
 

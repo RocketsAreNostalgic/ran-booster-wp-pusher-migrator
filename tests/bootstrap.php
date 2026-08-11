@@ -93,6 +93,22 @@ function admin_url( string $path = '' ): string {
 	return 'https://example.test/wp-admin/' . ltrim( $path, '/' );
 }
 
+function get_option( string $option, mixed $default = false ): mixed {
+	unset( $option );
+
+	return $default;
+}
+
+function get_site_option( string $option, mixed $default = false ): mixed {
+	unset( $option );
+
+	return $default;
+}
+
+function is_multisite(): bool {
+	return false;
+}
+
 /** @param array<string, mixed> $args */
 function wp_die( string $message, string $title = '', array $args = array() ): never {
 	// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Test stub captures arguments and never emits them.
