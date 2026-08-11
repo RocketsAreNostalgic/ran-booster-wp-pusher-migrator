@@ -80,6 +80,14 @@ final class ReleaseWorkflowTest extends TestCase {
 		self::assertStringNotContainsString( 'package-release:', $release );
 	}
 
+	public function testCertifiedCoreCheckoutFailsClosedWithoutThePrivateReadKey(): void {
+		$quality = file_get_contents( dirname( __DIR__ ) . '/.github/workflows/quality.yml' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local workflow contract.
+		self::assertIsString( $quality );
+		self::assertStringContainsString( 'RAN_BOOSTER_CORE_READ_SSH_KEY: ${{ secrets.RAN_BOOSTER_CORE_READ_SSH_KEY }}', $quality );
+		self::assertStringContainsString( 'RAN_BOOSTER_CORE_READ_SSH_KEY is required to check out the private RAN Booster Core repository.', $quality );
+		self::assertStringContainsString( 'ssh-key: ${{ secrets.RAN_BOOSTER_CORE_READ_SSH_KEY }}', $quality );
+	}
+
 	public function testPackageReleaseIsBoundToSuccessfulQualityAndTheExactMergedPullRequest(): void {
 		$workflow = file_get_contents( dirname( __DIR__ ) . '/.github/workflows/release-please.yml' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local workflow contract.
 		self::assertIsString( $workflow );

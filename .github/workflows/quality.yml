@@ -124,6 +124,15 @@ jobs:
     runs-on: blacksmith-2vcpu-ubuntu-2404
     timeout-minutes: 10
     steps:
+      - name: Require private Core read SSH key
+        env:
+          RAN_BOOSTER_CORE_READ_SSH_KEY: ${{ secrets.RAN_BOOSTER_CORE_READ_SSH_KEY }}
+        run: |
+          if [[ -z "${RAN_BOOSTER_CORE_READ_SSH_KEY:-}" ]]; then
+            echo "::error::RAN_BOOSTER_CORE_READ_SSH_KEY is required to check out the private RAN Booster Core repository."
+            exit 1
+          fi
+
       - name: Check out the exact Migrator source
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -138,6 +147,7 @@ jobs:
           ref: ${{ needs.runtime-archive.outputs.core-commit }}
           fetch-depth: 0
           path: core
+          ssh-key: ${{ secrets.RAN_BOOSTER_CORE_READ_SSH_KEY }}
           persist-credentials: false
 
       - name: Set up PHP
