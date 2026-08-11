@@ -54,7 +54,9 @@ function wp_nonce_field( string $action ): void {
 function current_user_can( string $capability ): bool {
 	$GLOBALS['ran_booster_wp_pusher_test_events'][] = 'capability:' . $capability;
 
-	return $GLOBALS['ran_booster_wp_pusher_test_can_manage'] ?? true;
+	return $GLOBALS['ran_booster_wp_pusher_test_capabilities'][ $capability ]
+		?? $GLOBALS['ran_booster_wp_pusher_test_can_manage']
+		?? true;
 }
 
 function wp_unslash( mixed $value ): mixed {

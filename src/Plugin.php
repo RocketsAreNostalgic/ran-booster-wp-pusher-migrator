@@ -25,19 +25,17 @@ final class Plugin {
 	private static ?MigrationService $migration              = null;
 	private static ?WpPusherSource $source                   = null;
 	private static ?AdminInteractionFacade $adminInteraction = null;
+	private static bool $featuresRegistered                  = false;
 
 	public static function register(): void {
 		add_action( 'ran_booster_portability_ready', array( self::class, 'connect' ), 10, 1 );
 		add_action( 'ran_booster_admin_interaction_ready', array( self::class, 'captureAdminInteraction' ), 10, 1 );
-		add_action( 'ran_booster_portability_render_migration_modes', array( self::class, 'renderMode' ), 20 );
-		add_action( 'ran_booster_portability_render_migration_flows', array( self::class, 'renderPanel' ), 20 );
-		add_action( 'ran_booster_overview_render_migration_prompt', array( self::class, 'renderOverviewPrompt' ), 20 );
-		add_action( 'admin_post_' . self::ADMIN_POST_ACTION, array( self::class, 'handleAdminPost' ) );
-		add_action( 'admin_enqueue_scripts', array( self::class, 'enqueueAssets' ), 20 );
+		add_action( 'admin_notices', array( self::class, 'renderCompatibilityNotice' ) );
 	}
 
-	public static function connect( object $portability ): void {
-		if ( ! defined( 'RAN_BOOSTER_PORTABILITY_API_VERSION' )
+	public static function connect( mixed $portability ): void {
+		if ( null !== self::$migration
+			|| ! defined( 'RAN_BOOSTER_PORTABILITY_API_VERSION' )
 			|| self::REQUIRED_PORTABILITY_API_VERSION !== RAN_BOOSTER_PORTABILITY_API_VERSION
 			|| self::REQUIRED_PORTABILITY_API_VERSION !== PortabilityFacade::API_VERSION
 			|| ! $portability instanceof PortabilityFacade ) {
@@ -46,10 +44,12 @@ final class Plugin {
 
 		self::$source    = new WpPusherSource();
 		self::$migration = new MigrationService( self::$source, new CandidateFactory(), $portability );
+		self::registerFeatures();
 	}
 
 	public static function captureAdminInteraction( mixed $facade ): void {
-		if ( ! defined( 'RAN_BOOSTER_ADMIN_INTERACTION_API_VERSION' )
+		if ( null !== self::$adminInteraction
+			|| ! defined( 'RAN_BOOSTER_ADMIN_INTERACTION_API_VERSION' )
 			|| self::REQUIRED_ADMIN_INTERACTION_API_VERSION !== constant( 'RAN_BOOSTER_ADMIN_INTERACTION_API_VERSION' )
 			|| self::REQUIRED_ADMIN_INTERACTION_API_VERSION !== AdminInteractionFacade::API_VERSION
 			|| ! interface_exists( TransporterRowAdminInteractionFacade::class )
@@ -59,6 +59,31 @@ final class Plugin {
 		}
 
 		self::$adminInteraction = $facade;
+		self::registerFeatures();
+	}
+
+	public static function renderCompatibilityNotice(): void {
+		if ( self::$featuresRegistered || ! current_user_can( 'activate_plugins' ) ) {
+			return;
+		}
+		?>
+		<div class="notice notice-error"><p><?php esc_html_e( 'RAN Booster WP Pusher Migrator needs a compatible RAN Booster release before migration features can load.', 'ran-booster-wp-pusher-migrator' ); ?></p></div>
+		<?php
+	}
+
+	private static function registerFeatures(): void {
+		if ( self::$featuresRegistered
+			|| null === self::$migration
+			|| ! self::$adminInteraction instanceof TransporterRowAdminInteractionFacade ) {
+			return;
+		}
+
+		self::$featuresRegistered = true;
+		add_action( 'ran_booster_portability_render_migration_modes', array( self::class, 'renderMode' ), 20 );
+		add_action( 'ran_booster_portability_render_migration_flows', array( self::class, 'renderPanel' ), 20 );
+		add_action( 'ran_booster_overview_render_migration_prompt', array( self::class, 'renderOverviewPrompt' ), 20 );
+		add_action( 'admin_post_' . self::ADMIN_POST_ACTION, array( self::class, 'handleAdminPost' ) );
+		add_action( 'admin_enqueue_scripts', array( self::class, 'enqueueAssets' ), 20 );
 	}
 
 	public static function renderMode(): void {
@@ -70,25 +95,37 @@ final class Plugin {
 	}
 
 	public static function renderPanel(): void {
+		$request   = is_array( $_POST ) ? wp_unslash( $_POST ) : array();
+		$operation = self::requestOperation( $request );
+		$submitted = self::isSubmittedRequest( $request );
+		if ( $submitted && ! in_array( $operation, array( 'review', 'apply' ), true ) ) {
+			wp_die(
+				esc_html__( 'Choose a valid WP Pusher migration action.', 'ran-booster-wp-pusher-migrator' ),
+				esc_html__( 'Invalid migration request', 'ran-booster-wp-pusher-migrator' ),
+				array( 'response' => 400 )
+			);
+		}
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
-		$migrationUrl = admin_url( 'admin.php?page=ran-booster&tab=portability#ran-booster-portability-wp-pusher' );
-		if ( null === self::$migration ) {
-			$error = __( 'Update Booster before migrating. This migrator needs a compatible version of Booster.', 'ran-booster-wp-pusher-migrator' );
-			require dirname( __DIR__ ) . '/views/source-card.php';
-			return;
+		if ( $submitted ) {
+			check_admin_referer( 'review' === $operation ? self::FORM_ACTION : self::APPLY_FORM_ACTION );
 		}
 
 		try {
-			$error    = '';
-			$packages = self::$migration->packages();
-			$review   = self::submittedReview( $packages );
-			$apply    = self::submittedApply( $packages );
-			if ( null !== $apply ) {
-				$packages = self::$migration->packages();
-			}
-			$optionPresence   = self::$source->optionPresence();
+			$operationOutcome = $submitted ? self::operationOutcome( $operation, $request ) : null;
+			$error            = null !== $operationOutcome
+				&& 'success' !== $operationOutcome['kind']
+				&& null === $operationOutcome['apply']
+				? ( 'unexpected_failure' === $operationOutcome['kind']
+					? __( 'Booster could not safely process this WP Pusher package. Reload Transporter and try again.', 'ran-booster-wp-pusher-migrator' )
+					: $operationOutcome['message'] )
+				: '';
+			$packages         = '' === $error ? self::$migration->packages() : array();
+			$review           = $operationOutcome['review'] ?? null;
+			$apply            = $operationOutcome['apply'] ?? null;
+			$migrationUrl     = self::migrationUrl();
+			$optionPresence   = '' === $error ? self::$source->optionPresence() : array();
 			$rows             = self::rows( $packages, $review, $migrationUrl );
 			$formAction       = self::FORM_ACTION;
 			$applyFormAction  = self::APPLY_FORM_ACTION;
@@ -146,23 +183,6 @@ final class Plugin {
 	}
 
 	public static function handleAdminPost(): void {
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_die(
-				esc_html__( 'You are not allowed to migrate WP Pusher packages.', 'ran-booster-wp-pusher-migrator' ),
-				esc_html__( 'Migration unavailable', 'ran-booster-wp-pusher-migrator' ),
-				array( 'response' => 403 )
-			);
-		}
-		if ( null === self::$migration
-			|| null === self::$adminInteraction
-			|| ! self::$adminInteraction instanceof TransporterRowAdminInteractionFacade ) {
-			wp_die(
-				esc_html__( 'Update Booster before migrating. This migrator needs compatible administration interaction support.', 'ran-booster-wp-pusher-migrator' ),
-				esc_html__( 'Migration unavailable', 'ran-booster-wp-pusher-migrator' ),
-				array( 'response' => 503 )
-			);
-		}
-
 		$request   = is_array( $_POST ) ? wp_unslash( $_POST ) : array();
 		$operation = self::requestOperation( $request );
 		if ( ! in_array( $operation, array( 'review', 'apply' ), true ) ) {
@@ -172,66 +192,26 @@ final class Plugin {
 				array( 'response' => 400 )
 			);
 		}
-
-		check_admin_referer( 'review' === $operation ? self::FORM_ACTION : self::APPLY_FORM_ACTION );
-
-		$source             = null;
-		$interactionRequest = null;
-		$outcome            = null;
-		$fragmentRow        = null;
-		try {
-			$packages           = self::$migration->packages();
-			$sourceId           = isset( $request['source_id'] ) ? absint( $request['source_id'] ) : 0;
-			$source             = self::package( $packages, $sourceId );
-			$migrationUrl       = self::migrationUrl();
-			$interactionRequest = self::interactionRequest(
-				$source,
-				'review' === $operation ? 'check-package' : 'import-package',
-				$migrationUrl
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die(
+				esc_html__( 'You are not allowed to migrate WP Pusher packages.', 'ran-booster-wp-pusher-migrator' ),
+				esc_html__( 'Migration unavailable', 'ran-booster-wp-pusher-migrator' ),
+				array( 'response' => 403 )
 			);
+		}
+		check_admin_referer( 'review' === $operation ? self::FORM_ACTION : self::APPLY_FORM_ACTION );
+		if ( null === self::$migration
+			|| ! self::$adminInteraction instanceof TransporterRowAdminInteractionFacade ) {
+			wp_die(
+				esc_html__( 'Update Booster before migrating. This migrator needs compatible administration interaction support.', 'ran-booster-wp-pusher-migrator' ),
+				esc_html__( 'Migration unavailable', 'ran-booster-wp-pusher-migrator' ),
+				array( 'response' => 503 )
+			);
+		}
 
-			if ( 'review' === $operation ) {
-				$review = self::review( $packages, $request );
-				if ( null === $review ) {
-					throw new \RuntimeException( 'The WP Pusher package could not be checked.' );
-				}
-				$row         = self::row( $source, $review, $migrationUrl );
-				$outcome     = AdminInteractionOutcome::success( $interactionRequest, $review->message );
-				$fragmentRow = $row;
-			} else {
-				$apply = self::apply( $packages, $request );
-				if ( null === $apply ) {
-					throw new \RuntimeException( 'The WP Pusher package could not be adopted.' );
-				}
-				$result = $apply['result'];
-				if ( ! $result->targetVerified || $apply['cleanup_pending'] ) {
-					$message = $apply['cleanup_pending']
-						? __( 'Booster verified the adopted package, but its exact WP Pusher source record could not be removed. Keep WP Pusher inactive and try again.', 'ran-booster-wp-pusher-migrator' )
-						: $result->message;
-					$outcome = AdminInteractionOutcome::validationFailure( $interactionRequest, $message );
-				} else {
-					$fragmentRow = self::importedRow(
-						$source,
-						$migrationUrl,
-						$result,
-						self::migrationComplete()
-					);
-					$outcome     = AdminInteractionOutcome::success( $interactionRequest, $result->message );
-				}
-			}
-		} catch ( Throwable $failure ) {
-			if ( $source instanceof WpPusherPackage
-				&& $interactionRequest instanceof AdminInteractionRequest ) {
-				$message = self::expectedFailureMessage( $failure );
-				self::$adminInteraction->respondWithTransporterRowFragment(
-					null === $message
-						? AdminInteractionOutcome::unexpectedFailure( $interactionRequest )
-						: AdminInteractionOutcome::validationFailure( $interactionRequest, $message ),
-					static function (): void {
-					}
-				);
-			}
-
+		$operationOutcome = self::operationOutcome( $operation, $request );
+		$source           = $operationOutcome['source'];
+		if ( ! $source instanceof WpPusherPackage ) {
 			wp_die(
 				esc_html__( 'Booster could not safely process this WP Pusher package. Reload Transporter and try again.', 'ran-booster-wp-pusher-migrator' ),
 				esc_html__( 'Migration request failed', 'ran-booster-wp-pusher-migrator' ),
@@ -239,12 +219,27 @@ final class Plugin {
 			);
 		}
 
-		if ( ! $outcome instanceof AdminInteractionOutcome ) {
-			wp_die(
-				esc_html__( 'Booster could not safely process this WP Pusher package. Reload Transporter and try again.', 'ran-booster-wp-pusher-migrator' ),
-				esc_html__( 'Migration request failed', 'ran-booster-wp-pusher-migrator' ),
-				array( 'response' => 400 )
-			);
+		$migrationUrl       = self::migrationUrl();
+		$interactionRequest = self::interactionRequest(
+			$source,
+			'review' === $operation ? 'check-package' : 'import-package',
+			$migrationUrl
+		);
+		$outcome            = match ( $operationOutcome['kind'] ) {
+			'success' => AdminInteractionOutcome::success( $interactionRequest, $operationOutcome['message'] ),
+			'validation_failure' => AdminInteractionOutcome::validationFailure( $interactionRequest, $operationOutcome['message'] ),
+			default => AdminInteractionOutcome::unexpectedFailure( $interactionRequest ),
+		};
+		$fragmentRow = null;
+		if ( 'success' === $operationOutcome['kind'] ) {
+			$fragmentRow = 'review' === $operation
+				? self::row( $source, $operationOutcome['review'], $migrationUrl )
+				: self::importedRow(
+					$source,
+					$migrationUrl,
+					$operationOutcome['apply']['result'],
+					$operationOutcome['migration_complete']
+				);
 		}
 
 		self::$adminInteraction->respondWithTransporterRowFragment(
@@ -258,30 +253,50 @@ final class Plugin {
 	}
 
 	/**
-	 * @param list<WpPusherPackage> $packages Current exact source rows.
+	 * @param array<string, mixed> $request Authorized request values.
+	 * @return array{kind:'success'|'validation_failure'|'unexpected_failure',message:string,source:WpPusherPackage|null,review:PortabilityReviewResult|null,apply:array{result:PortabilityApplyResult,cleanup_pending:bool}|null,migration_complete:bool}
 	 */
-	private static function submittedReview( array $packages ): ?PortabilityReviewResult {
-		$request   = is_array( $_POST ) ? wp_unslash( $_POST ) : array();
-		$operation = self::requestOperation( $request );
-		if ( 'review' !== $operation ) {
-			return null;
-		}
-		check_admin_referer( self::FORM_ACTION );
+	private static function operationOutcome( string $operation, array $request ): array {
+		$outcome = array(
+			'kind'               => 'success',
+			'message'            => '',
+			'source'             => null,
+			'review'             => null,
+			'apply'              => null,
+			'migration_complete' => false,
+		);
+		try {
+			$packages          = self::$migration->packages();
+			$source            = self::package( $packages, isset( $request['source_id'] ) ? absint( $request['source_id'] ) : 0 );
+			$outcome['source'] = $source;
+			if ( 'review' === $operation ) {
+				$outcome['review']  = self::review( $source, $request );
+				$outcome['message'] = $outcome['review']->message;
 
-		return self::review( $packages, $request );
+				return $outcome;
+			}
+
+			$apply                         = self::apply( $source, $request );
+			$outcome['apply']              = $apply;
+			$outcome['migration_complete'] = ! $apply['cleanup_pending']
+				&& $apply['result']->targetVerified
+				&& self::migrationComplete();
+			$outcome['message']            = $apply['cleanup_pending']
+				? __( 'Booster verified the adopted package, but its exact WP Pusher source record could not be removed. Keep WP Pusher inactive and try again.', 'ran-booster-wp-pusher-migrator' )
+				: $apply['result']->message;
+			$outcome['kind']               = $apply['result']->targetVerified && ! $apply['cleanup_pending'] ? 'success' : 'validation_failure';
+		} catch ( Throwable $failure ) {
+			$outcome['message'] = self::expectedFailureMessage( $failure ) ?? '';
+			$outcome['kind']    = '' === $outcome['message'] ? 'unexpected_failure' : 'validation_failure';
+		}
+
+		return $outcome;
 	}
 
 	/**
-	 * @param list<WpPusherPackage> $packages Current exact source rows.
-	 * @param array<string, mixed>   $request  Authorized request values.
+	 * @param array<string, mixed> $request Authorized request values.
 	 */
-	private static function review( array $packages, array $request ): ?PortabilityReviewResult {
-		if ( 'review' !== self::requestOperation( $request ) ) {
-			return null;
-		}
-
-		$sourceId     = isset( $request['source_id'] ) ? absint( $request['source_id'] ) : 0;
-		$source       = self::package( $packages, $sourceId );
+	private static function review( WpPusherPackage $source, array $request ): PortabilityReviewResult {
 		$expected     = isset( $request['source_fingerprint'] ) && is_scalar( $request['source_fingerprint'] )
 			? sanitize_text_field( (string) $request['source_fingerprint'] )
 			: '';
@@ -293,36 +308,14 @@ final class Plugin {
 		$coreAction = self::$migration->nonceAction( 'review', $source, $credentialId );
 		$coreNonce  = wp_create_nonce( $coreAction );
 
-		return self::$migration->review( $sourceId, $expected, $credentialId, $coreNonce );
+		return self::$migration->review( $source->id, $expected, $credentialId, $coreNonce );
 	}
 
 	/**
-	 * @param list<WpPusherPackage> $packages Current exact source rows.
+	 * @param array<string, mixed> $request Authorized request values.
+	 * @return array{result:PortabilityApplyResult,cleanup_pending:bool}
 	 */
-	/** @return array{result:PortabilityApplyResult,cleanup_pending:bool}|null */
-	private static function submittedApply( array $packages ): ?array {
-		$request   = is_array( $_POST ) ? wp_unslash( $_POST ) : array();
-		$operation = self::requestOperation( $request );
-		if ( 'apply' !== $operation ) {
-			return null;
-		}
-		check_admin_referer( self::APPLY_FORM_ACTION );
-
-		return self::apply( $packages, $request );
-	}
-
-	/**
-	 * @param list<WpPusherPackage> $packages Current exact source rows.
-	 * @param array<string, mixed>   $request  Authorized request values.
-	 * @return array{result:PortabilityApplyResult,cleanup_pending:bool}|null
-	 */
-	private static function apply( array $packages, array $request ): ?array {
-		if ( 'apply' !== self::requestOperation( $request ) ) {
-			return null;
-		}
-
-		$sourceId       = isset( $request['source_id'] ) ? absint( $request['source_id'] ) : 0;
-		$source         = self::package( $packages, $sourceId );
+	private static function apply( WpPusherPackage $source, array $request ): array {
 		$expectedSource = isset( $request['source_fingerprint'] ) && is_scalar( $request['source_fingerprint'] )
 			? sanitize_text_field( (string) $request['source_fingerprint'] )
 			: '';
@@ -337,14 +330,14 @@ final class Plugin {
 		$coreNonce      = wp_create_nonce( $coreAction );
 
 		$result  = self::$migration->apply(
-			$sourceId,
+			$source->id,
 			$expectedSource,
 			$credentialId,
 			$expectedReview,
 			$coreNonce
 		);
 		$removed = $result->targetVerified
-			&& self::$migration->cleanup( $sourceId, $expectedSource, $result );
+			&& self::$migration->cleanup( $source->id, $expectedSource, $result );
 
 		return array(
 			'result'          => $result,
@@ -393,7 +386,8 @@ final class Plugin {
 				1 === $source->private ? 'credential_required' : null
 			);
 		} catch ( Throwable $failure ) {
-			$error = self::safeSourceError( $failure );
+			$error = self::expectedFailureMessage( $failure )
+				?? __( 'This retained package is unsupported.', 'ran-booster-wp-pusher-migrator' );
 		}
 
 		$checkRequest  = null;
@@ -488,14 +482,16 @@ final class Plugin {
 				: '';
 	}
 
-	private static function migrationUrl(): string {
-		return admin_url( 'admin.php?page=ran-booster&tab=portability#ran-booster-portability-wp-pusher' );
+	/** @param array<string, mixed> $request */
+	private static function isSubmittedRequest( array $request ): bool {
+		return array_key_exists( 'ran_booster_wp_pusher_migrator_action', $request )
+			|| ( isset( $request['action'] )
+				&& is_scalar( $request['action'] )
+				&& self::ADMIN_POST_ACTION === sanitize_key( (string) $request['action'] ) );
 	}
 
-	private static function safeSourceError( Throwable $failure ): string {
-		$message = self::expectedFailureMessage( $failure );
-
-		return $message ?? __( 'This retained package is unsupported.', 'ran-booster-wp-pusher-migrator' );
+	private static function migrationUrl(): string {
+		return admin_url( 'admin.php?page=ran-booster&tab=portability#ran-booster-portability-wp-pusher' );
 	}
 
 	private static function expectedFailureMessage( Throwable $failure ): ?string {
