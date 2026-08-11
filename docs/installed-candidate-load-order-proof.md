@@ -67,11 +67,12 @@ The candidate was loaded in isolation and received structurally wrong
 three composition properties remained `null`: migration, WP Pusher source and
 Admin Interaction facade.
 
-This proof also confirms the current pre-M1 shortcoming: the migration-mode and
-migration-flow feature hooks are already registered before either exact facade
-has been captured. This is characterization, not an accepted compatibility
-contract. The next lifecycle change must defer feature registration until both
-exact facades have been frozen.
+At this exact pre-M1 candidate, the proof also confirmed that migration-mode
+and migration-flow hooks were already registered before either exact facade had
+been captured. This was characterization, not an accepted compatibility
+contract. The later
+[M1 lifecycle correction](m1-lifecycle-and-request-order.md) defers every
+feature surface until both first-valid facades have been frozen.
 
 ## Both physical plugin load orders
 
@@ -108,10 +109,10 @@ In both orders:
 - the exact retained package fingerprint was
   `v1:777b7945e61b9d9902c3ba42daf46f37eb2e2fbf92daa91768be8e6fe1eb609c`.
 
-The final duplicate-delivery probe truthfully records the second current M1
-shortcoming: a later valid delivery replaces the request-local composed
-migration object even though hook counts remain stable. M1 must make the first
-exact valid delivery win instead.
+The final duplicate-delivery probe truthfully recorded the second pre-M1
+shortcoming: a later valid delivery replaced the request-local composed
+migration object even though hook counts remained stable. The later M1 source
+correction makes the first exact valid delivery win.
 
 ## Non-mutation readback
 
@@ -139,8 +140,8 @@ cleanup gate. This closes installed qualification only. It does not change the
 candidate's unpublished status and does not claim the existing published
 beta.5 asset contains these bytes.
 
-The next source gate may now correct the two explicitly characterized lifecycle
-defects: premature feature registration and replacement by later exact facade
-deliveries. Its acceptance still requires both delivery orders, first-valid
-wins, exactly-once feature registration and no public or persistent-state
-expansion.
+The subsequent M1 source gate corrected the two explicitly characterized
+lifecycle defects with both delivery orders, first-valid wins, exactly-once
+feature registration and no public or persistent-state expansion. This proof
+remains the installed evidence for its exact pre-M1 candidate and does not claim
+the later M1 archive was installed.

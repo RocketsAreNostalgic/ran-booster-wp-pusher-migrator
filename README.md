@@ -25,10 +25,11 @@ The current source/CI certification uses the immutable RAN Booster
 `v1.0.0-beta.14` release, exposing Portability API 2 and Admin Interaction API
 2. The exact tag/full-commit tuple has one machine-readable owner:
 `extra.ran-booster-core-certification` in `composer.json`. The exact retained
-source candidate has also passed the separate disposable installed-site and
-both-physical-load-orders gate. That qualification does not publish the
-candidate; the bridge remains coupled to the public API generations rather
-than to a particular Core implementation commit.
+Phase 0 source candidate also passed the separate disposable installed-site and
+both-physical-load-orders gate. M1 then corrected facade composition and
+request ordering without changing that public contract. Neither qualification
+publishes its candidate; the bridge remains coupled to the public API
+generations rather than to a particular Core implementation commit.
 
 ## Provider support
 
@@ -98,11 +99,13 @@ renders **Cannot adopt** without offering an action.
 
 See [RELEASE.md](RELEASE.md) for the authoritative release procedure.
 The [Phase 0 source-certification evidence](docs/phase-0-source-certification.md)
-records the frozen counters, current lifecycle shortcomings, exact archive
+records the frozen counters, historical pre-M1 lifecycle shortcomings, exact archive
 invariants and retained source candidate. The
 [installed candidate and load-order proof](docs/installed-candidate-load-order-proof.md)
 records the exact WordPress, Core and inactive WP Pusher runtime evidence,
-non-mutation readback and cleanup.
+non-mutation readback and cleanup. The
+[M1 lifecycle and request-order evidence](docs/m1-lifecycle-and-request-order.md)
+records the first-valid composition and authority-before-inventory correction.
 
 ## License
 

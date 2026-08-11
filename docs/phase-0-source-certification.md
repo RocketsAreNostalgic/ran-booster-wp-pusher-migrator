@@ -141,24 +141,25 @@ This section records source/CI certification only. The later disposable
 retained the exact Migrator candidate ZIP and installed it beside this exact
 Core artifact and an inactive WP Pusher 3.0.13 fixture.
 
-## Current lifecycle characterization
+## Pre-M1 lifecycle characterization
 
-Source-level characterization deliberately records the pre-M1 shortcomings
-without changing runtime behaviour:
+Source-level characterization recorded the pre-M1 shortcomings without
+changing runtime behaviour:
 
-- registration currently installs the two ready listeners and all five feature
-  surfaces before either facade has been captured;
+- registration installed the two ready listeners and all five feature surfaces
+  before either facade had been captured;
 - a missing facade leaves its composition state absent, but the premature
   feature hooks remain registered;
 - wrong facade deliveries are inert;
 - both valid delivery orders capture both facades;
-- repeated valid deliveries currently replace the captured composition; and
+- repeated valid deliveries replaced the captured composition; and
 - facade delivery itself adds no further feature-hook registrations.
 
-These observations are not desired compatibility guarantees. M1 remains
-responsible for making the first exact valid facade win and registering feature
-behaviour exactly once only after both exact facades are frozen. Physical
-plugin load-order proof remains part of the separate installed-runtime gate.
+These observations were not desired compatibility guarantees. The later
+[M1 lifecycle correction](m1-lifecycle-and-request-order.md) makes the first
+exact valid facade win and registers feature behaviour exactly once only after
+both exact facades are frozen. Physical plugin load-order evidence remains
+bound to the separate installed-runtime proof and its exact pre-M1 candidate.
 
 ## Explicit-commit archive boundary
 
