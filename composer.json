@@ -5,8 +5,8 @@
   "license": "GPL-2.0-or-later",
   "extra": {
     "ran-booster-core-certification": {
-      "tag": "v1.0.0-beta.14",
-      "commit": "4767b1416e598d482ee8b47f2d102157a8eb0c41"
+      "tag": "v1.0.0-beta.15",
+      "commit": "24f48726d05312319f4f78c4661281087de5463a"
     }
   },
   "require": {
