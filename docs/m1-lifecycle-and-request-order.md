@@ -118,11 +118,16 @@ This same-version archive is an unpublished M1 candidate. It is neither the
 previous Phase 0 candidate nor the existing immutable published beta.5 asset.
 No installed-runtime or publication claim is made for the M1 archive.
 
-## Next gate
+## Subsequent M2 gate
 
-The objective M2 exception does not pass: `Plugin.php` is 525 lines / 25
-methods, above the 350-line / 18-method exception boundary, and still owns
-lifecycle, request transport and presentation composition. M2 therefore remains
-the required bounded cohesion gate. It must preserve this lifecycle and
-authority ordering and must not treat line count alone as permission to distort
-correctness or add a migration framework.
+At the immutable M1 commit, the objective M2 exception did not pass:
+`Plugin.php` was 525 lines / 25 methods, above the 350-line / 18-method
+exception boundary, and still owned lifecycle, request transport and
+presentation composition. That statement is the historical M1 handoff, not a
+current open gate.
+
+M2 subsequently landed at exact commit
+`b2173e8f3bf8552e374b64001bda5731a4b9b476`, preserving this lifecycle and
+authority ordering without adding a migration framework. See the
+[M2 ownership and source/archive evidence](m2-ownership-and-source-archive-evidence.md)
+for its exact responsibility split, counters and unpublished archive identity.

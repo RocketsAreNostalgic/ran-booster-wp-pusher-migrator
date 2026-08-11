@@ -22,14 +22,18 @@ with deployment Disabled.
   WP Pusher credentials.
 
 The current source/CI certification uses the immutable RAN Booster
-`v1.0.0-beta.14` release, exposing Portability API 2 and Admin Interaction API
-2. The exact tag/full-commit tuple has one machine-readable owner:
+`v1.0.0-beta.14` release, exposing Portability API 2 and Admin Interaction API 2. The exact tag/full-commit tuple has one machine-readable owner:
 `extra.ran-booster-core-certification` in `composer.json`. The exact retained
 Phase 0 source candidate also passed the separate disposable installed-site and
 both-physical-load-orders gate. M1 then corrected facade composition and
 request ordering without changing that public contract. Neither qualification
 publishes its candidate; the bridge remains coupled to the public API
 generations rather than to a particular Core implementation commit.
+
+M2 subsequently split lifecycle, request/transport and passive presentation
+ownership into bounded internal types while preserving the M1 contract. Its
+qualification is source/archive-only and does not extend the earlier installed
+Phase 0 proof to the M2 candidate.
 
 ## Provider support
 
@@ -106,6 +110,10 @@ records the exact WordPress, Core and inactive WP Pusher runtime evidence,
 non-mutation readback and cleanup. The
 [M1 lifecycle and request-order evidence](docs/m1-lifecycle-and-request-order.md)
 records the first-valid composition and authority-before-inventory correction.
+The
+[M2 ownership and source/archive evidence](docs/m2-ownership-and-source-archive-evidence.md)
+records the bounded internal split, exact counters and immutable archive
+candidate.
 
 ## License
 
