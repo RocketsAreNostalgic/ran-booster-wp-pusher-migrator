@@ -136,10 +136,10 @@ and a checked-out Core whose HEAD or tag resolution contradicts the tuple.
 Quality checks out the certified commit and proves that its exact tag resolves
 to that commit before checking the two real facade constants and ready actions.
 
-This is source/CI certification only. A sibling authority must retain the exact
-Migrator candidate ZIP and install it beside this exact Core artifact and an
-inactive WP Pusher 3.0.13 fixture before the installed and both-load-orders gate
-can pass.
+This section records source/CI certification only. The later disposable
+[installed candidate and load-order proof](installed-candidate-load-order-proof.md)
+retained the exact Migrator candidate ZIP and installed it beside this exact
+Core artifact and an inactive WP Pusher 3.0.13 fixture.
 
 ## Current lifecycle characterization
 
@@ -219,7 +219,8 @@ authorized release process gives a new immutable release identity.
 
 ## Remaining authority
 
-Phase 0 source certification does not authorize installed WordPress mutation,
-remote writes, a version bump, a Release Please merge, a tag or publication.
-The next gate is the separate disposable installed runtime proof with both
-physical plugin load orders; M1 must not start before that gate completes.
+Phase 0 source certification did not itself authorize installed WordPress
+mutation, remote writes, a version bump, a Release Please merge, a tag or
+publication. The separately authorized disposable installed-runtime proof has
+now passed in both physical plugin load orders. Remote writes, a version bump,
+a Release Please merge, a tag and publication remain outside this evidence.
