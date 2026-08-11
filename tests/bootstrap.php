@@ -9,6 +9,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 	define( 'ABSPATH', '/tmp/wordpress/' );
 }
 
+/** @param callable|array{class-string,string}|string $callback */
+function add_action( string $hook, callable|array|string $callback, int $priority = 10, int $acceptedArgs = 1 ): void {
+	$GLOBALS['ran_booster_wp_pusher_test_hooks'][ $hook ][] = array(
+		'callback'      => $callback,
+		'priority'      => $priority,
+		'accepted_args' => $acceptedArgs,
+	);
+}
+
 function esc_html( mixed $value ): string {
 	return htmlspecialchars( (string) $value, ENT_QUOTES, 'UTF-8' );
 }

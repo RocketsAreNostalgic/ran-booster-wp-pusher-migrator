@@ -3,6 +3,12 @@
   "description": "One-time WP Pusher 3.0.13 migration bridge for RAN Booster.",
   "type": "wordpress-plugin",
   "license": "GPL-2.0-or-later",
+  "extra": {
+    "ran-booster-core-certification": {
+      "tag": "v1.0.0-beta.14",
+      "commit": "4767b1416e598d482ee8b47f2d102157a8eb0c41"
+    }
+  },
   "require": {
     "php": "^8.2"
   },
@@ -19,6 +25,7 @@
   },
   "scripts": {
     "archive:build": "bash scripts/build-release.sh",
+    "archive:build:head": "bash scripts/build-release.sh \"$(git rev-parse HEAD)\"",
     "archive:verify": "bash scripts/verify-release.sh",
     "lint:php": "find . -path ./vendor -prune -o -path ./node_modules -prune -o -path ./.git -prune -o -name '*.php' -exec php -l {} \\;",
     "standards": "phpcs --standard=.phpcs.xml.dist --report=summary",
@@ -27,7 +34,7 @@
       "@lint:php",
       "@standards",
       "@test",
-      "@archive:build"
+      "@archive:build:head"
     ]
   },
   "config": {
