@@ -46,6 +46,7 @@ jobs:
           RAN_PR_AUTHOR: ${{ github.event.pull_request.user.login }}
           RAN_PR_BASE: ${{ github.event.pull_request.base.ref }}
           RAN_PR_HEAD: ${{ github.event.pull_request.head.ref }}
+          RAN_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           RAN_PR_HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
         run: |
           set -euo pipefail
@@ -60,7 +61,11 @@ jobs:
           fi
 
           source_commit="$GITHUB_SHA"
-          if [[ "$GITHUB_EVENT_NAME" == push ]] \
+          if [[ "$release_candidate" == true ]]; then
+            source_commit="$RAN_PR_HEAD_SHA"
+            test "$(git rev-parse "${source_commit}^{commit}")" = "$source_commit"
+            test "$(git rev-parse "${GITHUB_SHA}^{tree}")" = "$(git rev-parse "${source_commit}^{tree}")"
+          elif [[ "$GITHUB_EVENT_NAME" == push ]] \
             && ! git diff --quiet "${GITHUB_SHA}^1" "$GITHUB_SHA" -- .release-please-manifest.json; then
             source_commit="$(git rev-parse "${GITHUB_SHA}^2")"
             test "$(git log -1 --format=%H "$GITHUB_SHA" -- .release-please-manifest.json)" = "$source_commit"

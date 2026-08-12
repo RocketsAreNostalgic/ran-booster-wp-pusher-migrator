@@ -38,6 +38,11 @@ final class ReleaseWorkflowTest extends TestCase {
 		self::assertStringContainsString( '$sourceCommit = $argv[2] ??', $verifier );
 		self::assertStringContainsString( "'commit'             => \$sourceCommit", $verifier );
 		self::assertStringContainsString( 'git_output( array( \'show\', $commit . \':\' . $file ) )', $verifier );
+		self::assertStringContainsString( 'RAN_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}', $quality );
+		self::assertStringContainsString( 'source_commit="$RAN_PR_HEAD_SHA"', $quality );
+		self::assertStringContainsString( 'git rev-parse "${source_commit}^{commit}"', $quality );
+		self::assertStringContainsString( 'git rev-parse "${GITHUB_SHA}^{tree}"', $quality );
+		self::assertStringContainsString( 'git rev-parse "${source_commit}^{tree}"', $quality );
 		self::assertStringContainsString( 'bash scripts/build-release.sh "$source_commit"', $quality );
 	}
 
