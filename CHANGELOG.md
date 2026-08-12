@@ -7,10 +7,8 @@
 
 * **ci:** authenticate certified Core checkout ([aa47cca](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/aa47cca528b4d14364a9e3cf671f8e3ef155243f))
 * gate Migrator feature activation ([57f46cc](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/57f46cc6e0091b62c1b33d8c9e3c30287344fe3f))
-* **release:** build Release Please head ([f73a417](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/f73a417ea21831a727bf429a57cf0b4c0cde531d))
 * **release:** build Release Please head ([#23](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/23)) ([d151b96](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/d151b9693aee79397f1be55facc5e2df05f05755))
 * **release:** certify Core beta.15 compatibility ([3a8fc10](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/3a8fc1034f001ceec3286054092149216fbb7539))
-* **release:** harden installed proof restoration ([6c91913](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/6c9191339b79980efd1944b2eee840d6ad454059))
 * **release:** harden installed proof restoration ([#24](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/24)) ([8473e5e](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/8473e5e7952cebf5e352c64f8446721529e3cb96))
 
 
