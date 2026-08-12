@@ -3,71 +3,43 @@
  * One retained WP Pusher source row.
  *
  * @var array<string, mixed> $row
- * @var string               $migrationUrl
- * @var string               $formAction
- * @var string               $applyFormAction
- * @var string               $adminPostAction
- * @var object|null          $adminInteraction
- * @var string               $rowTargetElementId
+ * @var object               $adminInteraction Exact Core form-attribute presentation seam.
  */
 
 defined( 'ABSPATH' ) || exit;
 
-$source            = $row['source'];
-$candidate         = $row['candidate'];
-$review            = $row['review'];
-$imported          = true === $row['imported'];
 $migrationComplete = true === $row['migration_complete'];
-$checkRequest      = $row['check_request'];
-$importRequest     = $row['import_request'];
-$actionableReview  = null !== $review && in_array( $review->action, array( 'adopt', 'managed' ), true );
-$managedReview     = null !== $review && 'managed' === $review->action;
 ?>
-<tr<?php echo '' === $rowTargetElementId ? '' : ' id="' . esc_attr( $rowTargetElementId ) . '"'; ?><?php echo $migrationComplete ? ' data-ran-booster-wp-pusher-migration-complete="true"' : ''; ?>>
-	<th scope="row"><code><?php echo esc_html( $source->package ); ?></code></th>
-	<td><code><?php echo esc_html( $source->repository ); ?></code></td>
+<tr<?php echo '' === $row['target_element_id'] ? '' : ' id="' . esc_attr( $row['target_element_id'] ) . '"'; ?><?php echo $migrationComplete ? ' data-ran-booster-wp-pusher-migration-complete="true"' : ''; ?>>
+	<th scope="row"><code><?php echo esc_html( $row['package'] ); ?></code></th>
+	<td><code><?php echo esc_html( $row['repository'] ); ?></code></td>
 	<td>
-		<?php if ( $imported ) { ?>
-			<strong><?php echo esc_html( $row['status_label'] ); ?></strong>
+		<?php if ( $row['status_strong'] ) { ?>
+			<strong><?php echo esc_html( $row['status_heading'] ); ?></strong>
 			<?php if ( $migrationComplete ) { ?>
 				<span class="screen-reader-text" role="status" aria-live="polite"><?php esc_html_e( 'Package migration complete.', 'ran-booster-wp-pusher-migrator' ); ?></span>
 			<?php } ?>
-		<?php } elseif ( '' !== $row['error'] ) { ?>
-			<strong><?php esc_html_e( 'Cannot adopt', 'ran-booster-wp-pusher-migrator' ); ?></strong>
-			<span><?php echo esc_html( $row['error'] ); ?></span>
-		<?php } elseif ( $actionableReview ) { ?>
-			<?php if ( $managedReview ) { ?>
-				<strong><?php esc_html_e( 'Adoption incomplete', 'ran-booster-wp-pusher-migrator' ); ?></strong>
-				<span><?php esc_html_e( 'Booster manages this package; a WP Pusher record remains.', 'ran-booster-wp-pusher-migrator' ); ?></span>
-			<?php } else { ?>
-				<strong><?php esc_html_e( 'Ready to adopt', 'ran-booster-wp-pusher-migrator' ); ?></strong>
-			<?php } ?>
-		<?php } elseif ( null !== $review ) { ?>
-			<strong><?php esc_html_e( 'Cannot adopt', 'ran-booster-wp-pusher-migrator' ); ?></strong>
-			<span><?php echo esc_html( $review->message ); ?></span>
 		<?php } else { ?>
-			<?php esc_html_e( 'Ready to check', 'ran-booster-wp-pusher-migrator' ); ?>
+			<?php echo esc_html( $row['status_heading'] ); ?>
+		<?php } ?>
+		<?php if ( '' !== $row['status_message'] ) { ?>
+			<span><?php echo esc_html( $row['status_message'] ); ?></span>
 		<?php } ?>
 		<div id="<?php echo esc_attr( $row['error_region_id'] ); ?>" class="ran-booster-wp-pusher-migrator__row-error" role="alert" aria-live="polite"></div>
 	</td>
 	<td class="ran-booster-wp-pusher-migrator__action-cell">
-		<?php if ( $imported ) { ?>
+		<?php if ( 'manage' === $row['action'] ) { ?>
 			<a class="button" href="<?php echo esc_url( $row['manage_url'] ); ?>"><?php echo esc_html( $row['manage_label'] ); ?></a>
-		<?php } elseif ( null !== $candidate ) { ?>
+		<?php } elseif ( 'none' !== $row['action'] ) { ?>
 			<div class="ran-booster-wp-pusher-migrator__actions">
-				<?php if ( ! $actionableReview ) { ?>
-					<form method="post" action="<?php echo esc_url( $migrationUrl ); ?>"
-					<?php
-					if ( null !== $checkRequest && null !== $adminInteraction ) {
-						$adminInteraction->renderFormAttributes( $checkRequest ); }
-					?>
-					>
-						<input type="hidden" name="action" value="<?php echo esc_attr( $adminPostAction ); ?>">
+				<?php if ( 'check' === $row['action'] ) { ?>
+					<form method="post" action="<?php echo esc_url( $row['migration_url'] ); ?>"<?php $adminInteraction->renderFormAttributes( $row['form_request'] ); ?>>
+						<input type="hidden" name="action" value="<?php echo esc_attr( $row['admin_post_action'] ); ?>">
 						<input type="hidden" name="ran_booster_wp_pusher_migrator_action" value="review">
-						<input type="hidden" name="source_id" value="<?php echo esc_attr( (string) $source->id ); ?>">
-						<input type="hidden" name="source_fingerprint" value="<?php echo esc_attr( $source->fingerprint() ); ?>">
-						<?php wp_nonce_field( $formAction ); ?>
-						<?php if ( 1 === $source->private ) { ?>
+						<input type="hidden" name="source_id" value="<?php echo esc_attr( (string) $row['source_id'] ); ?>">
+						<input type="hidden" name="source_fingerprint" value="<?php echo esc_attr( $row['source_fingerprint'] ); ?>">
+						<?php wp_nonce_field( $row['form_action'] ); ?>
+						<?php if ( $row['private'] ) { ?>
 							<label>
 								<span><?php esc_html_e( 'Booster credential', 'ran-booster-wp-pusher-migrator' ); ?></span>
 								<input type="text" name="credential_id" maxlength="64" pattern="[A-Za-z0-9_-]{3,64}" autocomplete="off" required>
@@ -76,20 +48,15 @@ $managedReview     = null !== $review && 'managed' === $review->action;
 						<button class="button" type="submit"><?php esc_html_e( 'Check', 'ran-booster-wp-pusher-migrator' ); ?></button>
 					</form>
 				<?php } else { ?>
-					<form method="post" action="<?php echo esc_url( $migrationUrl ); ?>"
-					<?php
-					if ( null !== $importRequest && null !== $adminInteraction ) {
-						$adminInteraction->renderFormAttributes( $importRequest ); }
-					?>
-					>
-						<input type="hidden" name="action" value="<?php echo esc_attr( $adminPostAction ); ?>">
+					<form method="post" action="<?php echo esc_url( $row['migration_url'] ); ?>"<?php $adminInteraction->renderFormAttributes( $row['form_request'] ); ?>>
+						<input type="hidden" name="action" value="<?php echo esc_attr( $row['admin_post_action'] ); ?>">
 						<input type="hidden" name="ran_booster_wp_pusher_migrator_action" value="apply">
-						<input type="hidden" name="source_id" value="<?php echo esc_attr( (string) $source->id ); ?>">
-						<input type="hidden" name="source_fingerprint" value="<?php echo esc_attr( $source->fingerprint() ); ?>">
-						<input type="hidden" name="review_fingerprint" value="<?php echo esc_attr( $review->fingerprint ); ?>">
-						<input type="hidden" name="credential_id" value="<?php echo esc_attr( (string) ( $review->candidate->credentialId ?? '' ) ); ?>">
-						<?php wp_nonce_field( $applyFormAction ); ?>
-						<button class="button button-primary" type="submit"><?php $managedReview ? esc_html_e( 'Finish', 'ran-booster-wp-pusher-migrator' ) : esc_html_e( 'Adopt', 'ran-booster-wp-pusher-migrator' ); ?></button>
+						<input type="hidden" name="source_id" value="<?php echo esc_attr( (string) $row['source_id'] ); ?>">
+						<input type="hidden" name="source_fingerprint" value="<?php echo esc_attr( $row['source_fingerprint'] ); ?>">
+						<input type="hidden" name="review_fingerprint" value="<?php echo esc_attr( $row['review_fingerprint'] ); ?>">
+						<input type="hidden" name="credential_id" value="<?php echo esc_attr( $row['credential_id'] ); ?>">
+						<?php wp_nonce_field( $row['apply_form_action'] ); ?>
+						<button class="button button-primary" type="submit"><?php echo esc_html( $row['action_label'] ); ?></button>
 					</form>
 				<?php } ?>
 			</div>

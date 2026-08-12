@@ -9,6 +9,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 	define( 'ABSPATH', '/tmp/wordpress/' );
 }
 
+/** @param callable|array{class-string,string}|string $callback */
+function add_action( string $hook, callable|array|string $callback, int $priority = 10, int $acceptedArgs = 1 ): void {
+	$GLOBALS['ran_booster_wp_pusher_test_hooks'][ $hook ][] = array(
+		'callback'      => $callback,
+		'priority'      => $priority,
+		'accepted_args' => $acceptedArgs,
+	);
+}
+
 function esc_html( mixed $value ): string {
 	return htmlspecialchars( (string) $value, ENT_QUOTES, 'UTF-8' );
 }
@@ -45,7 +54,9 @@ function wp_nonce_field( string $action ): void {
 function current_user_can( string $capability ): bool {
 	$GLOBALS['ran_booster_wp_pusher_test_events'][] = 'capability:' . $capability;
 
-	return $GLOBALS['ran_booster_wp_pusher_test_can_manage'] ?? true;
+	return $GLOBALS['ran_booster_wp_pusher_test_capabilities'][ $capability ]
+		?? $GLOBALS['ran_booster_wp_pusher_test_can_manage']
+		?? true;
 }
 
 function wp_unslash( mixed $value ): mixed {
@@ -80,6 +91,22 @@ function wp_create_nonce( string $action ): string {
 
 function admin_url( string $path = '' ): string {
 	return 'https://example.test/wp-admin/' . ltrim( $path, '/' );
+}
+
+function get_option( string $option, mixed $default = false ): mixed {
+	unset( $option );
+
+	return $default;
+}
+
+function get_site_option( string $option, mixed $default = false ): mixed {
+	unset( $option );
+
+	return $default;
+}
+
+function is_multisite(): bool {
+	return false;
 }
 
 /** @param array<string, mixed> $args */

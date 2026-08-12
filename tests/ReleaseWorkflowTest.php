@@ -7,23 +7,38 @@ namespace Tests;
 use PHPUnit\Framework\TestCase;
 
 final class ReleaseWorkflowTest extends TestCase {
-	private const TESTED_CORE_TAG = 'v1.0.0-beta.5';
-
-	private const TESTED_CORE_COMMIT = 'c992d612a827bef2bc6dea6993e25045087b6d52';
-
-	public function testDocumentationRecordsTheExactTestedCoreReleaseWithoutClaimingARuntimePin(): void {
+	public function testDocumentationProjectsTheCanonicalCoreTagWithoutDuplicatingItsCommit(): void {
+		$composer = json_decode( (string) file_get_contents( dirname( __DIR__ ) . '/composer.json' ), true, 512, JSON_THROW_ON_ERROR ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local release contract.
+		$tuple    = $composer['extra']['ran-booster-core-certification'] ?? null;
+		self::assertIsArray( $tuple );
 		foreach ( array( 'README.md', 'RELEASE.md' ) as $documentName ) {
 			$document = file_get_contents( dirname( __DIR__ ) . '/' . $documentName ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local release-contract document.
 			self::assertIsString( $document );
-			self::assertStringContainsString( self::TESTED_CORE_TAG, $document );
-			self::assertStringContainsString( self::TESTED_CORE_COMMIT, $document );
+			self::assertStringContainsString( (string) $tuple['tag'], $document );
+			self::assertStringNotContainsString( (string) $tuple['commit'], $document );
 			self::assertStringContainsString( 'Portability API 2', $document );
 			self::assertStringContainsString( 'Admin Interaction API 2', $document );
+			self::assertStringContainsString( 'installed', strtolower( $document ) );
 		}
+	}
 
-		$readme = file_get_contents( dirname( __DIR__ ) . '/README.md' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local release-contract document.
-		self::assertIsString( $readme );
-		self::assertStringContainsString( 'the bridge remains coupled to those public API generations', $readme );
+	public function testArchiveCommandsBindMetadataAndRuntimeBytesToOneExplicitCommit(): void {
+		$builder  = file_get_contents( dirname( __DIR__ ) . '/scripts/build-release.sh' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local release contract.
+		$wrapper  = file_get_contents( dirname( __DIR__ ) . '/scripts/verify-release.sh' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local release contract.
+		$verifier = file_get_contents( dirname( __DIR__ ) . '/scripts/verify-release.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local release contract.
+		$quality  = file_get_contents( dirname( __DIR__ ) . '/.github/workflows/quality.yml' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local release contract.
+		self::assertIsString( $builder );
+		self::assertIsString( $wrapper );
+		self::assertIsString( $verifier );
+		self::assertIsString( $quality );
+		self::assertStringContainsString( 'source_commit=${1:?full source commit is required}', $builder );
+		self::assertStringContainsString( 'git show "${source_commit}:release-contents.txt"', $builder );
+		self::assertStringContainsString( 'git archive', $builder );
+		self::assertStringContainsString( 'exec php "$root/scripts/verify-release.php" "$@"', $wrapper );
+		self::assertStringContainsString( '$sourceCommit = $argv[2] ??', $verifier );
+		self::assertStringContainsString( "'commit'             => \$sourceCommit", $verifier );
+		self::assertStringContainsString( 'git_output( array( \'show\', $commit . \':\' . $file ) )', $verifier );
+		self::assertStringContainsString( 'bash scripts/build-release.sh "$source_commit"', $quality );
 	}
 
 	public function testRepositoryWorkflowsPinEveryActionToAnExactCommit(): void {
@@ -63,6 +78,14 @@ final class ReleaseWorkflowTest extends TestCase {
 		self::assertStringContainsString( 'actions/download-artifact@', $release );
 		self::assertStringContainsString( 'run-id: ${{ github.event.workflow_run.id }}', $release );
 		self::assertStringNotContainsString( 'package-release:', $release );
+	}
+
+	public function testCertifiedCoreCheckoutFailsClosedWithoutThePrivateReadKey(): void {
+		$quality = file_get_contents( dirname( __DIR__ ) . '/.github/workflows/quality.yml' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local workflow contract.
+		self::assertIsString( $quality );
+		self::assertStringContainsString( 'RAN_BOOSTER_CORE_READ_SSH_KEY: ${{ secrets.RAN_BOOSTER_CORE_READ_SSH_KEY }}', $quality );
+		self::assertStringContainsString( 'RAN_BOOSTER_CORE_READ_SSH_KEY is required to check out the private RAN Booster Core repository.', $quality );
+		self::assertStringContainsString( 'ssh-key: ${{ secrets.RAN_BOOSTER_CORE_READ_SSH_KEY }}', $quality );
 	}
 
 	public function testPackageReleaseIsBoundToSuccessfulQualityAndTheExactMergedPullRequest(): void {

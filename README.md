@@ -21,11 +21,19 @@ with deployment Disabled.
   repository, including private Bitbucket repositories. The bridge never copies
   WP Pusher credentials.
 
-The current tested release train is RAN Booster `v1.0.0-beta.5` at commit
-`c992d612a827bef2bc6dea6993e25045087b6d52`, exposing Portability API 2 and
-Admin Interaction API 2. This records the release used for compatibility proof;
-the bridge remains coupled to those public API generations rather than to a
-particular Core implementation commit.
+The current source/CI certification uses the immutable RAN Booster
+`v1.0.0-beta.15` release, exposing Portability API 2 and Admin Interaction API 2. The exact tag/full-commit tuple has one machine-readable owner:
+`extra.ran-booster-core-certification` in `composer.json`. The exact retained
+Phase 0 source candidate separately passed the disposable installed-site and
+both-physical-load-orders gate against the then-current beta.14 artifact. M1 then corrected facade composition and
+request ordering without changing that public contract. Neither qualification
+publishes its candidate; the bridge remains coupled to the public API
+generations rather than to a particular Core implementation commit.
+
+M2 subsequently split lifecycle, request/transport and passive presentation
+ownership into bounded internal types while preserving the M1 contract. Its
+qualification is source/archive-only and does not extend the earlier installed
+Phase 0 proof to the M2 candidate.
 
 ## Provider support
 
@@ -94,6 +102,18 @@ unresolvable so **Check** exercises provider failure handling; the GitLab row
 renders **Cannot adopt** without offering an action.
 
 See [RELEASE.md](RELEASE.md) for the authoritative release procedure.
+The [Phase 0 source-certification evidence](docs/phase-0-source-certification.md)
+records the frozen counters, historical pre-M1 lifecycle shortcomings, exact archive
+invariants and retained source candidate. The
+[installed candidate and load-order proof](docs/installed-candidate-load-order-proof.md)
+records the exact WordPress, Core and inactive WP Pusher runtime evidence,
+non-mutation readback and cleanup. The
+[M1 lifecycle and request-order evidence](docs/m1-lifecycle-and-request-order.md)
+records the first-valid composition and authority-before-inventory correction.
+The
+[M2 ownership and source/archive evidence](docs/m2-ownership-and-source-archive-evidence.md)
+records the bounded internal split, exact counters and immutable archive
+candidate.
 
 ## License
 

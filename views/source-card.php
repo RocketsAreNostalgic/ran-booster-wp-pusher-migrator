@@ -3,23 +3,19 @@
  * Retained WP Pusher source review.
  *
  * @var string $error
- * @var list<array{source:\RAN\BoosterWpPusherMigrator\WpPusherPackage,candidate:array<string,mixed>|null,error:string,review:\RAN\AddOn\Portability\PortabilityReviewResult|null}> $rows
- * @var array<string, bool> $optionPresence
- * @var string              $formAction
- * @var string              $applyFormAction
- * @var array{result:\RAN\AddOn\Portability\PortabilityApplyResult,cleanup_pending:bool}|null $apply
- * @var string              $migrationUrl
- * @var string              $adminPostAction
- * @var object|null         $adminInteraction
+ * @var list<array<string,mixed>> $rows Complete passive row display models.
+ * @var bool                $hasError
+ * @var bool                $legacyDataPresent
+ * @var bool                $applyVisible
+ * @var string              $applyClass
+ * @var string              $applyMessage
+ * @var bool                $cleanupPending
+ * @var bool                $completionVisible
  * @var string              $pluginsUrl
  */
 
 defined( 'ABSPATH' ) || exit;
 
-$hasError = '' !== $error;
-if ( ! $hasError ) {
-	$legacyDataPresent = in_array( true, $optionPresence, true );
-}
 ?>
 <section class="ran-booster-portability__flow ran-booster-wp-pusher-migrator" id="ran-booster-portability-wp-pusher" aria-labelledby="ran-booster-portability-wp-pusher-heading" hidden>
 	<header class="ran-booster-portability__flow-header">
@@ -31,12 +27,11 @@ if ( ! $hasError ) {
 	<?php if ( $hasError ) { ?>
 		<div class="notice notice-error inline"><p><?php echo esc_html( $error ); ?></p></div>
 	<?php } else { ?>
-		<?php if ( null !== $apply ) { ?>
-			<?php $applyResult = $apply['result']; ?>
-			<div class="notice <?php echo $applyResult->targetVerified ? 'notice-success' : 'notice-error'; ?> inline">
+		<?php if ( $applyVisible ) { ?>
+			<div class="notice <?php echo esc_attr( $applyClass ); ?> inline">
 				<p>
-					<?php echo esc_html( $applyResult->message ); ?>
-					<?php if ( $apply['cleanup_pending'] ) { ?>
+					<?php echo esc_html( $applyMessage ); ?>
+					<?php if ( $cleanupPending ) { ?>
 						<?php esc_html_e( 'The package is safely stored in Booster, but its old WP Pusher record remains. Keep WP Pusher inactive and try again.', 'ran-booster-wp-pusher-migrator' ); ?>
 					<?php } ?>
 				</p>
@@ -66,8 +61,6 @@ if ( ! $hasError ) {
 						<tbody>
 							<?php foreach ( $rows as $row ) { ?>
 								<?php
-								$checkRequest       = $row['check_request'];
-								$rowTargetElementId = null !== $checkRequest ? $checkRequest->targetElementId() : '';
 								require __DIR__ . '/source-row.php';
 								?>
 							<?php } ?>
@@ -76,7 +69,6 @@ if ( ! $hasError ) {
 			</div>
 		<?php } ?>
 		<?php
-		$completionVisible = array() === $rows;
 		require __DIR__ . '/migration-complete.php';
 		?>
 	<?php } ?>

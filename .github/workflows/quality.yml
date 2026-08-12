@@ -21,6 +21,8 @@ jobs:
     outputs:
       artifact-name: ${{ steps.archive.outputs.artifact-name }}
       archive-sha256: ${{ steps.archive.outputs.archive-sha256 }}
+      core-commit: ${{ steps.archive.outputs.core-commit }}
+      core-tag: ${{ steps.archive.outputs.core-tag }}
       release-candidate: ${{ steps.archive.outputs.release-candidate }}
       source-commit: ${{ steps.archive.outputs.source-commit }}
       version: ${{ steps.archive.outputs.version }}
@@ -70,7 +72,10 @@ jobs:
           test -n "$version"
           test "$(jq -er '."."' .release-please-manifest.json)" = "$version"
           test "$(node -p "require('./package.json').version")" = "$version"
-          bash scripts/build-release.sh
+          certification="$(php scripts/core-certification.php read composer.json)"
+          core_tag="$(jq -er '.tag' <<< "$certification")"
+          core_commit="$(jq -er '.commit' <<< "$certification")"
+          bash scripts/build-release.sh "$source_commit"
 
           archive="dist/ran-booster-wp-pusher-migrator-${version}.zip"
           archive_sha256="$(sha256sum "$archive" | awk '{ print $1 }')"
@@ -88,11 +93,14 @@ jobs:
               source_commit: $source_commit,
               version: $version,
               sha256: $sha256
-            }' > dist/ran-booster-wp-pusher-migrator-ci-runtime.json
+            }' \
+            > dist/ran-booster-wp-pusher-migrator-ci-runtime.json
 
           {
             printf 'artifact-name=%s\n' "$artifact_name"
             printf 'archive-sha256=%s\n' "$archive_sha256"
+            printf 'core-commit=%s\n' "$core_commit"
+            printf 'core-tag=%s\n' "$core_tag"
             printf 'release-candidate=%s\n' "$release_candidate"
             printf 'source-commit=%s\n' "$source_commit"
             printf 'version=%s\n' "$version"
@@ -110,9 +118,67 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  core-contract:
+    name: Certified Core contract
+    needs: runtime-archive
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+    timeout-minutes: 10
+    steps:
+      - name: Require private Core read SSH key
+        env:
+          RAN_BOOSTER_CORE_READ_SSH_KEY: ${{ secrets.RAN_BOOSTER_CORE_READ_SSH_KEY }}
+        run: |
+          if [[ -z "${RAN_BOOSTER_CORE_READ_SSH_KEY:-}" ]]; then
+            echo "::error::RAN_BOOSTER_CORE_READ_SSH_KEY is required to check out the private RAN Booster Core repository."
+            exit 1
+          fi
+
+      - name: Check out the exact Migrator source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ needs.runtime-archive.outputs.source-commit }}
+          path: migrator
+          persist-credentials: false
+
+      - name: Check out the certified Core source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: RocketsAreNostalgic/ran-booster
+          ref: ${{ needs.runtime-archive.outputs.core-commit }}
+          fetch-depth: 0
+          path: core
+          ssh-key: ${{ secrets.RAN_BOOSTER_CORE_READ_SSH_KEY }}
+          persist-credentials: false
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: '8.2'
+          coverage: none
+
+      - name: Verify the exact Core tag, commit and API 2 surfaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          php migrator/scripts/core-certification.php verify migrator/composer.json core
+          grep -Eq "define\\([[:space:]]*'RAN_BOOSTER_PORTABILITY_API_VERSION'[[:space:]]*,[[:space:]]*PortabilityFacade::API_VERSION[[:space:]]*\\)" core/ran-booster.php
+          grep -Eq "define\\([[:space:]]*'RAN_BOOSTER_ADMIN_INTERACTION_API_VERSION'[[:space:]]*,[[:space:]]*2[[:space:]]*\\)" core/ran-booster.php
+          grep -Fq "do_action( 'ran_booster_portability_ready', \$portability )" core/ran-booster.php
+          grep -Fq "do_action( 'ran_booster_admin_interaction_ready', \$adminInteraction )" core/ran-booster.php
+          grep -Eq 'public const API_VERSION[[:space:]]*=[[:space:]]*2;' core/RAN/AddOn/Portability/PortabilityFacade.php
+          grep -Eq 'public const API_VERSION[[:space:]]*=[[:space:]]*2;' core/RAN/Admin/Interaction/AdminInteractionFacade.php
+          if grep -R -Fq 'RAN_BOOSTER_LOGGING_API_VERSION' core/ran-booster.php core/RAN; then
+            exit 1
+          fi
+          if grep -R -Fq 'LoggingFacade' core/ran-booster.php core/RAN; then
+            exit 1
+          fi
+
   quality:
     name: Quality
-    needs: runtime-archive
+    needs:
+      - runtime-archive
+      - core-contract
     if: ${{ needs.runtime-archive.outputs.release-candidate != 'true' }}
     runs-on: blacksmith-2vcpu-ubuntu-2404
     timeout-minutes: 10
