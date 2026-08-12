@@ -11,8 +11,14 @@ The caller supplies canonical paths, the expected site URL and user, local
 MySQL socket/database, full beta.6 commit, and retained beta.6 ZIP digest. The
 driver refuses credential-bearing environment variables, executable pre-MU
 drop-ins, existing top-level MU plugins, noncanonical paths, and linked plugin
-trees. It never activates WP Pusher or performs a successful migration/provider
-operation.
+trees. The source-owned inert theme fixture must be copied exactly to
+`wp-content/themes/ran-migrator-proof-inert` and selected as both stylesheet and
+template. The driver refuses a child theme, linked content, PHP theme files, or
+any byte difference from that fixture. Raw database dumps are retained for
+recovery and diagnostics on every proof or cleanup failure; restoration compares
+canonical exports that normalize only MySQL's redundant utf8mb4 charset spelling
+when an explicit utf8mb4 column collation retains the same semantics. It never
+activates WP Pusher or performs a successful migration/provider operation.
 
 ```sh
 RAN_MIGRATOR_PROOF_DISPOSABLE=1 \
