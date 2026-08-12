@@ -10,12 +10,6 @@
 * **release:** build Release Please head ([#23](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/23)) ([d151b96](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/d151b9693aee79397f1be55facc5e2df05f05755))
 * **release:** certify Core beta.15 compatibility ([3a8fc10](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/3a8fc1034f001ceec3286054092149216fbb7539))
 * **release:** harden installed proof restoration ([#24](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/24)) ([8473e5e](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/8473e5e7952cebf5e352c64f8446721529e3cb96))
-
-
-### Miscellaneous Chores
-
-* **main:** release 0.1.0-beta.5 ([#20](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/20)) ([fcf5d33](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/fcf5d33719f718ea137963490081a801a2241d6b))
-
 ## [0.1.0-beta.5](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/compare/v0.1.0-beta.4...v0.1.0-beta.5) (2026-08-04)
 
 
