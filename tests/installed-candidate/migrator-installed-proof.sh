@@ -31,6 +31,7 @@ readonly expected_migrator_version='0.1.0-beta.6'
 readonly expected_core_version='1.0.0-beta.15'
 readonly expected_core_sha='1ac974014231b84694a2b0c04bd5bc27c61d5cc362d467539ec1aea0d4fdf8cd'
 readonly expected_wppusher_sha='4f1533b9b946afdf9d699ea54279ea236b7e25f3d3fc9182bb53cec295a52208'
+readonly inert_theme_slug='ran-migrator-proof-inert'
 
 [[ "$migrator_commit" =~ ^[0-9a-f]{40}$ ]] || fail 'The caller-selected beta.6 source commit must be a full lowercase SHA.'
 [[ "$migrator_sha" =~ ^[0-9a-f]{64}$ ]] || fail 'The retained beta.6 archive SHA-256 is invalid.'
@@ -98,7 +99,16 @@ bash "$migrator_source/scripts/verify-release.sh" "$migrator_archive" "$migrator
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 probe="$script_dir/migrator-installed-probe.php"
 recorder_source="$script_dir/migrator-installed-recorder.php"
-[[ -f "$probe" && -f "$recorder_source" ]] || fail 'The installed proof helpers are unavailable.'
+readback_source="$script_dir/migrator-installed-readback.sh"
+inert_theme_source="$script_dir/inert-theme"
+[[ -f "$probe" && -f "$recorder_source" && -f "$readback_source" ]] || fail 'The installed proof helpers are unavailable.'
+[[ "$(canonical_directory "$inert_theme_source")" == "$inert_theme_source" ]] || fail 'The inert theme source is unavailable or unsafe.'
+if find "$inert_theme_source" -type l -print -quit | grep -q . \
+	|| find "$inert_theme_source" -type f -name '*.php' -print -quit | grep -q .; then
+	fail 'The inert theme source contains linked or executable PHP content.'
+fi
+# shellcheck source=tests/installed-candidate/migrator-installed-readback.sh
+source "$readback_source"
 
 wp_cli() {
 	local command=()
@@ -143,11 +153,27 @@ export RAN_MIGRATOR_PROOF_MODE=db-identity
 wordpress_db_identity=$(wp_cli --skip-plugins --skip-themes eval-file "$probe" | tail -n 1)
 [[ "$external_db_identity" == "$wordpress_db_identity" && "${external_db_identity%%|*}" == "$mysql_database" ]] \
 	|| fail 'WordPress and the recovery client do not address the same exact database server.'
+active_stylesheet=$(wp_cli --skip-plugins --skip-themes option get stylesheet | tail -n 1)
+active_template=$(wp_cli --skip-plugins --skip-themes option get template | tail -n 1)
+[[ "$active_stylesheet" == "$inert_theme_slug" && "$active_template" == "$inert_theme_slug" ]] \
+	|| fail 'The active theme must be the exact non-child inert proof fixture.'
+themes="$wp_content/themes"
+active_theme="$themes/$inert_theme_slug"
+[[ "$(canonical_directory "$themes")" == "$themes" && "$(canonical_directory "$active_theme")" == "$active_theme" ]] \
+	|| fail 'The inert proof theme root or directory is not canonical and physical.'
+if find "$active_theme" -type l -print -quit | grep -q . \
+	|| find "$active_theme" -type f -name '*.php' -print -quit | grep -q . \
+	|| ! diff -qr "$inert_theme_source" "$active_theme" >/dev/null; then
+	fail 'The installed inert proof theme differs from its non-executable source fixture.'
+fi
 
 recovery=$(mktemp -d /private/tmp/ran-migrator-proof-recovery.XXXXXX)
 chmod 0700 "$recovery"
 active_snapshot="$recovery/active-plugins.json"
 sql_snapshot="$recovery/baseline.sql"
+sql_snapshot_canonical="$recovery/baseline.canonical.sql"
+post_cleanup_sql="$recovery/post-cleanup.sql"
+post_cleanup_sql_canonical="$recovery/post-cleanup.canonical.sql"
 recorder="$mu_plugins/0000000000-ran-migrator-installed-proof.php"
 mutation_started=0
 proof_completed=0
@@ -218,14 +244,23 @@ cleanup() {
 		wp_cli --skip-plugins --skip-themes eval-file "$probe" || cleanup_failed=1
 		[[ "$(wp_cli --skip-plugins --skip-themes option get siteurl | tail -n 1)" == "$expected_site_url" ]] || cleanup_failed=1
 		[[ "$(sha256_file "$sql_snapshot")" == "$(< "$recovery/baseline.sql.sha256")" ]] || cleanup_failed=1
-		dump_database "$recovery/post-cleanup.sql" || cleanup_failed=1
-		cmp -s "$sql_snapshot" "$recovery/post-cleanup.sql" || cleanup_failed=1
+		dump_database "$post_cleanup_sql" || cleanup_failed=1
+		canonicalize_database_export "$post_cleanup_sql" "$post_cleanup_sql_canonical" || cleanup_failed=1
+		cmp -s "$sql_snapshot_canonical" "$post_cleanup_sql_canonical" || cleanup_failed=1
 		export RAN_MIGRATOR_PROOF_MODE=db-identity
 		[[ "$(wp_cli --skip-plugins --skip-themes eval-file "$probe" | tail -n 1)" == "$external_db_identity" ]] || cleanup_failed=1
+		if [[ "$(canonical_directory "$active_theme")" != "$active_theme" ]] \
+			|| find "$active_theme" -type l -print -quit | grep -q . \
+			|| find "$active_theme" -type f -name '*.php' -print -quit | grep -q . \
+			|| ! diff -qr "$inert_theme_source" "$active_theme" >/dev/null; then
+			cleanup_failed=1
+		fi
 	fi
 	if (( cleanup_failed )); then
 		printf 'migrator-installed-proof: cleanup is uncertain; retained recovery data at %s\n' "$recovery" >&2
 		status=1
+	elif (( status )); then
+		printf 'migrator-installed-proof: proof failed; retained diagnostic data at %s\n' "$recovery" >&2
 	else
 		case "$recovery" in
 			/private/tmp/ran-migrator-proof-recovery.*) rm -rf -- "$recovery" ;;
@@ -248,6 +283,8 @@ snapshot_directory "$wppusher_dir" wppusher
 dump_database "$sql_snapshot"
 [[ -s "$sql_snapshot" ]] || fail 'The full SQL recovery baseline is empty.'
 sha256_file "$sql_snapshot" > "$recovery/baseline.sql.sha256"
+canonicalize_database_export "$sql_snapshot" "$sql_snapshot_canonical"
+[[ -s "$sql_snapshot_canonical" ]] || fail 'The canonical SQL recovery baseline is empty.'
 
 if [[ ! -d "$mu_plugins" ]]; then
 	mutation_started=1

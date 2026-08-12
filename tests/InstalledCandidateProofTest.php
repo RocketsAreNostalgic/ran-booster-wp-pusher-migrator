@@ -17,6 +17,9 @@ final class InstalledCandidateProofTest extends TestCase {
 
 	private string $recorder;
 
+	/** @var list<string> */
+	private array $temporaryDirectories = array();
+
 	protected function setUp(): void {
 		$root           = __DIR__ . '/installed-candidate/';
 		$this->driver   = $this->read( $root . 'migrator-installed-proof.sh' );
@@ -40,7 +43,15 @@ final class InstalledCandidateProofTest extends TestCase {
 		self::assertStringContainsString( '--single-transaction', $this->driver );
 		self::assertStringContainsString( 'DROP DATABASE', $this->driver );
 		self::assertStringContainsString( 'mysql_server_cli < "$sql_snapshot"', $this->driver );
-		self::assertStringContainsString( 'cmp -s "$sql_snapshot" "$recovery/post-cleanup.sql"', $this->driver );
+		self::assertStringContainsString( 'sql_snapshot_canonical="$recovery/baseline.canonical.sql"', $this->driver );
+		self::assertStringContainsString( 'cmp -s "$sql_snapshot_canonical" "$post_cleanup_sql_canonical"', $this->driver );
+		self::assertStringContainsString( "inert_theme_slug='ran-migrator-proof-inert'", $this->driver );
+		self::assertStringContainsString( 'The active theme must be the exact non-child inert proof fixture.', $this->driver );
+		self::assertStringContainsString( 'find "$active_theme" -type f -name', $this->driver );
+		self::assertStringContainsString( 'diff -qr "$inert_theme_source" "$active_theme"', $this->driver );
+		self::assertSame( 2, substr_count( $this->driver, 'find "$active_theme" -type l' ) );
+		self::assertSame( 2, substr_count( $this->driver, 'find "$active_theme" -type f -name' ) );
+		self::assertSame( 2, substr_count( $this->driver, 'diff -qr "$inert_theme_source" "$active_theme"' ) );
 		self::assertStringContainsString( "'db-identity'", $this->probe );
 		foreach ( array( 'snapshot_directory "$core_dir" core', 'snapshot_directory "$migrator_dir" migrator', 'snapshot_directory "$wppusher_dir" wppusher' ) as $snapshot ) {
 			self::assertStringContainsString( $snapshot, $this->driver );
@@ -48,6 +59,7 @@ final class InstalledCandidateProofTest extends TestCase {
 		self::assertStringContainsString( 'serialized_base64', $this->probe );
 		self::assertStringContainsString( 'serialize( ran_migrator_active_snapshot() )', $this->probe );
 		self::assertStringContainsString( 'cleanup is uncertain; retained recovery data', $this->driver );
+		self::assertStringContainsString( 'proof failed; retained diagnostic data', $this->driver );
 	}
 
 	public function testNoNetworkBoundaryIsFailClosedAndCredentialsRemainAbsent(): void {
@@ -72,6 +84,87 @@ final class InstalledCandidateProofTest extends TestCase {
 		self::assertStringContainsString( "'workspace/core-public'", $this->probe );
 		self::assertStringContainsString( "'RocketsAreNostalgic/theme-fixture'", $this->probe );
 		self::assertStringContainsString( 'admin_enqueue_scripts|20|enqueueAssets|1', $this->probe );
+	}
+
+	public function testDatabaseCanonicalizationOnlyRemovesRedundantColumnCharsetSpelling(): void {
+		$directory = $this->temporaryDirectory();
+		$cases     = array(
+			'redundant'                   => array(
+				"CREATE TABLE `t` (\n  `c` text COLLATE utf8mb4_unicode_520_ci\n) DEFAULT CHARSET=latin1;\n",
+				"CREATE TABLE `t` (\n  `c` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci\n) DEFAULT CHARSET=latin1;\n",
+				true,
+			),
+			'nonredundant-column-charset' => array(
+				"CREATE TABLE `t` (\n  `c` text CHARACTER SET utf8mb4\n) DEFAULT CHARSET=latin1;\n",
+				"CREATE TABLE `t` (\n  `c` text\n) DEFAULT CHARSET=latin1;\n",
+				false,
+			),
+			'table-default'               => array(
+				") DEFAULT CHARSET=utf8mb4;\n",
+				") DEFAULT CHARSET=latin1;\n",
+				false,
+			),
+			'index'                       => array(
+				"  KEY `one` (`c`)\n",
+				"  KEY `two` (`c`)\n",
+				false,
+			),
+			'data'                        => array(
+				"INSERT INTO `t` VALUES ('one CHARACTER SET utf8mb4');\n",
+				"INSERT INTO `t` VALUES ('two CHARACTER SET utf8mb4');\n",
+				false,
+			),
+		);
+
+		foreach ( $cases as $name => $case ) {
+			list( $baseline, $restored, $equal ) = $case;
+			$left                                = $directory . '/' . $name . '-left.sql';
+			$right                               = $directory . '/' . $name . '-right.sql';
+			file_put_contents( $left, $baseline ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Private behavioral fixture.
+			file_put_contents( $right, $restored ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Private behavioral fixture.
+			$status = $this->runReadback(
+				sprintf(
+					'canonicalize_database_export %s %s; canonicalize_database_export %s %s; cmp -s %s %s',
+					escapeshellarg( $left ),
+					escapeshellarg( "$left.out" ),
+					escapeshellarg( $right ),
+					escapeshellarg( "$right.out" ),
+					escapeshellarg( "$left.out" ),
+					escapeshellarg( "$right.out" )
+				)
+			);
+			self::assertSame( $equal ? 0 : 1, $status, $name );
+		}
+	}
+
+	private function runReadback( string $command ): int {
+		$helper = __DIR__ . '/installed-candidate/migrator-installed-readback.sh';
+		$output = array();
+		$status = 0;
+		exec( 'bash -c ' . escapeshellarg( 'source ' . escapeshellarg( $helper ) . '; ' . $command ), $output, $status ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- Private behavioral fixture.
+
+		return $status;
+	}
+
+	private function temporaryDirectory(): string {
+		$directory = sys_get_temp_dir() . '/migrator-proof-' . bin2hex( random_bytes( 8 ) );
+		mkdir( $directory, 0700 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- Private behavioral fixture.
+		$this->assertDirectoryExists( $directory );
+		$this->temporaryDirectories[] = $directory;
+
+		return $directory;
+	}
+
+	protected function tearDown(): void {
+		foreach ( $this->temporaryDirectories as $directory ) {
+			$paths = glob( $directory . '/*' );
+			foreach ( false === $paths ? array() : $paths as $path ) {
+				unlink( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Private behavioral fixture.
+			}
+			rmdir( $directory ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Private behavioral fixture.
+		}
+		$this->temporaryDirectories = array();
+		parent::tearDown();
 	}
 
 	private function read( string $path ): string {
