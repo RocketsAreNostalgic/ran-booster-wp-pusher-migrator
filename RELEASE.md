@@ -72,6 +72,14 @@ Release Please pull request and pending label, download the tested artifacts,
 create or resume a draft tied to the source commit, attach all three assets, and
 verify that their downloaded bytes match.
 
+The release and trusted-candidate Quality paths keep checkout credential
+persistence disabled. When either path fetches an exact candidate base or pull
+request head, it supplies the GitHub token as an HTTP authorization header only
+to that individual `git fetch`; it does not write credentials to repository or
+global Git configuration, and the raw token is removed from the Git process
+environment. The fetched commit must still equal the API-reported head before
+the candidate contract and identity checks run.
+
 Publication is fail-closed. First enable GitHub immutable releases for this
 repository, then set the repository Actions variable
 `RAN_IMMUTABLE_RELEASES_ENABLED=true`. The workflow publishes the verified
