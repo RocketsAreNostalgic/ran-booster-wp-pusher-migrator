@@ -38,12 +38,30 @@ final class ReleaseWorkflowTest extends TestCase {
 		self::assertStringContainsString( '$sourceCommit = $argv[2] ??', $verifier );
 		self::assertStringContainsString( "'commit'             => \$sourceCommit", $verifier );
 		self::assertStringContainsString( 'git_output( array( \'show\', $commit . \':\' . $file ) )', $verifier );
-		self::assertStringContainsString( 'RAN_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}', $quality );
-		self::assertStringContainsString( 'source_commit="$RAN_PR_HEAD_SHA"', $quality );
+		self::assertStringContainsString( 'RAN_DISPATCH_RELEASE_SHA: ${{ inputs.release_sha }}', $quality );
+		self::assertStringContainsString( 'test "$head_sha" = "$GITHUB_SHA"', $quality );
+		self::assertStringContainsString( 'source_commit="$head_sha"', $quality );
 		self::assertStringContainsString( 'git rev-parse "${source_commit}^{commit}"', $quality );
-		self::assertStringContainsString( 'git rev-parse "${GITHUB_SHA}^{tree}"', $quality );
-		self::assertStringContainsString( 'git rev-parse "${source_commit}^{tree}"', $quality );
+		self::assertStringContainsString( 'bash scripts/validate-release-candidate.sh "$base_sha" "$head_sha"', $quality );
 		self::assertStringContainsString( 'bash scripts/build-release.sh "$source_commit"', $quality );
+	}
+
+	public function testQualityRequiresExactTrustedDispatchAndKeepsDirectPullRequestChecks(): void {
+		$quality = file_get_contents( dirname( __DIR__ ) . '/.github/workflows/quality.yml' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local workflow contract.
+		self::assertIsString( $quality );
+
+		self::assertStringContainsString( 'workflow_dispatch:', $quality );
+		self::assertStringContainsString( 'release_pr:', $quality );
+		self::assertStringContainsString( 'release_sha:', $quality );
+		self::assertSame( 2, substr_count( $quality, 'required: true' ) );
+		self::assertStringNotContainsString( "name: Runtime archive\n    if:", $quality );
+		self::assertStringContainsString( "GH_TOKEN: \${{ github.event_name == 'workflow_dispatch' && secrets.GITHUB_TOKEN || '' }}", $quality );
+		self::assertStringContainsString( '"$GITHUB_ACTOR" == \'github-actions[bot]\'', $quality );
+		self::assertStringContainsString( '"$GITHUB_TRIGGERING_ACTOR" == \'github-actions[bot]\'', $quality );
+		self::assertStringContainsString( '.state == "open"', $quality );
+		self::assertStringContainsString( '.head.repo.full_name == $repository', $quality );
+		self::assertStringContainsString( 'any(.labels[]?; .name == "autorelease: pending")', $quality );
+		self::assertStringNotContainsString( 'elif [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]]', $quality );
 	}
 
 	public function testRepositoryWorkflowsPinEveryActionToAnExactCommit(): void {
@@ -113,6 +131,26 @@ final class ReleaseWorkflowTest extends TestCase {
 		self::assertStringContainsString( 'test "$pending" = true', $workflow );
 		self::assertStringContainsString( 'The published release is not immutable', $workflow );
 		self::assertStringContainsString( '--target "$RAN_RELEASE_COMMIT"', $workflow );
+	}
+
+	public function testReleaseDispatchesOnlyAnExactVerifiedCandidateAndSuppressesDuplicates(): void {
+		$workflow = file_get_contents( dirname( __DIR__ ) . '/.github/workflows/release-please.yml' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local workflow contract.
+		self::assertIsString( $workflow );
+
+		self::assertStringContainsString( 'actions: write', $workflow );
+		self::assertStringNotContainsString( 'id: release-please', $workflow );
+		self::assertStringContainsString( 'current_main="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main"', $workflow );
+		self::assertStringContainsString( 'skipping stale reconciliation', $workflow );
+		self::assertStringContainsString( "if: steps.release-state.outputs.release-please-required == 'true'", $workflow );
+		self::assertStringContainsString( 'test "$base_sha" = "$RAN_QUALITY_COMMIT"', $workflow );
+		self::assertStringContainsString( 'bash scripts/validate-release-candidate.sh "$base_sha" "$head_sha"', $workflow );
+		self::assertStringContainsString( 'bash scripts/validate-release-candidate-identity.sh "$base_sha" "$head_sha"', $workflow );
+		self::assertStringContainsString( 'commits(last: 1)', $workflow );
+		self::assertStringContainsString( 'signature {', $workflow );
+		self::assertStringContainsString( 'bash scripts/has-trusted-release-candidate-run.sh', $workflow );
+		self::assertStringContainsString( 'gh workflow run quality.yml --ref "$head_ref"', $workflow );
+		self::assertStringContainsString( '-f "release_pr=${pr_number}"', $workflow );
+		self::assertStringContainsString( '-f "release_sha=${head_sha}"', $workflow );
 	}
 
 	public function testVerifiedDraftAssetsPrecedeImmutablePublication(): void {
