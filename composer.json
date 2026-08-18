@@ -3,6 +3,11 @@
   "description": "One-time WP Pusher 3.0.13 migration bridge for RAN Booster.",
   "type": "wordpress-plugin",
   "license": "GPL-2.0-or-later",
+  "support": {
+    "docs": "https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator#readme",
+    "issues": "https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues",
+    "source": "https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator"
+  },
   "extra": {
     "ran-booster-core-certification": {
       "tag": "v1.0.0-beta.15",

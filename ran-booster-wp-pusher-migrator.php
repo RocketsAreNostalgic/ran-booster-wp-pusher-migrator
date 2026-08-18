@@ -11,7 +11,9 @@
  * Requires Plugins: ran-booster
  * Tested up to: 7.0
  * Author: Rockets Are Nostalgic
+ * Author URI: https://github.com/RocketsAreNostalgic
  * License: GPL-2.0-or-later
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: ran-booster-wp-pusher-migrator
  * Update URI: https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator
  */

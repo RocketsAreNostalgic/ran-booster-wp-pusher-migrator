@@ -135,11 +135,25 @@ final class ReleaseWorkflowTest extends TestCase {
 
 	public function testPublicDocumentationKeepsAcquisitionSupportAndSecurityTruthful(): void {
 		$root         = dirname( __DIR__ );
+		$composer     = json_decode( (string) file_get_contents( $root . '/composer.json' ), true, 512, JSON_THROW_ON_ERROR ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local public-metadata contract.
+		$entrypoint   = file_get_contents( $root . '/ran-booster-wp-pusher-migrator.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local public-metadata contract.
 		$readme       = file_get_contents( $root . '/README.md' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local documentation contract.
 		$security     = file_get_contents( $root . '/SECURITY.md' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local documentation contract.
 		$support      = file_get_contents( $root . '/SUPPORT.md' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local documentation contract.
 		$contributing = file_get_contents( $root . '/CONTRIBUTING.md' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local documentation contract.
 		$suitability  = file_get_contents( $root . '/docs/wordpress-org-suitability.md' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local documentation contract.
+
+		self::assertIsString( $entrypoint );
+		self::assertStringContainsString( 'Author URI: https://github.com/RocketsAreNostalgic', $entrypoint );
+		self::assertStringContainsString( 'License URI: https://www.gnu.org/licenses/gpl-2.0.html', $entrypoint );
+		self::assertSame(
+			array(
+				'docs'   => 'https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator#readme',
+				'issues' => 'https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues',
+				'source' => 'https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator',
+			),
+			$composer['support'] ?? null
+		);
 
 		foreach ( array( $readme, $security, $support, $contributing, $suitability ) as $document ) {
 			self::assertIsString( $document );
