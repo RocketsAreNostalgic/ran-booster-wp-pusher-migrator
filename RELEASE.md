@@ -41,7 +41,7 @@ Before merging a release pull request:
    webhooks untouched.
 
 The current source/CI certification uses immutable Booster
-`v1.0.0-beta.15`. The sole machine-readable tag/full-commit tuple is
+`v1.0.0-beta.22`. The sole machine-readable tag/full-commit tuple is
 `extra.ran-booster-core-certification` in `composer.json`; release tooling must
 parse that exact two-key object fail closed. The bridge consumes Portability
 API 2 and Admin Interaction API 2. This source certification is not a runtime

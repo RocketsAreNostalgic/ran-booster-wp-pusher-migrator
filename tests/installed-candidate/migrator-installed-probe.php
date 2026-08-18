@@ -265,7 +265,7 @@ if ( 'compatible' === $mode ) {
 	$core     = get_plugin_data( WP_PLUGIN_DIR . '/ran-booster/ran-booster.php', false, false );
 	$migrator = get_plugin_data( WP_PLUGIN_DIR . '/ran-booster-wp-pusher-migrator/ran-booster-wp-pusher-migrator.php', false, false );
 	$wpPusher = get_plugin_data( WP_PLUGIN_DIR . '/wppusher/wppusher.php', false, false );
-	if ( '1.0.0-beta.15' !== $core['Version'] || '0.1.0-beta.6' !== $migrator['Version'] || '3.0.13' !== $wpPusher['Version'] ) {
+	if ( '1.0.0-beta.22' !== $core['Version'] || '0.1.0-beta.7' !== $migrator['Version'] || '3.0.13' !== $wpPusher['Version'] ) {
 		throw new RuntimeException( 'An installed plugin header is not the exact approved version.' );
 	}
 	if ( in_array( 'wppusher/wppusher.php', (array) get_option( 'active_plugins', array() ), true ) ) {
