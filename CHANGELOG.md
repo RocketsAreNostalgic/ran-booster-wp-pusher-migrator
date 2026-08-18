@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.1.0-beta.7](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/compare/v0.1.0-beta.6...v0.1.0-beta.7) (2026-08-18)
+
+
+### Bug Fixes
+
+* complete public package metadata ([3dc7313](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/3dc7313dfeb76a73214a26fb47582a9c483f7a7e))
+* complete public package metadata ([#29](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/29)) ([8bb632f](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/8bb632f0f721f868c96b8bed417eb3b7e344853f))
+* **release:** authenticate candidate fetches ([51b86e7](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/51b86e7fe99bd1ef3a41547e69b8d37f164be43c))
+* **release:** authenticate candidate fetches ([#31](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/31)) ([317b355](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/317b35520ba2ef0371863bb048ddf437cb1446d8))
+* **release:** certify Core beta.22 ([383652c](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/383652c3f1d5453e6bb94192e13c555726915308))
+* **release:** certify Core beta.22 ([#33](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/33)) ([e9e9e2a](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/e9e9e2a4033746262a0ce121f9eb72e968dda5bf))
+
+
+### Miscellaneous Chores
+
+* **deps:** update PHP_CodeSniffer to 3.13.6 ([21cab99](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/21cab999d3955b52a576d2e315711ed033b51c7a))
+* **deps:** update PHP_CodeSniffer to 3.13.6 ([#25](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/25)) ([128a5c1](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/128a5c1a2311e74e9d7e538e53878785db9eede8))
+* **main:** release 0.1.0-beta.6 ([#21](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/21)) ([61d51bf](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/61d51bfb1f68772f5f3c6f5c58aeb8c6b9a87685))
+* record extension catalogue metadata ([149b350](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/149b3500c6cdedbc4121f21b9973d3c00719e4e1))
+* record extension catalogue metadata ([#27](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/27)) ([d05c57c](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/d05c57c921272527ae60830824a9dd13992ab068))
+
 ## [0.1.0-beta.6](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/compare/v0.1.0-beta.5...v0.1.0-beta.6) (2026-08-12)
 
 
