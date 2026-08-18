@@ -43,6 +43,7 @@ final class ReleaseWorkflowTest extends TestCase {
 		self::assertStringContainsString( 'source_commit="$head_sha"', $quality );
 		self::assertStringContainsString( 'git rev-parse "${source_commit}^{commit}"', $quality );
 		self::assertStringContainsString( 'bash scripts/validate-release-candidate.sh "$base_sha" "$head_sha"', $quality );
+		self::assertStringContainsString( 'bash scripts/fetch-release-candidate-ref.sh origin "refs/pull/${RAN_DISPATCH_RELEASE_PR}/head"', $quality );
 		self::assertStringContainsString( 'bash scripts/build-release.sh "$source_commit"', $quality );
 	}
 
@@ -144,6 +145,8 @@ final class ReleaseWorkflowTest extends TestCase {
 		self::assertStringContainsString( "if: steps.release-state.outputs.release-please-required == 'true'", $workflow );
 		self::assertStringContainsString( 'test "$base_sha" = "$RAN_QUALITY_COMMIT"', $workflow );
 		self::assertStringContainsString( 'bash scripts/validate-release-candidate.sh "$base_sha" "$head_sha"', $workflow );
+		self::assertStringContainsString( 'bash scripts/fetch-release-candidate-ref.sh origin "refs/pull/${pr_number}/head"', $workflow );
+		self::assertStringNotContainsString( 'git config', $workflow );
 		self::assertStringContainsString( 'bash scripts/validate-release-candidate-identity.sh "$base_sha" "$head_sha"', $workflow );
 		self::assertStringContainsString( 'commits(last: 1)', $workflow );
 		self::assertStringContainsString( 'signature {', $workflow );

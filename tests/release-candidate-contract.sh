@@ -5,6 +5,7 @@ repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 validator="$repo_root/scripts/validate-release-candidate.sh"
 identity_validator="$repo_root/scripts/validate-release-candidate-identity.sh"
 run_selector="$repo_root/scripts/has-trusted-release-candidate-run.sh"
+candidate_fetcher="$repo_root/scripts/fetch-release-candidate-ref.sh"
 work_root=$(mktemp -d "${TMPDIR:-/tmp}/ran-migrator-release-candidate-test.XXXXXX")
 trap 'rm -rf "$work_root"' EXIT
 
@@ -17,6 +18,40 @@ for required_tool in git jq; do
 	command -v "$required_tool" >/dev/null \
 		|| fail "required tool is unavailable: $required_tool"
 done
+
+fake_bin="$work_root/fake-bin"
+fetch_log="$work_root/fetch.log"
+mkdir -p "$fake_bin"
+cat > "$fake_bin/git" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+{
+	printf '%s\n' "${GIT_CONFIG_COUNT:-}"
+	printf '%s\n' "${GIT_CONFIG_KEY_0:-}"
+	printf '%s\n' "${GIT_CONFIG_VALUE_0:-}"
+	printf '%s\n' "$*"
+	printf '%s\n' "${GH_TOKEN:-}"
+} > "$FETCH_LOG"
+EOF
+chmod +x "$fake_bin/git"
+
+test_token='candidate-fetch-token'
+GH_TOKEN="$test_token" FETCH_LOG="$fetch_log" PATH="$fake_bin:$PATH" \
+	bash "$candidate_fetcher" origin refs/pull/26/head
+expected_authorization=$(printf 'x-access-token:%s' "$test_token" | base64 | tr -d '\r\n')
+[[ "$(sed -n '1p' "$fetch_log")" == 1 \
+	&& "$(sed -n '2p' "$fetch_log")" == http.https://github.com/.extraheader \
+	&& "$(sed -n '3p' "$fetch_log")" == "AUTHORIZATION: basic ${expected_authorization}" \
+	&& "$(sed -n '4p' "$fetch_log")" == 'fetch --no-tags origin refs/pull/26/head' \
+	&& -z "$(sed -n '5p' "$fetch_log")" \
+	&& "$(wc -l < "$fetch_log" | tr -d ' ')" == 5 ]] \
+	|| fail 'candidate fetch did not use the exact ephemeral Git authentication contract'
+rm "$fetch_log"
+if GH_TOKEN= FETCH_LOG="$fetch_log" PATH="$fake_bin:$PATH" \
+	bash "$candidate_fetcher" origin refs/pull/26/head >/dev/null 2>&1; then
+	fail 'candidate fetch accepted an empty GitHub token'
+fi
+[[ ! -e "$fetch_log" ]] || fail 'candidate fetch invoked Git without a GitHub token'
 
 seed="$work_root/seed"
 mkdir -p "$seed"
