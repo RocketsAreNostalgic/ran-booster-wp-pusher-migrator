@@ -132,4 +132,30 @@ final class ReleaseWorkflowTest extends TestCase {
 		self::assertStringContainsString( "--jq '.immutable'", $workflow );
 		self::assertStringContainsString( 'for delay in 0 2 2 2 2', $workflow );
 	}
+
+	public function testPublicDocumentationKeepsAcquisitionSupportAndSecurityTruthful(): void {
+		$root         = dirname( __DIR__ );
+		$readme       = file_get_contents( $root . '/README.md' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local documentation contract.
+		$security     = file_get_contents( $root . '/SECURITY.md' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local documentation contract.
+		$support      = file_get_contents( $root . '/SUPPORT.md' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local documentation contract.
+		$contributing = file_get_contents( $root . '/CONTRIBUTING.md' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local documentation contract.
+		$suitability  = file_get_contents( $root . '/docs/wordpress-org-suitability.md' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local documentation contract.
+
+		foreach ( array( $readme, $security, $support, $contributing, $suitability ) as $document ) {
+			self::assertIsString( $document );
+			self::assertStringNotContainsString( '.ran-booster-workbench', $document );
+			self::assertStringNotContainsString( '/private/tmp', $document );
+		}
+
+		self::assertStringContainsString( '/releases', $readme );
+		self::assertStringContainsString( '.zip.sha256', $readme );
+		self::assertStringContainsString( 'does not register an automatic update provider', $readme );
+		self::assertStringContainsString( 'Beta release is supported', $security );
+		self::assertStringContainsString( '/security/advisories/new', $security );
+		self::assertStringContainsString( '/issues', $support );
+		self::assertStringContainsString( 'no response or resolution time is guaranteed', $support );
+		self::assertStringContainsString( 'Conventional Commit', $contributing );
+		self::assertStringContainsString( 'Requires Plugins: ran-booster', $suitability );
+		self::assertStringContainsString( 'do not submit', $suitability );
+	}
 }
