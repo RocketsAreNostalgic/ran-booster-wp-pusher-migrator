@@ -7,6 +7,29 @@
     "ran-booster-core-certification": {
       "tag": "v1.0.0-beta.15",
       "commit": "24f48726d05312319f4f78c4661281087de5463a"
+    },
+    "ran-booster-extension": {
+      "schema": 1,
+      "id": "ran-booster-wp-pusher-migrator",
+      "name": "RAN Booster WP Pusher Migrator",
+      "plugin-basename": "ran-booster-wp-pusher-migrator/ran-booster-wp-pusher-migrator.php",
+      "repository": "https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator",
+      "update-uri": "https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator",
+      "availability": "free",
+      "requires-wordpress": "7.0",
+      "requires-php": "8.2",
+      "booster-apis": {
+        "required": {
+          "portability": 2,
+          "admin-interaction": 2
+        },
+        "optional": {}
+      },
+      "maturity": "beta",
+      "documentation-uri": "https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator#readme",
+      "support-uri": "https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues",
+      "security-uri": "https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/security/policy",
+      "readiness": "public-release-required"
     }
   },
   "require": {
