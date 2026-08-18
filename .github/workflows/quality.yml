@@ -91,9 +91,9 @@ jobs:
             test "$head_sha" = "$RAN_DISPATCH_RELEASE_SHA"
             test "$head_sha" = "$GITHUB_SHA"
             if ! git cat-file -e "${base_sha}^{commit}" 2>/dev/null; then
-              git fetch --no-tags origin "$base_sha"
+              bash scripts/fetch-release-candidate-ref.sh origin "$base_sha"
             fi
-            git fetch --no-tags origin "refs/pull/${RAN_DISPATCH_RELEASE_PR}/head"
+            bash scripts/fetch-release-candidate-ref.sh origin "refs/pull/${RAN_DISPATCH_RELEASE_PR}/head"
             test "$(git rev-parse FETCH_HEAD)" = "$head_sha"
             bash scripts/validate-release-candidate.sh "$base_sha" "$head_sha"
             release_candidate=true
