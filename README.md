@@ -1,50 +1,70 @@
 # RAN Booster WP Pusher Migrator
 
-This temporary, standalone WordPress plugin adopts supported package ownership
-from an inactive WP Pusher 3.0.13 installation into RAN Booster.
+RAN Booster WP Pusher Migrator is a free, temporary bridge for moving supported
+plugin and theme records from an inactive WP Pusher 3.0.13 installation into
+RAN Booster.
 
-The bridge reads only the exact supported WP Pusher package schema. It does not
-import legacy credentials, install package files, enable deployments, contact
-WP Pusher, or run WP Pusher's uninstall routine. Every candidate is freshly
-reviewed and applied through Booster Portability API 2. Adopted packages start
-with deployment Disabled.
+This is Beta software for an administrator completing a one-time migration. It
+is not another package manager and is intended to be removed after the retained
+WP Pusher records have been dealt with.
+
+## What it does
+
+- Finds retained GitHub and Bitbucket Cloud package rows from the exact
+  supported WP Pusher schema.
+- Reviews each candidate through RAN Booster before adoption.
+- Adopts packages with deployment Disabled.
+- Removes only the exact WP Pusher source row after a fresh, verified adoption.
+- Leaves unsupported GitLab rows visible for manual migration.
+
+The bridge does not import credentials, install package files, enable
+deployments, contact WP Pusher, delete WP Pusher, run its uninstaller, or remove
+provider webhooks.
 
 ## Requirements
 
 - WordPress 7.0 or newer and PHP 8.2 or newer.
-- A compatible RAN Booster release exposing Portability API 2 and Admin Interaction API 2.
 - A single-site WordPress installation.
 - WP Pusher 3.0.13 installed but inactive.
+- A compatible RAN Booster release exposing Portability API 2 and Admin Interaction API 2.
 - For Bitbucket Cloud packages, the compatible RAN Booster Bitbucket Cloud
   add-on installed and active.
 - An existing replacement Booster credential profile for each private
   repository, including private Bitbucket repositories. The bridge never copies
   WP Pusher credentials.
 
-The current source/CI certification uses the immutable RAN Booster
-`v1.0.0-beta.15` release, exposing Portability API 2 and Admin Interaction API 2. The exact tag/full-commit tuple has one machine-readable owner:
-`extra.ran-booster-core-certification` in `composer.json`. The exact retained
-Phase 0 source candidate separately passed the disposable installed-site and
-both-physical-load-orders gate against the then-current beta.14 artifact. M1 then corrected facade composition and
-request ordering without changing that public contract. Neither qualification
-publishes its candidate; the bridge remains coupled to the public API
-generations rather than to a particular Core implementation commit.
+The current source and CI certification use the immutable RAN Booster
+`v1.0.0-beta.15` release. The exact tag and full commit are owned by
+`extra.ran-booster-core-certification` in `composer.json`. The loaded API checks
+remain authoritative: `Requires Plugins` and matching version numbers cannot
+make an incompatible Core release compatible.
 
-M2 subsequently split lifecycle, request/transport and passive presentation
-ownership into bounded internal types while preserving the M1 contract. Its
-qualification is source/archive-only and does not extend the earlier installed
-Phase 0 proof to the M2 candidate.
+## Install
 
-## Provider support
+This plugin is not distributed through WordPress.org. Install the release ZIP
+attached to an immutable release in this repository; GitHub's generated
+**Source code** archives are not installable plugin packages.
 
-- GitHub and Bitbucket Cloud package rows can be adopted when their matching
-  Booster provider is available. Public Bitbucket repositories do not need a
-  credential profile.
-- Private Bitbucket repositories require the compatible Bitbucket Cloud add-on
-  and an existing Bitbucket credential profile in Booster.
-- GitLab package rows are retained and shown as **Cannot adopt**. GitLab is not
-  supported by this bridge; migrate those packages manually before removing WP
-  Pusher.
+1. Install and activate the compatible RAN Booster release first.
+2. Open this repository's [Releases](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/releases)
+   page and select the intended immutable Beta release.
+3. Download both
+   `ran-booster-wp-pusher-migrator-<version>.zip` and its matching
+   `.zip.sha256` file.
+4. Verify the ZIP from the directory containing both downloads:
+
+   ```sh
+   shasum -a 256 -c ran-booster-wp-pusher-migrator-<version>.zip.sha256
+   ```
+
+5. In WordPress, open **Plugins > Add New Plugin > Upload Plugin**, choose the
+   verified ZIP, and activate it.
+
+The current Beta does not register an automatic update provider. To update,
+repeat the release and checksum verification above, then upload the newer ZIP
+through WordPress and confirm the replacement when prompted. The extension's
+canonical `Update URI` prevents an unrelated WordPress.org package from being
+offered under the same slug; it is not an update feed.
 
 ## Migrate from WP Pusher
 
@@ -64,13 +84,32 @@ Phase 0 proof to the M2 candidate.
 8. Verify the migrated packages, then remove this bridge.
 
 The bridge leaves WP Pusher's settings and empty package table for WP Pusher's
-own uninstaller. It does not delete WP Pusher, contact WP Pusher, or remove
-provider webhooks.
+own uninstaller.
+
+## Provider support
+
+- GitHub and Bitbucket Cloud package rows can be adopted when their matching
+  Booster provider is available. Public Bitbucket repositories do not need a
+  credential profile.
+- Private Bitbucket repositories require the compatible Bitbucket Cloud add-on
+  and an existing Bitbucket credential profile in Booster.
+- GitLab package rows are retained and shown as **Cannot adopt**. Migrate those
+  packages manually before removing WP Pusher.
+
+## Help and security
+
+Read [SUPPORT.md](SUPPORT.md) before opening a public issue. Report security
+problems through the confidential route in [SECURITY.md](SECURITY.md), never in
+a public issue.
+
+Contributions use the repository workflow described in
+[CONTRIBUTING.md](CONTRIBUTING.md). Release construction, verification, and
+publication policy is authoritative in [RELEASE.md](RELEASE.md).
 
 ## Development
 
-Composer and pnpm install development tools only; the release ZIP contains
-neither dependency directory.
+Composer and pnpm install development tools only; the release ZIP contains no
+dependency directory.
 
 ```sh
 composer install --no-interaction --prefer-dist
@@ -101,19 +140,12 @@ source-row removal path. The fake Bitbucket repository is deliberately
 unresolvable so **Check** exercises provider failure handling; the GitLab row
 renders **Cannot adopt** without offering an action.
 
-See [RELEASE.md](RELEASE.md) for the authoritative release procedure.
-The [Phase 0 source-certification evidence](docs/phase-0-source-certification.md)
-records the frozen counters, historical pre-M1 lifecycle shortcomings, exact archive
-invariants and retained source candidate. The
-[installed candidate and load-order proof](docs/installed-candidate-load-order-proof.md)
-records the exact WordPress, Core and inactive WP Pusher runtime evidence,
-non-mutation readback and cleanup. The
-[M1 lifecycle and request-order evidence](docs/m1-lifecycle-and-request-order.md)
-records the first-valid composition and authority-before-inventory correction.
-The
-[M2 ownership and source/archive evidence](docs/m2-ownership-and-source-archive-evidence.md)
-records the bounded internal split, exact counters and immutable archive
-candidate.
+Historical source, archive, installed-candidate, and load-order evidence remains
+under [`docs/`](docs/) for maintainers. It does not replace the release gate in
+`RELEASE.md` for a new candidate.
+
+The current [WordPress.org suitability decision](docs/wordpress-org-suitability.md)
+keeps distribution on verified repository release assets.
 
 ## License
 
