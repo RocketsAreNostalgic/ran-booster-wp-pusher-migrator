@@ -34,7 +34,7 @@ provider webhooks.
   WP Pusher credentials.
 
 The current source and CI certification use the immutable RAN Booster
-`v1.0.0-beta.15` release. The exact tag and full commit are owned by
+`v1.0.0-beta.22` release. The exact tag and full commit are owned by
 `extra.ran-booster-core-certification` in `composer.json`. The loaded API checks
 remain authoritative: `Requires Plugins` and matching version numbers cannot
 make an incompatible Core release compatible.

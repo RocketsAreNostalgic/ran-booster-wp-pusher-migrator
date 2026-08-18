@@ -118,18 +118,18 @@ not make internal methods a supported external API.
 
 `composer.json` is the sole machine-readable owner of the exact
 `extra.ran-booster-core-certification` tag/full-commit tuple. The current
-selected immutable release is RAN Booster `v1.0.0-beta.15`, whose source exposes
+selected immutable release is RAN Booster `v1.0.0-beta.22`, whose source exposes
 both required API 2 constants and ready actions without the removed Logging
 facade.
 
 The current compatible Core release evidence is:
 
-- GitHub release ID `368823171`;
-- sole asset ID `510579641`;
-- asset `ran-booster-1.0.0-beta.15.zip`;
-- asset size `2,528,822` bytes; and
+- GitHub release ID `372365460`;
+- plugin ZIP asset ID `519515911`;
+- asset `ran-booster-1.0.0-beta.22.zip`;
+- asset size `2,945,429` bytes; and
 - asset digest
-  `sha256:1ac974014231b84694a2b0c04bd5bc27c61d5cc362d467539ec1aea0d4fdf8cd`.
+  `sha256:e373d0127d676eb70f2dcd5e96eb016df3af07fbb61e5d2d481e2efb47660faa`.
 
 The historical Phase 0 installed proof used the then-current beta.14 Core
 artifact at source commit
@@ -149,12 +149,12 @@ and a checked-out Core whose HEAD or tag resolution contradicts the tuple.
 Quality checks out the certified commit and proves that its exact tag resolves
 to that commit before checking the two real facade constants and ready actions.
 
-The current beta.15 tuple records source/CI certification only. The earlier disposable
+The current beta.22 tuple records source/CI certification only. The earlier disposable
 [installed candidate and load-order proof](installed-candidate-load-order-proof.md)
 retained the exact Phase 0 Migrator candidate ZIP and installed it beside the
 historical beta.14 Core artifact and an inactive WP Pusher 3.0.13 fixture. It is
-not installed-runtime evidence for the current beta.15 certification or the
-future beta.6 Migrator candidate.
+not installed-runtime evidence for the current beta.22 certification or the
+future beta.7 Migrator candidate.
 
 ## Pre-M1 lifecycle characterization
 

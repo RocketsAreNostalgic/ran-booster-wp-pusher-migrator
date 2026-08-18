@@ -27,14 +27,14 @@ wp_binary=${RAN_MIGRATOR_WP_CLI_BIN:-wp}
 php_binary=${RAN_MIGRATOR_WP_CLI_PHP:-}
 php_ini=${RAN_MIGRATOR_WP_CLI_PHP_INI:-}
 
-readonly expected_migrator_version='0.1.0-beta.6'
-readonly expected_core_version='1.0.0-beta.15'
-readonly expected_core_sha='1ac974014231b84694a2b0c04bd5bc27c61d5cc362d467539ec1aea0d4fdf8cd'
+readonly expected_migrator_version='0.1.0-beta.7'
+readonly expected_core_version='1.0.0-beta.22'
+readonly expected_core_sha='e373d0127d676eb70f2dcd5e96eb016df3af07fbb61e5d2d481e2efb47660faa'
 readonly expected_wppusher_sha='4f1533b9b946afdf9d699ea54279ea236b7e25f3d3fc9182bb53cec295a52208'
 readonly inert_theme_slug='ran-migrator-proof-inert'
 
-[[ "$migrator_commit" =~ ^[0-9a-f]{40}$ ]] || fail 'The caller-selected beta.6 source commit must be a full lowercase SHA.'
-[[ "$migrator_sha" =~ ^[0-9a-f]{64}$ ]] || fail 'The retained beta.6 archive SHA-256 is invalid.'
+[[ "$migrator_commit" =~ ^[0-9a-f]{40}$ ]] || fail 'The caller-selected beta.7 source commit must be a full lowercase SHA.'
+[[ "$migrator_sha" =~ ^[0-9a-f]{64}$ ]] || fail 'The retained beta.7 archive SHA-256 is invalid.'
 [[ "$expected_site_url" =~ ^https?://[^[:space:]]+$ ]] || fail 'The expected site URL is invalid.'
 [[ "$mysql_database" =~ ^[A-Za-z0-9_]+$ ]] || fail 'The disposable database name is invalid.'
 [[ "$mysql_socket" == /* && -S "$mysql_socket" ]] || fail 'The MySQL boundary must be an existing absolute local socket.'
@@ -81,14 +81,14 @@ for dropin in advanced-cache.php db.php db-error.php install.php maintenance.php
 		|| fail "The no-network lane refuses executable pre-MU drop-in: $dropin"
 done
 [[ -d "$migrator_source/.git" || -f "$migrator_source/.git" ]] || fail 'The Migrator source is not a Git checkout.'
-[[ "$(git -C "$migrator_source" rev-parse HEAD)" == "$migrator_commit" ]] || fail 'The verifier checkout is not the exact caller-selected beta.6 head.'
+[[ "$(git -C "$migrator_source" rev-parse HEAD)" == "$migrator_commit" ]] || fail 'The verifier checkout is not the exact caller-selected beta.7 head.'
 [[ -z "$(git -C "$migrator_source" status --porcelain=v1 --untracked-files=all)" ]] || fail 'The verifier checkout is not clean.'
 
 sha256_file() {
 	shasum -a 256 "$1" | awk '{ print $1 }'
 }
 
-[[ "$(sha256_file "$core_archive")" == "$expected_core_sha" ]] || fail 'The Core archive is not the immutable beta.15 asset.'
+[[ "$(sha256_file "$core_archive")" == "$expected_core_sha" ]] || fail 'The Core archive is not the immutable beta.22 asset.'
 [[ "$(sha256_file "$migrator_archive")" == "$migrator_sha" ]] || fail 'The retained Migrator archive digest is wrong.'
 [[ "$(sha256_file "$wppusher_archive")" == "$expected_wppusher_sha" ]] || fail 'The WP Pusher archive is not the exact 3.0.13 fixture.'
 unzip -tqq "$core_archive"
@@ -268,7 +268,7 @@ cleanup() {
 		esac
 	fi
 	if (( 0 == status && proof_completed )); then
-		printf 'Migrator beta.6 installed-candidate proof and exact cleanup passed (%s).\n' "$migrator_sha"
+		printf 'Migrator beta.7 installed-candidate proof and exact cleanup passed (%s).\n' "$migrator_sha"
 	fi
 	exit "$status"
 }
@@ -311,8 +311,8 @@ mkdir "$recovery/extracted-core" "$recovery/extracted-migrator" "$recovery/extra
 unzip -q "$core_archive" -d "$recovery/extracted-core"
 unzip -q "$migrator_archive" -d "$recovery/extracted-migrator"
 unzip -q "$wppusher_archive" -d "$recovery/extracted-wppusher"
-diff -qr "$recovery/extracted-core/ran-booster" "$core_dir" >/dev/null || fail 'The installed Core tree differs from beta.15.'
-diff -qr "$recovery/extracted-migrator/ran-booster-wp-pusher-migrator" "$migrator_dir" >/dev/null || fail 'The installed Migrator tree differs from the retained beta.6 artifact.'
+diff -qr "$recovery/extracted-core/ran-booster" "$core_dir" >/dev/null || fail 'The installed Core tree differs from beta.22.'
+diff -qr "$recovery/extracted-migrator/ran-booster-wp-pusher-migrator" "$migrator_dir" >/dev/null || fail 'The installed Migrator tree differs from the retained beta.7 artifact.'
 diff -qr "$recovery/extracted-wppusher/wppusher" "$wppusher_dir" >/dev/null || fail 'The installed WP Pusher tree differs from the exact 3.0.13 fixture.'
 
 export RAN_MIGRATOR_PROOF_MODE=seed-fixture

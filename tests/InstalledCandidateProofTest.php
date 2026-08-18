@@ -7,7 +7,7 @@ namespace Tests;
 use PHPUnit\Framework\TestCase;
 
 final class InstalledCandidateProofTest extends TestCase {
-	private const CORE_SHA = '1ac974014231b84694a2b0c04bd5bc27c61d5cc362d467539ec1aea0d4fdf8cd';
+	private const CORE_SHA = 'e373d0127d676eb70f2dcd5e96eb016df3af07fbb61e5d2d481e2efb47660faa';
 
 	private const WP_PUSHER_SHA = '4f1533b9b946afdf9d699ea54279ea236b7e25f3d3fc9182bb53cec295a52208';
 
@@ -28,8 +28,8 @@ final class InstalledCandidateProofTest extends TestCase {
 	}
 
 	public function testDriverPinsEveryPublishedInputAndCallerSelectedCandidateIdentity(): void {
-		self::assertStringContainsString( "expected_migrator_version='0.1.0-beta.6'", $this->driver );
-		self::assertStringContainsString( "expected_core_version='1.0.0-beta.15'", $this->driver );
+		self::assertStringContainsString( "expected_migrator_version='0.1.0-beta.7'", $this->driver );
+		self::assertStringContainsString( "expected_core_version='1.0.0-beta.22'", $this->driver );
 		self::assertStringContainsString( self::CORE_SHA, $this->driver );
 		self::assertStringContainsString( self::WP_PUSHER_SHA, $this->driver );
 		self::assertStringContainsString( 'RAN_MIGRATOR_SOURCE_COMMIT', $this->driver );
