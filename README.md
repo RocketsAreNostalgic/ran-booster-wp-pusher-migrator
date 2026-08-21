@@ -6,15 +6,17 @@ RAN Booster.
 
 This is Beta software for an administrator completing a one-time migration. It
 is not another package manager and is intended to be removed after the retained
-WP Pusher records have been dealt with.
+WP Pusher records have been adopted or migrated manually.
 
 ## What it does
 
 - Finds retained GitHub and Bitbucket Cloud package rows from the exact
   supported WP Pusher schema.
-- Reviews each candidate through RAN Booster before adoption.
+- Passes one unchanged source row at a time through RAN Booster's Portability
+  API 2 review and apply flow.
 - Adopts packages with deployment Disabled.
-- Removes only the exact WP Pusher source row after a fresh, verified adoption.
+- Removes a source row only after Core verifies the adopted target and the
+  bridge confirms that the retained row is unchanged.
 - Leaves unsupported GitLab rows visible for manual migration.
 
 The bridge does not import credentials, install package files, enable
@@ -33,17 +35,17 @@ provider webhooks.
   repository, including private Bitbucket repositories. The bridge never copies
   WP Pusher credentials.
 
-The current source and CI certification use the immutable RAN Booster
-`v1.0.0-beta.22` release. The exact tag and full commit are owned by
-`extra.ran-booster-core-certification` in `composer.json`. The loaded API checks
-remain authoritative: `Requires Plugins` and matching version numbers cannot
-make an incompatible Core release compatible.
+This source tree is certified against RAN Booster `v1.0.0-beta.22`.
+`extra.ran-booster-core-certification` in `composer.json` records the exact tag
+and commit. Runtime compatibility still depends on the loaded API markers and
+facade types; `Requires Plugins` and matching version strings are not sufficient.
 
 ## Install
 
 This plugin is not distributed through WordPress.org. Install the release ZIP
-attached to an immutable release in this repository; GitHub's generated
-**Source code** archives are not installable plugin packages.
+attached to an immutable release in this private repository. Repository access
+is required. GitHub's generated **Source code** archives are not installable
+plugin packages.
 
 1. Install and activate the compatible RAN Booster release first.
 2. Open this repository's [Releases](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/releases)
@@ -63,7 +65,7 @@ attached to an immutable release in this repository; GitHub's generated
 The current Beta does not register an automatic update provider. To update,
 repeat the release and checksum verification above, then upload the newer ZIP
 through WordPress and confirm the replacement when prompted. The extension's
-canonical `Update URI` prevents an unrelated WordPress.org package from being
+`Update URI` header prevents an unrelated WordPress.org package from being
 offered under the same slug; it is not an update feed.
 
 ## Migrate from WP Pusher
@@ -103,13 +105,13 @@ problems through the confidential route in [SECURITY.md](SECURITY.md), never in
 a public issue.
 
 Contributions use the repository workflow described in
-[CONTRIBUTING.md](CONTRIBUTING.md). Release construction, verification, and
-publication policy is authoritative in [RELEASE.md](RELEASE.md).
+[CONTRIBUTING.md](CONTRIBUTING.md). [RELEASE.md](RELEASE.md) defines the release
+construction, verification, and publication process.
 
 ## Development
 
-Composer and pnpm install development tools only; the release ZIP contains no
-dependency directory.
+Composer and pnpm install development tools only; the release ZIP contains
+neither `vendor/` nor `node_modules/`.
 
 ```sh
 composer install --no-interaction --prefer-dist
@@ -120,7 +122,7 @@ composer check
 
 ### Repeatable local migration fixtures
 
-The development-only fixture set provides eight harmless installed plugins:
+The development-only fixture set provides eight local test plugins:
 six repeatable GitHub adoption fixtures, one public Bitbucket provider/error
 fixture, and one unsupported GitLab fixture. Run the reseed script with the
 target WordPress public directory and its Local MySQL socket:
@@ -145,7 +147,8 @@ under [`docs/`](docs/) for maintainers. It does not replace the release gate in
 `RELEASE.md` for a new candidate.
 
 The current [WordPress.org suitability decision](docs/wordpress-org-suitability.md)
-keeps distribution on verified repository release assets.
+limits distribution to the ZIP and checksum attached to the repository's
+immutable releases.
 
 ## License
 
