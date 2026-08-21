@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.0-beta.8](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/compare/v0.1.0-beta.7...v0.1.0-beta.8) (2026-08-21)
+
+
+### Miscellaneous Chores
+
+* **main:** release 0.1.0-beta.7 ([#26](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/26)) ([fd71f04](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/fd71f04118c3ef22a71a147ab71567e5f152f6c3))
+
 ## [0.1.0-beta.7](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/compare/v0.1.0-beta.6...v0.1.0-beta.7) (2026-08-18)
 
 
