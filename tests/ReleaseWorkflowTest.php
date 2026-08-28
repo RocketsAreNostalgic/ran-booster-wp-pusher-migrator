@@ -157,7 +157,7 @@ final class ReleaseWorkflowTest extends TestCase {
 
 		foreach ( array( $readme, $security, $support, $contributing, $suitability ) as $document ) {
 			self::assertIsString( $document );
-			self::assertStringNotContainsString( '.ran-booster-workbench', $document );
+			self::assertStringNotContainsString( 'ran-booster-workbench', $document );
 			self::assertStringNotContainsString( '/private/tmp', $document );
 		}
 
