@@ -104,12 +104,19 @@ final class ReleaseWorkflowTest extends TestCase {
 		self::assertStringNotContainsString( 'package-release:', $release );
 	}
 
-	public function testCertifiedCoreCheckoutFailsClosedWithoutThePrivateReadKey(): void {
+	public function testCertifiedCoreCheckoutUsesPinnedPublicSourceWithoutThePrivateReadKey(): void {
 		$quality = file_get_contents( dirname( __DIR__ ) . '/.github/workflows/quality.yml' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local workflow contract.
 		self::assertIsString( $quality );
-		self::assertStringContainsString( 'RAN_BOOSTER_CORE_READ_SSH_KEY: ${{ secrets.RAN_BOOSTER_CORE_READ_SSH_KEY }}', $quality );
-		self::assertStringContainsString( 'RAN_BOOSTER_CORE_READ_SSH_KEY is required to check out the private RAN Booster Core repository.', $quality );
-		self::assertStringContainsString( 'ssh-key: ${{ secrets.RAN_BOOSTER_CORE_READ_SSH_KEY }}', $quality );
+		self::assertStringNotContainsString( 'RAN_BOOSTER_CORE_READ_SSH_KEY', $quality );
+		self::assertStringNotContainsString( 'ssh-key:', $quality );
+		self::assertStringContainsString(
+			"repository: RocketsAreNostalgic/ran-booster\n"
+			. "          ref: \${{ needs.runtime-archive.outputs.core-commit }}\n"
+			. "          fetch-depth: 0\n"
+			. "          path: core\n"
+			. '          persist-credentials: false',
+			$quality
+		);
 	}
 
 	public function testPackageReleaseIsBoundToSuccessfulQualityAndTheExactMergedPullRequest(): void {
