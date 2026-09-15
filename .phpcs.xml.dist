@@ -2,7 +2,8 @@
 <ruleset name="RAN Booster WP Pusher Migrator">
 	<description>WordPress coding standards for the migration bridge.</description>
 
-	<config name="minimum_supported_wp_version" value="7.0"/>
+	<config name="minimum_wp_version" value="7.0"/>
+	<config name="testVersion" value="8.2-"/>
 
 	<!-- Scan every PHP file so views and future shipped entry points cannot escape the gate. -->
 	<file>.</file>
@@ -18,10 +19,7 @@
 	<arg name="parallel" value="4"/>
 	<arg value="sp"/>
 
-	<rule ref="WordPress-Extra">
-		<!-- The RAN namespace is PSR-4 autoloaded, so class files retain class-case names. -->
-		<exclude name="WordPress.Files.FileName.NotHyphenatedLowercase"/>
-		<exclude name="WordPress.Files.FileName.InvalidClassFileName"/>
+	<rule ref="RANWordPressPlugin">
 		<!-- Preserve the Booster-family camelCase OOP/API convention. -->
 		<exclude name="WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid"/>
 		<exclude name="WordPress.NamingConventions.ValidVariableName"/>
