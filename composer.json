@@ -8,6 +8,12 @@
     "issues": "https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues",
     "source": "https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator"
   },
+  "repositories": [
+    {
+      "type": "vcs",
+      "url": "https://github.com/RocketsAreNostalgic/ran-coding-standards.git"
+    }
+  ],
   "extra": {
     "ran-booster-core-certification": {
       "tag": "v1.0.0-beta.22",
@@ -42,7 +48,11 @@
   },
   "require-dev": {
     "dealerdirect/phpcodesniffer-composer-installer": "^1.2.1",
+    "phpcompatibility/php-compatibility": "10.0.0-alpha2",
+    "phpcompatibility/phpcompatibility-paragonie": "2.0.0-alpha2",
+    "phpcompatibility/phpcompatibility-wp": "3.0.0-alpha2",
     "phpunit/phpunit": "^11.0",
+    "ran/coding-standards": "dev-main",
     "squizlabs/php_codesniffer": "^3.13.5",
     "wp-coding-standards/wpcs": "^3.4.1"
   },
