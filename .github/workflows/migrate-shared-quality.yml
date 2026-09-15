@@ -83,10 +83,12 @@ jobs:
               raise SystemExit('Expected one jobs/runtime-archive insertion point.')
           text = text.replace(marker, replacement, 1)
 
-          checkout = '''      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-'''
+          checkout = '\n'.join([
+              '      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2',
+              '        with:',
+              '          persist-credentials: false',
+              '',
+          ])
           checkout_exact = '\n'.join([
               '      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2',
               '        with:',
@@ -95,10 +97,9 @@ jobs:
               '',
           ])
           quality_start = text.index('  quality:\n')
-          quality_text = text[quality_start:]
-          if quality_text.count(checkout) < 1:
-              raise SystemExit('Expected Quality checkout block.')
           before, after = text[:quality_start], text[quality_start:]
+          if after.count(checkout) < 1:
+              raise SystemExit('Expected Quality checkout block.')
           after = after.replace(checkout, checkout_exact, 1)
           text = before + after
 
