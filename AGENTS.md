@@ -23,6 +23,25 @@ The plugin ships its small CSS files directly and has no JavaScript or compiled
 asset pipeline. Keep pnpm limited to WordPress CSS linting and formatting unless
 the runtime assets genuinely outgrow that model.
 
+## Quality profile and ownership
+
+`ran/coding-standards` owns the shared PHP/WordPress coding ancestry only. This
+repository continues to own its WordPress 7.0 and PHP 8.2 support floors,
+`RAN\BoosterWpPusherMigrator` prefix/identity policy, source paths, camelCase and
+Yoda-condition compatibility exceptions, template/test exclusions, and every
+Core/release-specific contract.
+
+`@rocketsarenostalgic/quality-config` owns the upstream WordPress Stylelint and
+Prettier ancestry. This repository continues to own the `assets/**/*.css` scope,
+its selector and empty-line Stylelint exceptions, ignore policy, and the explicit
+absence of JavaScript or a compiled frontend pipeline.
+
+`composer check` and `pnpm check` are the ordinary local quality contracts. The
+single-build runtime archive, exact certified-Core API proof, release-candidate
+validation, installed/readback evidence, and immutable-release publication
+rules remain repository-owned specialist gates and must not be weakened to fit
+the organisation baseline.
+
 Run `pnpm check` and `composer check` before handoff. Use Conventional Commits
 and follow [RELEASE.md](RELEASE.md) as the single source of truth for
 versioning, packaging, release assets, and disposable-site evidence.
