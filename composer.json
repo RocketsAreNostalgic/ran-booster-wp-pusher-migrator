@@ -73,8 +73,7 @@
       "@lint:php",
       "@standards",
       "@test",
-      "@test:release-candidate-contract",
-      "@archive:build:head"
+      "@test:release-candidate-contract"
     ]
   },
   "config": {
