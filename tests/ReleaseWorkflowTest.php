@@ -65,6 +65,30 @@ final class ReleaseWorkflowTest extends TestCase {
 		self::assertStringNotContainsString( 'elif [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]]', $quality );
 	}
 
+	public function testPullRequestQualityFanInBindsEveryLaneToExactHead(): void {
+		$quality = file_get_contents( dirname( __DIR__ ) . '/.github/workflows/quality.yml' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local workflow contract.
+		self::assertIsString( $quality );
+
+		$pullRequestHead = '${{ github.event_name == \'pull_request\' && github.event.pull_request.head.sha || github.sha }}';
+		self::assertStringContainsString( 'ref: ' . $pullRequestHead, $quality );
+		self::assertStringContainsString( 'RAN_SOURCE_SHA: ' . $pullRequestHead, $quality );
+		self::assertStringContainsString( 'source_commit="$RAN_SOURCE_SHA"', $quality );
+		self::assertStringContainsString( 'test "$(git rev-parse HEAD)" = "$source_commit"', $quality );
+
+		$terminalStart = strpos( $quality, "  terminal-quality:\n" );
+		self::assertIsInt( $terminalStart );
+		$terminal = substr( $quality, $terminalStart );
+		self::assertStringContainsString( "    name: quality\n", $terminal );
+		self::assertStringContainsString( "      - baseline\n", $terminal );
+		self::assertStringContainsString( "      - runtime-archive\n", $terminal );
+		self::assertStringContainsString( "      - core-contract\n", $terminal );
+		self::assertStringContainsString( "      - quality\n", $terminal );
+		self::assertStringContainsString( 'test "$RAN_BASELINE_RESULT" = success', $terminal );
+		self::assertStringContainsString( 'test "$RAN_RUNTIME_ARCHIVE_RESULT" = success', $terminal );
+		self::assertStringContainsString( 'test "$RAN_CORE_CONTRACT_RESULT" = success', $terminal );
+		self::assertStringContainsString( 'test "$RAN_REPOSITORY_QUALITY_RESULT" = success', $terminal );
+	}
+
 	public function testRepositoryWorkflowsPinEveryActionToAnExactCommit(): void {
 		foreach ( array( 'quality.yml', 'release-please.yml' ) as $workflowName ) {
 			$workflow = file_get_contents( dirname( __DIR__ ) . '/.github/workflows/' . $workflowName ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local workflow contract.

@@ -24,6 +24,14 @@ permissions:
   contents: read
 
 jobs:
+  baseline:
+    name: baseline
+    if: ${{ github.event_name == 'pull_request' }}
+    uses: RocketsAreNostalgic/.github/.github/workflows/quality-wordpress-plugin.yml@72a90b5826db37d1e94cdcdcf3374ccf58c0aa7d
+    with:
+      php-version: '8.2'
+      pnpm-version: '11.13.1'
+
   runtime-archive:
     name: Runtime archive
     runs-on: blacksmith-2vcpu-ubuntu-2404
@@ -45,6 +53,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
 
       - name: Set up PHP
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
@@ -56,6 +65,7 @@ jobs:
         id: archive
         shell: bash
         env:
+          RAN_SOURCE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
           GH_TOKEN: ${{ github.event_name == 'workflow_dispatch' && secrets.GITHUB_TOKEN || '' }}
           RAN_DISPATCH_RELEASE_PR: ${{ inputs.release_pr }}
           RAN_DISPATCH_RELEASE_SHA: ${{ inputs.release_sha }}
@@ -64,7 +74,8 @@ jobs:
 
           release_branch='release-please--branches--main--components--ran-booster-wp-pusher-migrator'
           release_candidate=false
-          source_commit="$GITHUB_SHA"
+          source_commit="$RAN_SOURCE_SHA"
+          test "$(git rev-parse HEAD)" = "$source_commit"
           if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]]; then
             [[ "$RAN_DISPATCH_RELEASE_PR" =~ ^[1-9][0-9]*$ ]]
             [[ "$RAN_DISPATCH_RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
@@ -218,6 +229,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
       - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
         with:
           version: 11.13.1
@@ -239,3 +251,27 @@ jobs:
           composer lint:php
           composer standards
           composer test
+
+  terminal-quality:
+    name: quality
+    if: ${{ always() && github.event_name == 'pull_request' }}
+    needs:
+      - baseline
+      - runtime-archive
+      - core-contract
+      - quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require shared and repository quality lanes
+        env:
+          RAN_BASELINE_RESULT: ${{ needs.baseline.result }}
+          RAN_RUNTIME_ARCHIVE_RESULT: ${{ needs['runtime-archive'].result }}
+          RAN_CORE_CONTRACT_RESULT: ${{ needs['core-contract'].result }}
+          RAN_REPOSITORY_QUALITY_RESULT: ${{ needs.quality.result }}
+        run: |
+          set -euo pipefail
+          test "$RAN_BASELINE_RESULT" = success
+          test "$RAN_RUNTIME_ARCHIVE_RESULT" = success
+          test "$RAN_CORE_CONTRACT_RESULT" = success
+          test "$RAN_REPOSITORY_QUALITY_RESULT" = success
