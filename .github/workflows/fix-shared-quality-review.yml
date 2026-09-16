@@ -1,0 +1,132 @@
+name: Stage shared quality review fixes
+
+on:
+  push:
+    branches:
+      - chore/adopt-shared-quality-profile
+
+permissions:
+  contents: write
+
+jobs:
+  fix-review:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out migration branch
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: chore/adopt-shared-quality-profile
+          fetch-depth: 0
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: '8.2'
+          coverage: none
+          tools: composer:v2
+
+      - name: Materialize exact-head workflow and contract test fixes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def expr(value: str) -> str:
+              return '$' + '{{ ' + value + ' }}'
+
+          workflow_path = Path('.github/workflows/quality.yml')
+          workflow = workflow_path.read_text()
+
+          old_checkout = '''      - name: Check out repository
+                  uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+                  with:
+                    fetch-depth: 0
+                    persist-credentials: false
+          '''.replace('          ', '')
+          new_checkout = '''      - name: Check out repository
+                  uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+                  with:
+                    fetch-depth: 0
+                    persist-credentials: false
+                    ref: PLACEHOLDER
+          '''.replace('          ', '').replace('PLACEHOLDER', expr("github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha"))
+          if workflow.count(old_checkout) != 1:
+              raise SystemExit('Expected one Runtime archive checkout block.')
+          workflow = workflow.replace(old_checkout, new_checkout, 1)
+
+          old_env = '''        env:
+                    GH_TOKEN: '''.replace('          ', '')
+          new_env = '''        env:
+                    RAN_SOURCE_SHA: PLACEHOLDER
+                    GH_TOKEN: '''.replace('          ', '').replace('PLACEHOLDER', expr("github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha"))
+          if workflow.count(old_env) != 1:
+              raise SystemExit('Expected one Runtime archive environment block.')
+          workflow = workflow.replace(old_env, new_env, 1)
+
+          old_source = '          source_commit="$GITHUB_SHA"\n'
+          new_source = '          source_commit="$RAN_SOURCE_SHA"\n          test "$(git rev-parse HEAD)" = "$source_commit"\n'
+          if workflow.count(old_source) != 1:
+              raise SystemExit('Expected one Runtime archive source-commit assignment.')
+          workflow = workflow.replace(old_source, new_source, 1)
+
+          Path('quality.yml.patched').write_text(workflow)
+          workflow_path.write_text(workflow)
+
+          test_path = Path('tests/ReleaseWorkflowTest.php')
+          test = test_path.read_text()
+          marker = '\tpublic function testRepositoryWorkflowsPinEveryActionToAnExactCommit(): void {\n'
+          if test.count(marker) != 1:
+              raise SystemExit('Expected one workflow-pin test insertion point.')
+
+          method = r'''	public function testPullRequestQualityFanInBindsEveryLaneToExactHead(): void {
+		$quality = file_get_contents( dirname( __DIR__ ) . '/.github/workflows/quality.yml' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local workflow contract.
+		self::assertIsString( $quality );
+
+		$pullRequestHead = '$' . '{{ github.event_name == \'pull_request\' && github.event.pull_request.head.sha || github.sha }}';
+		self::assertStringContainsString( 'ref: ' . $pullRequestHead, $quality );
+		self::assertStringContainsString( 'RAN_SOURCE_SHA: ' . $pullRequestHead, $quality );
+		self::assertStringContainsString( 'source_commit="$RAN_SOURCE_SHA"', $quality );
+		self::assertStringContainsString( 'test "$(git rev-parse HEAD)" = "$source_commit"', $quality );
+
+		$terminalStart = strpos( $quality, "  terminal-quality:\n" );
+		self::assertIsInt( $terminalStart );
+		$terminal = substr( $quality, $terminalStart );
+		self::assertStringContainsString( "    name: quality\n", $terminal );
+		self::assertStringContainsString( "      - baseline\n", $terminal );
+		self::assertStringContainsString( "      - runtime-archive\n", $terminal );
+		self::assertStringContainsString( "      - core-contract\n", $terminal );
+		self::assertStringContainsString( "      - quality\n", $terminal );
+		self::assertStringContainsString( 'test "$RAN_BASELINE_RESULT" = success', $terminal );
+		self::assertStringContainsString( 'test "$RAN_RUNTIME_ARCHIVE_RESULT" = success', $terminal );
+		self::assertStringContainsString( 'test "$RAN_CORE_CONTRACT_RESULT" = success', $terminal );
+		self::assertStringContainsString( 'test "$RAN_REPOSITORY_QUALITY_RESULT" = success', $terminal );
+	}
+
+'''
+          test = test.replace(marker, method + marker, 1)
+          test_path.write_text(test)
+          PY
+
+      - name: Prove review fixes against repository contract
+        run: |
+          composer install --no-interaction --prefer-dist --no-progress
+          composer check
+
+      - name: Commit only the contract test and non-workflow candidate
+        run: |
+          set -euo pipefail
+          git checkout -- .github/workflows/quality.yml
+          rm -rf vendor
+          changed="$(git status --short | awk '{print $2}')"
+          for path in $changed; do
+            case "$path" in
+              tests/ReleaseWorkflowTest.php|quality.yml.patched) ;;
+              *) echo "Unexpected review-fix change: $path" >&2; exit 1 ;;
+            esac
+          done
+          git add tests/ReleaseWorkflowTest.php quality.yml.patched
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'test(ci): lock exact-head quality fan-in contract'
+          git push origin HEAD:chore/adopt-shared-quality-profile
