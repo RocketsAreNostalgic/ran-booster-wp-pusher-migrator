@@ -105,6 +105,7 @@ jobs:
       - name: Prove review fixes against repository contract
         run: |
           composer install --no-interaction --prefer-dist --no-progress
+          vendor/bin/phpcs --standard=.phpcs.xml.dist tests/ReleaseWorkflowTest.php -s || true
           composer check
 
       - name: Commit only the contract test and non-workflow candidate
