@@ -38,6 +38,8 @@ jobs:
           workflow_path = Path('.github/workflows/quality.yml')
           workflow = workflow_path.read_text()
 
+          pull_request_head = expr("github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha")
+
           old_checkout = (
               "      - name: Check out repository\n"
               "        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2\n"
@@ -45,13 +47,13 @@ jobs:
               "          fetch-depth: 0\n"
               "          persist-credentials: false\n"
           )
-          new_checkout = old_checkout + "          ref: " + expr("github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha") + "\n"
+          new_checkout = old_checkout + "          ref: " + pull_request_head + "\n"
           if workflow.count(old_checkout) != 1:
               raise SystemExit('Expected one Runtime archive checkout block.')
           workflow = workflow.replace(old_checkout, new_checkout, 1)
 
           old_env = "        env:\n          GH_TOKEN: "
-          new_env = "        env:\n          RAN_SOURCE_SHA: " + expr("github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha") + "\n          GH_TOKEN: "
+          new_env = "        env:\n          RAN_SOURCE_SHA: " + pull_request_head + "\n          GH_TOKEN: "
           if workflow.count(old_env) != 1:
               raise SystemExit('Expected one Runtime archive environment block.')
           workflow = workflow.replace(old_env, new_env, 1)
@@ -71,12 +73,13 @@ jobs:
           if test.count(marker) != 1:
               raise SystemExit('Expected one workflow-pin test insertion point.')
 
+          php_pull_request_head = "'" + pull_request_head.replace("'", "\\'") + "'"
           method = "\n".join([
               "\tpublic function testPullRequestQualityFanInBindsEveryLaneToExactHead(): void {",
               "\t\t$quality = file_get_contents( dirname( __DIR__ ) . '/.github/workflows/quality.yml' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local workflow contract.",
               "\t\tself::assertIsString( $quality );",
               "",
-              "\t\t$pullRequestHead = '$' . '{{ github.event_name == \\'pull_request\\' && github.event.pull_request.head.sha || github.sha }}';",
+              "\t\t$pullRequestHead = " + php_pull_request_head + ";",
               "\t\tself::assertStringContainsString( 'ref: ' . $pullRequestHead, $quality );",
               "\t\tself::assertStringContainsString( 'RAN_SOURCE_SHA: ' . $pullRequestHead, $quality );",
               "\t\tself::assertStringContainsString( 'source_commit=\"$RAN_SOURCE_SHA\"', $quality );",
@@ -105,7 +108,6 @@ jobs:
       - name: Prove review fixes against repository contract
         run: |
           composer install --no-interaction --prefer-dist --no-progress
-          vendor/bin/phpcs --standard=.phpcs.xml.dist tests/ReleaseWorkflowTest.php -s || true
           composer check
 
       - name: Commit only the contract test and non-workflow candidate
