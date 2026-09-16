@@ -53,6 +53,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
 
       - name: Set up PHP
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
@@ -64,6 +65,7 @@ jobs:
         id: archive
         shell: bash
         env:
+          RAN_SOURCE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
           GH_TOKEN: ${{ github.event_name == 'workflow_dispatch' && secrets.GITHUB_TOKEN || '' }}
           RAN_DISPATCH_RELEASE_PR: ${{ inputs.release_pr }}
           RAN_DISPATCH_RELEASE_SHA: ${{ inputs.release_sha }}
@@ -72,7 +74,8 @@ jobs:
 
           release_branch='release-please--branches--main--components--ran-booster-wp-pusher-migrator'
           release_candidate=false
-          source_commit="$GITHUB_SHA"
+          source_commit="$RAN_SOURCE_SHA"
+          test "$(git rev-parse HEAD)" = "$source_commit"
           if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]]; then
             [[ "$RAN_DISPATCH_RELEASE_PR" =~ ^[1-9][0-9]*$ ]]
             [[ "$RAN_DISPATCH_RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
