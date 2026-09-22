@@ -20,7 +20,6 @@ mkdir -p "$seed"
 git -C "$seed" init --quiet
 git -C "$seed" config user.name 'Validator Test'
 git -C "$seed" config user.email 'validator@example.invalid'
-printf '{"."":"1.2.3"}\n' >/dev/null 2>&1 || true
 printf '{".":"1.2.3"}\n' > "$seed/.release-please-manifest.json"
 cat > "$seed/CHANGELOG.md" <<'EOF'
 # Changelog
