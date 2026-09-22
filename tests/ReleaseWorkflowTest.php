@@ -31,54 +31,62 @@ final class ReleaseWorkflowTest extends TestCase {
 		self::assertIsString( $wrapper );
 		self::assertIsString( $verifier );
 		self::assertIsString( $quality );
+
 		self::assertStringContainsString( 'source_commit=${1:?full source commit is required}', $builder );
 		self::assertStringContainsString( 'git show "${source_commit}:release-contents.txt"', $builder );
 		self::assertStringContainsString( 'git archive', $builder );
 		self::assertStringContainsString( 'exec php "$root/scripts/verify-release.php" "$@"', $wrapper );
 		self::assertStringContainsString( '$sourceCommit = $argv[2] ??', $verifier );
 		self::assertStringContainsString( "'commit'             => \$sourceCommit", $verifier );
-		self::assertStringContainsString( 'git_output( array( \'show\', $commit . \':\' . $file ) )', $verifier );
-		self::assertStringContainsString( 'RAN_DISPATCH_RELEASE_SHA: ${{ inputs.release_sha }}', $quality );
-		self::assertStringContainsString( 'test "$head_sha" = "$GITHUB_SHA"', $quality );
-		self::assertStringContainsString( 'source_commit="$head_sha"', $quality );
-		self::assertStringContainsString( 'git rev-parse "${source_commit}^{commit}"', $quality );
-		self::assertStringContainsString( 'bash scripts/validate-release-candidate.sh "$base_sha" "$head_sha"', $quality );
-		self::assertStringContainsString( 'bash scripts/fetch-release-candidate-ref.sh origin "refs/pull/${RAN_DISPATCH_RELEASE_PR}/head"', $quality );
 		self::assertStringContainsString( 'bash scripts/build-release.sh "$source_commit"', $quality );
 	}
 
-	public function testQualityRequiresExactTrustedDispatchAndKeepsDirectPullRequestChecks(): void {
+	public function testQualityUsesExactEventRevisionAndInputlessDispatch(): void {
 		$quality = file_get_contents( dirname( __DIR__ ) . '/.github/workflows/quality.yml' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local workflow contract.
 		self::assertIsString( $quality );
 
-		self::assertStringContainsString( 'workflow_dispatch:', $quality );
-		self::assertStringContainsString( 'release_pr:', $quality );
-		self::assertStringContainsString( 'release_sha:', $quality );
-		self::assertSame( 2, substr_count( $quality, 'required: true' ) );
-		self::assertStringNotContainsString( "name: Runtime archive\n    if:", $quality );
-		self::assertStringContainsString( "GH_TOKEN: \${{ github.event_name == 'workflow_dispatch' && secrets.GITHUB_TOKEN || '' }}", $quality );
-		self::assertStringContainsString( '"$GITHUB_ACTOR" == \'github-actions[bot]\'', $quality );
-		self::assertStringContainsString( '"$GITHUB_TRIGGERING_ACTOR" == \'github-actions[bot]\'', $quality );
-		self::assertStringContainsString( '.state == "open"', $quality );
-		self::assertStringContainsString( '.head.repo.full_name == $repository', $quality );
-		self::assertStringContainsString( 'any(.labels[]?; .name == "autorelease: pending")', $quality );
-		self::assertStringNotContainsString( 'elif [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]]', $quality );
+		self::assertStringContainsString( "  workflow_dispatch:\n  pull_request:", $quality );
+		self::assertStringNotContainsString( 'release_pr:', $quality );
+		self::assertStringNotContainsString( 'release_sha:', $quality );
+		self::assertStringNotContainsString( 'github-actions[bot]', $quality );
+		self::assertStringNotContainsString( 'autorelease: pending', $quality );
+		self::assertStringNotContainsString( 'fetch-release-candidate-ref.sh', $quality );
+		self::assertStringContainsString( 'bash scripts/validate-release-candidate.sh "$base_commit" "$source_commit"', $quality );
+		self::assertStringNotContainsString( 'has-trusted-release-candidate-run.sh', $quality );
+
+		$exactRevision = '${{ github.event_name == \'pull_request\' && github.event.pull_request.head.sha || github.sha }}';
+		self::assertStringContainsString( 'ref: ' . $exactRevision, $quality );
+		self::assertStringContainsString( 'RAN_SOURCE_SHA: ' . $exactRevision, $quality );
+		self::assertStringContainsString( 'test "$(git rev-parse HEAD)" = "$source_commit"', $quality );
+		self::assertStringContainsString( 'quality_commit: $quality_commit', $quality );
+		self::assertStringContainsString( 'source_commit: $source_commit', $quality );
+		self::assertSame( 1, substr_count( $quality, 'bash scripts/build-release.sh' ) );
 	}
 
-	public function testPullRequestQualityFanInBindsEveryLaneToExactHead(): void {
+	public function testQualityEmitsTheStandardProfileBPromotionManifest(): void {
 		$quality = file_get_contents( dirname( __DIR__ ) . '/.github/workflows/quality.yml' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local workflow contract.
 		self::assertIsString( $quality );
 
-		$pullRequestHead = '${{ github.event_name == \'pull_request\' && github.event.pull_request.head.sha || github.sha }}';
-		self::assertStringContainsString( 'ref: ' . $pullRequestHead, $quality );
-		self::assertStringContainsString( 'RAN_SOURCE_SHA: ' . $pullRequestHead, $quality );
-		self::assertStringContainsString( 'source_commit="$RAN_SOURCE_SHA"', $quality );
-		self::assertStringContainsString( 'test "$(git rev-parse HEAD)" = "$source_commit"', $quality );
+		self::assertStringContainsString( 'schema: "ran-profile-b-promotion"', $quality );
+		self::assertStringContainsString( 'schema_version: 1', $quality );
+		self::assertStringContainsString( 'repository: $repository', $quality );
+		self::assertStringContainsString( 'tag: $tag', $quality );
+		self::assertStringContainsString( '{name: $archive_name, sha256: $archive_sha256}', $quality );
+		self::assertStringContainsString( '{name: $checksum_name, sha256: $checksum_sha256}', $quality );
+		self::assertStringContainsString( 'dist/ran-profile-b-promotion.json', $quality );
+		self::assertStringContainsString( 'actions/upload-artifact@', $quality );
+		self::assertStringContainsString( 'ran-booster-wp-pusher-migrator-runtime-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}', $quality );
+	}
+
+	public function testPullRequestAndDispatchedQualityRequireTheLocalProductLanes(): void {
+		$quality = file_get_contents( dirname( __DIR__ ) . '/.github/workflows/quality.yml' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local workflow contract.
+		self::assertIsString( $quality );
 
 		$terminalStart = strpos( $quality, "  terminal-quality:\n" );
 		self::assertIsInt( $terminalStart );
 		$terminal = substr( $quality, $terminalStart );
 		self::assertStringContainsString( "    name: quality\n", $terminal );
+		self::assertStringContainsString( "github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'", $terminal );
 		self::assertStringContainsString( "      - baseline\n", $terminal );
 		self::assertStringContainsString( "      - runtime-archive\n", $terminal );
 		self::assertStringContainsString( "      - core-contract\n", $terminal );
@@ -89,7 +97,57 @@ final class ReleaseWorkflowTest extends TestCase {
 		self::assertStringContainsString( 'test "$RAN_REPOSITORY_QUALITY_RESULT" = success', $terminal );
 	}
 
-	public function testRepositoryWorkflowsPinEveryActionToAnExactCommit(): void {
+	public function testCertifiedCoreCheckoutUsesTheExactLocalCertification(): void {
+		$quality = file_get_contents( dirname( __DIR__ ) . '/.github/workflows/quality.yml' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local workflow contract.
+		self::assertIsString( $quality );
+
+		self::assertStringContainsString(
+			"repository: RocketsAreNostalgic/ran-booster\n"
+			. '          ref: ${{ needs.runtime-archive.outputs.core-commit }}' . "\n"
+			. "          fetch-depth: 0\n"
+			. "          path: core\n"
+			. '          persist-credentials: false',
+			$quality
+		);
+		self::assertStringContainsString( 'php migrator/scripts/core-certification.php verify migrator/composer.json core', $quality );
+	}
+
+	public function testReleaseWorkflowIsAThinPinnedProfileBCaller(): void {
+		$release = file_get_contents( dirname( __DIR__ ) . '/.github/workflows/release-please.yml' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local workflow contract.
+		self::assertIsString( $release );
+
+		self::assertStringContainsString(
+			'uses: RocketsAreNostalgic/.github/.github/workflows/release-profile-b.yml@cb42ecd841916ebe73f147e5b933cd7bcc392db8',
+			$release
+		);
+		self::assertStringContainsString( 'expected-workflow-path: .github/workflows/quality.yml', $release );
+		self::assertStringContainsString( 'release-pr-head: release-please--branches--main--components--ran-booster-wp-pusher-migrator', $release );
+		self::assertStringContainsString( 'artifact-prefix: ran-booster-wp-pusher-migrator-runtime', $release );
+		self::assertStringNotContainsString( 'googleapis/release-please-action@', $release );
+		self::assertStringNotContainsString( 'gh release ', $release );
+		self::assertStringNotContainsString( 'autorelease: pending', $release );
+		self::assertStringNotContainsString( 'merge_commit_sha', $release );
+	}
+
+	public function testReleasePullRequestGateRequiresFreshInstalledSiteEvidence(): void {
+		$release = file_get_contents( dirname( __DIR__ ) . '/RELEASE.md' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local release contract.
+		self::assertIsString( $release );
+
+		self::assertStringContainsString( 'Do not merge a Release Please pull request until this gate is complete', $release );
+		self::assertStringContainsString( 'Portability API 2 and Admin Interaction API 2', $release );
+		self::assertStringContainsString( 'disposable single-site WordPress installation', $release );
+		self::assertStringContainsString( 'Record the exact candidate SHA', $release );
+		self::assertStringContainsString( 'does not by itself satisfy items 3–5 for a new candidate', $release );
+	}
+
+	public function testReleasePleaseConfigurationProvidesProfileBDraftSemantics(): void {
+		$config = json_decode( (string) file_get_contents( dirname( __DIR__ ) . '/release-please-config.json' ), true, 512, JSON_THROW_ON_ERROR ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local release contract.
+		self::assertTrue( $config['draft'] ?? false );
+		self::assertTrue( $config['force-tag-creation'] ?? false );
+		self::assertNotSame( true, $config['skip-github-release'] ?? false );
+	}
+
+	public function testRepositoryWorkflowsPinEveryExternalActionOrReusableWorkflowToAnExactCommit(): void {
 		foreach ( array( 'quality.yml', 'release-please.yml' ) as $workflowName ) {
 			$workflow = file_get_contents( dirname( __DIR__ ) . '/.github/workflows/' . $workflowName ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local workflow contract.
 			self::assertIsString( $workflow );
@@ -105,104 +163,6 @@ final class ReleaseWorkflowTest extends TestCase {
 				);
 			}
 		}
-
-		$releaseWorkflow = file_get_contents( dirname( __DIR__ ) . '/.github/workflows/release-please.yml' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local workflow contract.
-		self::assertIsString( $releaseWorkflow );
-		self::assertStringContainsString(
-			'googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7',
-			$releaseWorkflow
-		);
-	}
-
-	public function testQualityBuildsOneArchiveAndReleaseReusesItsExactArtifact(): void {
-		$quality = file_get_contents( dirname( __DIR__ ) . '/.github/workflows/quality.yml' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local workflow contract.
-		$release = file_get_contents( dirname( __DIR__ ) . '/.github/workflows/release-please.yml' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local workflow contract.
-		self::assertIsString( $quality );
-		self::assertIsString( $release );
-
-		self::assertSame( 1, substr_count( $quality, 'bash scripts/build-release.sh' ) );
-		self::assertStringContainsString( 'actions/upload-artifact@', $quality );
-		self::assertStringNotContainsString( 'bash scripts/build-release.sh', $release );
-		self::assertStringContainsString( 'actions/download-artifact@', $release );
-		self::assertStringContainsString( 'run-id: ${{ github.event.workflow_run.id }}', $release );
-		self::assertStringNotContainsString( 'package-release:', $release );
-	}
-
-	public function testCertifiedCoreCheckoutUsesPinnedPublicSourceWithoutThePrivateReadKey(): void {
-		$quality = file_get_contents( dirname( __DIR__ ) . '/.github/workflows/quality.yml' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local workflow contract.
-		self::assertIsString( $quality );
-		self::assertStringNotContainsString( 'RAN_BOOSTER_CORE_READ_SSH_KEY', $quality );
-		self::assertStringNotContainsString( 'ssh-key:', $quality );
-		self::assertStringContainsString(
-			"repository: RocketsAreNostalgic/ran-booster\n"
-			. "          ref: \${{ needs.runtime-archive.outputs.core-commit }}\n"
-			. "          fetch-depth: 0\n"
-			. "          path: core\n"
-			. '          persist-credentials: false',
-			$quality
-		);
-	}
-
-	public function testPackageReleaseIsBoundToSuccessfulQualityAndTheExactMergedPullRequest(): void {
-		$workflow = file_get_contents( dirname( __DIR__ ) . '/.github/workflows/release-please.yml' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local workflow contract.
-		self::assertIsString( $workflow );
-
-		self::assertStringContainsString( 'skip-github-release: true', $workflow );
-		self::assertStringContainsString( 'workflow_run:', $workflow );
-		self::assertStringContainsString( "github.event.workflow_run.conclusion == 'success'", $workflow );
-		self::assertStringContainsString( "github.event.workflow_run.event == 'push'", $workflow );
-		self::assertStringContainsString( 'ref: ${{ github.event.workflow_run.head_sha }}', $workflow );
-		self::assertStringContainsString( 'github.event.workflow_run.head_repository.full_name == github.repository', $workflow );
-		self::assertStringContainsString( 'git diff --quiet "${RAN_QUALITY_COMMIT}^1"', $workflow );
-		self::assertStringContainsString( 'gh api --paginate --slurp "repos/${GITHUB_REPOSITORY}/releases?per_page=100"', $workflow );
-		self::assertStringContainsString( 'select(.tag_name == $tag)', $workflow );
-		self::assertStringContainsString( 'git log -1 --format=%H "$RAN_QUALITY_COMMIT" -- .release-please-manifest.json', $workflow );
-		self::assertStringContainsString( '.merge_commit_sha == $quality', $workflow );
-		self::assertStringContainsString( '.head.ref == $head', $workflow );
-		self::assertStringContainsString( '.user.login == $bot', $workflow );
-		self::assertStringContainsString( 'test "$pending" = true', $workflow );
-		self::assertStringContainsString( 'The published release is not immutable', $workflow );
-		self::assertStringContainsString( '--target "$RAN_RELEASE_COMMIT"', $workflow );
-	}
-
-	public function testReleaseDispatchesOnlyAnExactVerifiedCandidateAndSuppressesDuplicates(): void {
-		$workflow = file_get_contents( dirname( __DIR__ ) . '/.github/workflows/release-please.yml' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local workflow contract.
-		self::assertIsString( $workflow );
-
-		self::assertStringContainsString( 'actions: write', $workflow );
-		self::assertStringNotContainsString( 'id: release-please', $workflow );
-		self::assertStringContainsString( 'current_main="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main"', $workflow );
-		self::assertStringContainsString( 'skipping stale reconciliation', $workflow );
-		self::assertStringContainsString( "if: steps.release-state.outputs.release-please-required == 'true'", $workflow );
-		self::assertStringContainsString( 'test "$base_sha" = "$RAN_QUALITY_COMMIT"', $workflow );
-		self::assertStringContainsString( 'bash scripts/validate-release-candidate.sh "$base_sha" "$head_sha"', $workflow );
-		self::assertStringContainsString( 'bash scripts/fetch-release-candidate-ref.sh origin "refs/pull/${pr_number}/head"', $workflow );
-		self::assertStringNotContainsString( 'git config', $workflow );
-		self::assertStringContainsString( 'bash scripts/validate-release-candidate-identity.sh "$base_sha" "$head_sha"', $workflow );
-		self::assertStringContainsString( 'commits(last: 1)', $workflow );
-		self::assertStringContainsString( 'signature {', $workflow );
-		self::assertStringContainsString( 'bash scripts/has-trusted-release-candidate-run.sh', $workflow );
-		self::assertStringContainsString( 'gh workflow run quality.yml --ref "$head_ref"', $workflow );
-		self::assertStringContainsString( '-f "release_pr=${pr_number}"', $workflow );
-		self::assertStringContainsString( '-f "release_sha=${head_sha}"', $workflow );
-	}
-
-	public function testVerifiedDraftAssetsPrecedeImmutablePublication(): void {
-		$workflow = file_get_contents( dirname( __DIR__ ) . '/.github/workflows/release-please.yml' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local workflow contract.
-		self::assertIsString( $workflow );
-
-		self::assertStringContainsString( 'gh release create "$RAN_RELEASE_TAG" --draft', $workflow );
-		self::assertStringContainsString( 'gh release upload "$RAN_RELEASE_TAG"', $workflow );
-		self::assertStringContainsString( 'gh release download "$RAN_RELEASE_TAG"', $workflow );
-		self::assertStringContainsString( 'ran-booster-wp-pusher-migrator-${RAN_RELEASE_VERSION}.zip', $workflow );
-		self::assertStringContainsString( 'ran-booster-wp-pusher-migrator-${RAN_RELEASE_VERSION}.zip.sha256', $workflow );
-		self::assertStringContainsString( 'ran-booster-wp-pusher-migrator-${RAN_RELEASE_VERSION}.json', $workflow );
-		self::assertSame( 3, substr_count( $workflow, 'cmp -s "dist/ran-booster-wp-pusher-migrator-' ) );
-		self::assertStringContainsString( 'RAN_IMMUTABLE_RELEASES_ENABLED', $workflow );
-		self::assertStringContainsString( 'The verified release remains a draft.', $workflow );
-		self::assertStringContainsString( 'gh release edit "$RAN_RELEASE_TAG" --draft=false', $workflow );
-		self::assertStringContainsString( "--jq '.immutable'", $workflow );
-		self::assertStringContainsString( 'for delay in 0 2 2 2 2', $workflow );
 	}
 
 	public function testPublicDocumentationKeepsAcquisitionSupportAndSecurityTruthful(): void {
