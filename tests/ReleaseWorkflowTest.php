@@ -51,7 +51,7 @@ final class ReleaseWorkflowTest extends TestCase {
 		self::assertStringNotContainsString( 'github-actions[bot]', $quality );
 		self::assertStringNotContainsString( 'autorelease: pending', $quality );
 		self::assertStringNotContainsString( 'fetch-release-candidate-ref.sh', $quality );
-		self::assertStringNotContainsString( 'validate-release-candidate', $quality );
+		self::assertStringContainsString( 'bash scripts/validate-release-candidate.sh "$base_commit" "$source_commit"', $quality );
 		self::assertStringNotContainsString( 'has-trusted-release-candidate-run.sh', $quality );
 
 		$exactRevision = '${{ github.event_name == \'pull_request\' && github.event.pull_request.head.sha || github.sha }}';
@@ -127,6 +127,17 @@ final class ReleaseWorkflowTest extends TestCase {
 		self::assertStringNotContainsString( 'gh release ', $release );
 		self::assertStringNotContainsString( 'autorelease: pending', $release );
 		self::assertStringNotContainsString( 'merge_commit_sha', $release );
+	}
+
+	public function testReleasePullRequestGateRequiresFreshInstalledSiteEvidence(): void {
+		$release = file_get_contents( dirname( __DIR__ ) . '/RELEASE.md' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local release contract.
+		self::assertIsString( $release );
+
+		self::assertStringContainsString( 'Do not merge a Release Please pull request until this gate is complete', $release );
+		self::assertStringContainsString( 'Portability API 2 and Admin Interaction API 2', $release );
+		self::assertStringContainsString( 'disposable single-site WordPress installation', $release );
+		self::assertStringContainsString( 'Record the exact candidate SHA', $release );
+		self::assertStringContainsString( 'does not by itself satisfy items 3–5 for a new candidate', $release );
 	}
 
 	public function testReleasePleaseConfigurationProvidesProfileBDraftSemantics(): void {
