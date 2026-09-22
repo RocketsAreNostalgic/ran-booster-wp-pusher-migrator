@@ -2,15 +2,6 @@ name: Quality
 
 on:
   workflow_dispatch:
-    inputs:
-      release_pr:
-        description: Exact Release Please pull-request number; reserved for the trusted release workflow.
-        required: true
-        type: string
-      release_sha:
-        description: Exact Release Please head SHA; reserved for the trusted release workflow.
-        required: true
-        type: string
   pull_request:
   push:
     branches:
@@ -38,17 +29,15 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: read
-      pull-requests: read
     outputs:
       artifact-name: ${{ steps.archive.outputs.artifact-name }}
       archive-sha256: ${{ steps.archive.outputs.archive-sha256 }}
       core-commit: ${{ steps.archive.outputs.core-commit }}
       core-tag: ${{ steps.archive.outputs.core-tag }}
-      release-candidate: ${{ steps.archive.outputs.release-candidate }}
       source-commit: ${{ steps.archive.outputs.source-commit }}
       version: ${{ steps.archive.outputs.version }}
     steps:
-      - name: Check out repository
+      - name: Check out exact Quality revision
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
@@ -66,95 +55,66 @@ jobs:
         shell: bash
         env:
           RAN_SOURCE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
-          GH_TOKEN: ${{ github.event_name == 'workflow_dispatch' && secrets.GITHUB_TOKEN || '' }}
-          RAN_DISPATCH_RELEASE_PR: ${{ inputs.release_pr }}
-          RAN_DISPATCH_RELEASE_SHA: ${{ inputs.release_sha }}
         run: |
           set -euo pipefail
 
-          release_branch='release-please--branches--main--components--ran-booster-wp-pusher-migrator'
-          release_candidate=false
           source_commit="$RAN_SOURCE_SHA"
+          [[ "$source_commit" =~ ^[0-9a-f]{40}$ ]]
           test "$(git rev-parse HEAD)" = "$source_commit"
-          if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]]; then
-            [[ "$RAN_DISPATCH_RELEASE_PR" =~ ^[1-9][0-9]*$ ]]
-            [[ "$RAN_DISPATCH_RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
-            [[ "$GITHUB_ACTOR" == 'github-actions[bot]' && "$GITHUB_TRIGGERING_ACTOR" == 'github-actions[bot]' ]] \
-              || { echo '::error::Only the trusted Release Please workflow may dispatch a candidate run.'; exit 1; }
-
-            release_pr="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${RAN_DISPATCH_RELEASE_PR}")"
-            jq -e \
-              --arg base main \
-              --arg bot 'github-actions[bot]' \
-              --arg head "$release_branch" \
-              --arg repository "$GITHUB_REPOSITORY" \
-              '.state == "open"
-                and .merged_at == null
-                and .base.ref == $base
-                and .head.ref == $head
-                and .head.repo.full_name == $repository
-                and .user.login == $bot
-                and any(.labels[]?; .name == "autorelease: pending")' \
-              <<< "$release_pr" >/dev/null
-
-            base_sha="$(jq -er '.base.sha' <<< "$release_pr")"
-            head_sha="$(jq -er '.head.sha' <<< "$release_pr")"
-            test "$head_sha" = "$RAN_DISPATCH_RELEASE_SHA"
-            test "$head_sha" = "$GITHUB_SHA"
-            if ! git cat-file -e "${base_sha}^{commit}" 2>/dev/null; then
-              bash scripts/fetch-release-candidate-ref.sh origin "$base_sha"
-            fi
-            bash scripts/fetch-release-candidate-ref.sh origin "refs/pull/${RAN_DISPATCH_RELEASE_PR}/head"
-            test "$(git rev-parse FETCH_HEAD)" = "$head_sha"
-            bash scripts/validate-release-candidate.sh "$base_sha" "$head_sha"
-            release_candidate=true
-            source_commit="$head_sha"
-          fi
-
-          if [[ "$release_candidate" == true ]]; then
-            test "$(git rev-parse "${source_commit}^{commit}")" = "$source_commit"
-          elif [[ "$GITHUB_EVENT_NAME" == push ]] \
-            && ! git diff --quiet "${GITHUB_SHA}^1" "$GITHUB_SHA" -- .release-please-manifest.json; then
-            source_commit="$(git rev-parse "${GITHUB_SHA}^2")"
-            test "$(git log -1 --format=%H "$GITHUB_SHA" -- .release-please-manifest.json)" = "$source_commit"
-            test "$(git rev-parse "${GITHUB_SHA}^{tree}")" = "$(git rev-parse "${source_commit}^{tree}")"
-          fi
-          git checkout --detach "$source_commit"
+          test "$(git rev-parse "${source_commit}^{commit}")" = "$source_commit"
 
           version="$(sed -nE 's/^[[:space:]]*\*[[:space:]]*Version:[[:space:]]*([^[:space:]]+).*/\1/p' ran-booster-wp-pusher-migrator.php)"
           test -n "$version"
           test "$(jq -er '."."' .release-please-manifest.json)" = "$version"
           test "$(node -p "require('./package.json').version")" = "$version"
+
           certification="$(php scripts/core-certification.php read composer.json)"
           core_tag="$(jq -er '.tag' <<< "$certification")"
           core_commit="$(jq -er '.commit' <<< "$certification")"
+
           bash scripts/build-release.sh "$source_commit"
 
           archive="dist/ran-booster-wp-pusher-migrator-${version}.zip"
+          checksum="${archive}.sha256"
+          release_manifest="dist/ran-booster-wp-pusher-migrator-${version}.json"
           archive_sha256="$(sha256sum "$archive" | awk '{ print $1 }')"
+          checksum_sha256="$(sha256sum "$checksum" | awk '{ print $1 }')"
           artifact_name="ran-booster-wp-pusher-migrator-runtime-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
 
-          jq -n \
-            --arg quality_commit "$GITHUB_SHA" \
-            --arg source_commit "$source_commit" \
-            --arg version "$version" \
-            --arg sha256 "$archive_sha256" \
-            '{
+          jq -n             --arg quality_commit "$source_commit"             --arg source_commit "$source_commit"             --arg version "$version"             --arg sha256 "$archive_sha256"             '{
               schema: "ran-booster-wp-pusher-migrator-ci-runtime",
               schema_version: 1,
               quality_commit: $quality_commit,
               source_commit: $source_commit,
               version: $version,
               sha256: $sha256
-            }' \
-            > dist/ran-booster-wp-pusher-migrator-ci-runtime.json
+            }'             > dist/ran-booster-wp-pusher-migrator-ci-runtime.json
+
+          jq -n             --arg repository "$GITHUB_REPOSITORY"             --arg quality_commit "$source_commit"             --arg source_commit "$source_commit"             --arg tag "v${version}"             --arg archive_name "$(basename "$archive")"             --arg archive_sha256 "$archive_sha256"             --arg checksum_name "$(basename "$checksum")"             --arg checksum_sha256 "$checksum_sha256"             '{
+              schema: "ran-profile-b-promotion",
+              schema_version: 1,
+              repository: $repository,
+              quality_commit: $quality_commit,
+              source_commit: $source_commit,
+              tag: $tag,
+              assets: [
+                {name: $archive_name, sha256: $archive_sha256},
+                {name: $checksum_name, sha256: $checksum_sha256}
+              ]
+            }'             > dist/ran-profile-b-promotion.json
+
+          test -f "$release_manifest"
+          jq -e             --arg commit "$source_commit"             --arg version "$version"             --arg sha256 "$archive_sha256"             '.schema == "ran-wordpress-plugin-release"
+              and .schema_version == 1
+              and .commit == $commit
+              and .version == $version
+              and .zip_sha256 == $sha256'             "$release_manifest" >/dev/null
 
           {
             printf 'artifact-name=%s\n' "$artifact_name"
             printf 'archive-sha256=%s\n' "$archive_sha256"
             printf 'core-commit=%s\n' "$core_commit"
             printf 'core-tag=%s\n' "$core_tag"
-            printf 'release-candidate=%s\n' "$release_candidate"
             printf 'source-commit=%s\n' "$source_commit"
             printf 'version=%s\n' "$version"
           } >> "$GITHUB_OUTPUT"
@@ -168,6 +128,7 @@ jobs:
             dist/ran-booster-wp-pusher-migrator-${{ steps.archive.outputs.version }}.zip.sha256
             dist/ran-booster-wp-pusher-migrator-${{ steps.archive.outputs.version }}.json
             dist/ran-booster-wp-pusher-migrator-ci-runtime.json
+            dist/ran-profile-b-promotion.json
           if-no-files-found: error
           retention-days: 7
 
@@ -222,7 +183,6 @@ jobs:
     needs:
       - runtime-archive
       - core-contract
-    if: ${{ needs.runtime-archive.outputs.release-candidate != 'true' }}
     runs-on: blacksmith-2vcpu-ubuntu-2404
     timeout-minutes: 10
     steps:
@@ -254,7 +214,7 @@ jobs:
 
   terminal-quality:
     name: quality
-    if: ${{ always() && github.event_name == 'pull_request' }}
+    if: ${{ always() && (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') }}
     needs:
       - baseline
       - runtime-archive
@@ -271,7 +231,11 @@ jobs:
           RAN_REPOSITORY_QUALITY_RESULT: ${{ needs.quality.result }}
         run: |
           set -euo pipefail
-          test "$RAN_BASELINE_RESULT" = success
+          if [[ "$GITHUB_EVENT_NAME" == pull_request ]]; then
+            test "$RAN_BASELINE_RESULT" = success
+          else
+            test "$RAN_BASELINE_RESULT" = skipped
+          fi
           test "$RAN_RUNTIME_ARCHIVE_RESULT" = success
           test "$RAN_CORE_CONTRACT_RESULT" = success
           test "$RAN_REPOSITORY_QUALITY_RESULT" = success
