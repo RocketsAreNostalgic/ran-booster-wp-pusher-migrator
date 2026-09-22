@@ -87,9 +87,11 @@ final class ReleaseWorkflowTest extends TestCase {
 		$terminal = substr( $quality, $terminalStart );
 		self::assertStringContainsString( "    name: quality\n", $terminal );
 		self::assertStringContainsString( "github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'", $terminal );
+		self::assertStringContainsString( "      - baseline\n", $terminal );
 		self::assertStringContainsString( "      - runtime-archive\n", $terminal );
 		self::assertStringContainsString( "      - core-contract\n", $terminal );
 		self::assertStringContainsString( "      - quality\n", $terminal );
+		self::assertStringContainsString( 'test "$RAN_BASELINE_RESULT" = success', $terminal );
 		self::assertStringContainsString( 'test "$RAN_RUNTIME_ARCHIVE_RESULT" = success', $terminal );
 		self::assertStringContainsString( 'test "$RAN_CORE_CONTRACT_RESULT" = success', $terminal );
 		self::assertStringContainsString( 'test "$RAN_REPOSITORY_QUALITY_RESULT" = success', $terminal );
@@ -101,7 +103,7 @@ final class ReleaseWorkflowTest extends TestCase {
 
 		self::assertStringContainsString(
 			"repository: RocketsAreNostalgic/ran-booster\n"
-			. "          ref: ${{ needs.runtime-archive.outputs.core-commit }}\n"
+			. '          ref: ${{ needs.runtime-archive.outputs.core-commit }}' . "\n"
 			. "          fetch-depth: 0\n"
 			. "          path: core\n"
 			. '          persist-credentials: false',
