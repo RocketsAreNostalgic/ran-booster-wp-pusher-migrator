@@ -54,7 +54,7 @@ final class ReleaseWorkflowTest extends TestCase {
 		self::assertStringNotContainsString( 'validate-release-candidate', $quality );
 		self::assertStringNotContainsString( 'has-trusted-release-candidate-run.sh', $quality );
 
-		$exactRevision = "${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}";
+		$exactRevision = '${{ github.event_name == \'pull_request\' && github.event.pull_request.head.sha || github.sha }}';
 		self::assertStringContainsString( 'ref: ' . $exactRevision, $quality );
 		self::assertStringContainsString( 'RAN_SOURCE_SHA: ' . $exactRevision, $quality );
 		self::assertStringContainsString( 'test "$(git rev-parse HEAD)" = "$source_commit"', $quality );
