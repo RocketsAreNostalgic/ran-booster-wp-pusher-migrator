@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.1.0-beta.9](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/compare/v0.1.0-beta.8...v0.1.0-beta.9) (2026-09-16)
+
+
+### Bug Fixes
+
+* **ci:** keep shared baseline non-archive ([1bf6929](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/1bf692931ad10332af24273e208851ec6b08d7f7))
+
+
+### Miscellaneous Chores
+
+* adopt shared frontend quality config ([1ff703e](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/1ff703e21d3762babae9cd11259c677390e6119d))
+* adopt shared PHP quality ancestry ([6e4ae12](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/6e4ae128eaa80f22d5d4ed002b8cb852bbe05e95))
+* adopt shared RAN quality profile ([#40](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/40)) ([83fe77f](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/83fe77fbb4914fd7efbb4076f48180ab4528990d))
+* delegate Prettier ancestry to shared config ([1bacab6](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/1bacab62d0fb5eca94243b88004bc14c2718fcc4))
+* delegate Stylelint ancestry to shared config ([cd55271](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/cd5527188e77435a1591cbe7b114571d9383e867))
+* delegate WordPress PHP ancestry to RAN profile ([576961f](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/576961f3cbd66eb4a8b2e22ea58c3528b61ed775))
+* **main:** release 0.1.0-beta.8 ([#35](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/35)) ([30ee8fc](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/30ee8fcf459ed3be53b99c32d37af4f1ec97e2e5))
+* materialize shared quality migration ([ba55bce](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/ba55bce7820adfd7608d01c24fed2db5e0ddf200))
+
 ## [0.1.0-beta.8](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/compare/v0.1.0-beta.7...v0.1.0-beta.8) (2026-08-21)
 
 

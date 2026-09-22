@@ -1,6 +1,6 @@
 {
 	"name": "ran-booster-wp-pusher-migrator",
-	"version": "0.1.0-beta.8",
+	"version": "0.1.0-beta.9",
 	"private": true,
 	"description": "Development tooling for the RAN Booster WP Pusher Migrator.",
 	"license": "GPL-2.0-or-later",
