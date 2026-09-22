@@ -63,6 +63,12 @@ jobs:
           test "$(git rev-parse HEAD)" = "$source_commit"
           test "$(git rev-parse "${source_commit}^{commit}")" = "$source_commit"
 
+          release_branch='release-please--branches--main--components--ran-booster-wp-pusher-migrator'
+          if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch && "$GITHUB_REF_NAME" == "$release_branch" ]]; then
+            base_commit="$(git rev-parse "${source_commit}^1")"
+            bash scripts/validate-release-candidate.sh "$base_commit" "$source_commit"
+          fi
+
           version="$(sed -nE 's/^[[:space:]]*\*[[:space:]]*Version:[[:space:]]*([^[:space:]]+).*/\1/p' ran-booster-wp-pusher-migrator.php)"
           test -n "$version"
           test "$(jq -er '."."' .release-please-manifest.json)" = "$version"
