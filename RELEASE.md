@@ -78,8 +78,8 @@ result of each item on the release pull request before merge.
 
 The operator-only lane under `tests/installed-candidate/` remains supporting
 historical/partial evidence. Its current driver is deliberately bound to the
-beta.7 proof corpus and **does not by itself satisfy items 3–5 for a new
-candidate**. It must not be represented as fresh installed-site qualification.
+beta.7 proof corpus and **does not by itself satisfy items 3–5 for a new candidate**.
+It must not be represented as fresh installed-site qualification.
 
 ## Shared Profile B lifecycle
 
