@@ -17,7 +17,7 @@ permissions:
 jobs:
   baseline:
     name: baseline
-    if: ${{ github.event_name == 'pull_request' }}
+    if: ${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' }}
     uses: RocketsAreNostalgic/.github/.github/workflows/quality-wordpress-plugin.yml@72a90b5826db37d1e94cdcdcf3374ccf58c0aa7d
     with:
       php-version: '8.2'
@@ -231,11 +231,7 @@ jobs:
           RAN_REPOSITORY_QUALITY_RESULT: ${{ needs.quality.result }}
         run: |
           set -euo pipefail
-          if [[ "$GITHUB_EVENT_NAME" == pull_request ]]; then
-            test "$RAN_BASELINE_RESULT" = success
-          else
-            test "$RAN_BASELINE_RESULT" = skipped
-          fi
+          test "$RAN_BASELINE_RESULT" = success
           test "$RAN_RUNTIME_ARCHIVE_RESULT" = success
           test "$RAN_CORE_CONTRACT_RESULT" = success
           test "$RAN_REPOSITORY_QUALITY_RESULT" = success
