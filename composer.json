@@ -71,8 +71,10 @@
     "check": [
       "@lint:php",
       "@standards",
-      "@test"
-    ]
+      "@test",
+      "@test:release-candidate-contract"
+    ],
+    "test:release-candidate-contract": "bash tests/release-candidate-contract.sh"
   },
   "config": {
     "sort-packages": true,
