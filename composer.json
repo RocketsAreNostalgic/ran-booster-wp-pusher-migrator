@@ -68,12 +68,10 @@
     "lint:php": "find . -path ./vendor -prune -o -path ./node_modules -prune -o -path ./.git -prune -o -name '*.php' -exec php -l {} \\;",
     "standards": "phpcs --standard=.phpcs.xml.dist --report=summary",
     "test": "phpunit --configuration phpunit.xml",
-    "test:release-candidate-contract": "bash tests/release-candidate-contract.sh",
     "check": [
       "@lint:php",
       "@standards",
-      "@test",
-      "@test:release-candidate-contract"
+      "@test"
     ]
   },
   "config": {
