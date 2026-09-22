@@ -35,8 +35,51 @@ Build and verify locally from one explicit commit:
 
 ```sh
 bash scripts/build-release.sh "<full-source-commit>"
-bash scripts/verify-release.sh   "dist/ran-booster-wp-pusher-migrator-<version>.zip"   "<same-full-source-commit>"
+bash scripts/verify-release.sh \
+  "dist/ran-booster-wp-pusher-migrator-<version>.zip" \
+  "<same-full-source-commit>"
 ```
+
+## Blocking release-PR gate
+
+**Do not merge a Release Please pull request until this gate is complete for
+that exact candidate head and its built ZIP.** Record the exact candidate SHA,
+ZIP SHA-256, certified Booster tag, date, disposable-site identity, and the
+result of each item on the release pull request before merge.
+
+1. Run `composer validate --strict --no-check-publish`, `pnpm install
+   --frozen-lockfile`, `pnpm check`, and `composer check` against the exact
+   candidate.
+2. Build twice from clean checkouts of that candidate and confirm matching ZIP
+   SHA-256 hashes. Inspect the allowlisted ZIP: one
+   `ran-booster-wp-pusher-migrator/` root and no tests, tools, workflows,
+   scripts, dependency directories, or repository metadata.
+3. Install that exact ZIP beside the certified released Booster generation
+   exposing **Portability API 2 and Admin Interaction API 2**, with no add-on
+   Logging API, in an isolated disposable single-site WordPress installation.
+   For Bitbucket coverage, also install the compatible released RAN Booster
+   Bitbucket Cloud add-on.
+4. Exercise inactive and active WP Pusher, wrong version/schema, unsupported
+   providers, public/private plugin and theme rows, public Bitbucket adoption,
+   private Bitbucket adoption with an existing replacement Booster credential
+   profile, Bitbucket with the add-on missing or incompatible, stale
+   review/apply data, conflicting managed targets, partial exact source-row
+   deletion recovery, and both plugin load orders. Confirm GitLab rows remain
+   visible as unsupported with no adoption action.
+5. Confirm every adopted target is freshly verified and Disabled before exact
+   source-row deletion. Verify the completion advisory links to Installed
+   Plugins and the WP Pusher dashboard, describes WP Pusher-owned uninstall,
+   and leaves settings, the empty package table, plugin files, and remote
+   webhooks untouched.
+6. Keep the evidence private when it contains repository/site identity or
+   credentials; the release-PR record should contain only the safe result,
+   exact public candidate/archive identities, and a reference to retained
+   private evidence where needed.
+
+The operator-only lane under `tests/installed-candidate/` remains supporting
+historical/partial evidence. Its current driver is deliberately bound to the
+beta.7 proof corpus and **does not by itself satisfy items 3–5 for a new
+candidate**. It must not be represented as fresh installed-site qualification.
 
 ## Shared Profile B lifecycle
 
