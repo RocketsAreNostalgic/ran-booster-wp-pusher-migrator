@@ -116,8 +116,8 @@ final class ReleaseWorkflowTest extends TestCase {
 		$release = file_get_contents( dirname( __DIR__ ) . '/.github/workflows/release-please.yml' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local workflow contract.
 		self::assertIsString( $release );
 
-		self::assertMatchesRegularExpression(
-			'/uses: RocketsAreNostalgic\/\.github\/\.github\/workflows\/release-profile-b\.yml@[0-9a-f]{40}/',
+		self::assertStringContainsString(
+			'uses: RocketsAreNostalgic/.github/.github/workflows/release-profile-b.yml@cb42ecd841916ebe73f147e5b933cd7bcc392db8',
 			$release
 		);
 		self::assertStringContainsString( 'expected-workflow-path: .github/workflows/quality.yml', $release );
