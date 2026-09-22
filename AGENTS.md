@@ -27,9 +27,10 @@ the runtime assets genuinely outgrow that model.
 
 `ran/coding-standards` owns the shared PHP/WordPress coding ancestry only. This
 repository continues to own its WordPress 7.0 and PHP 8.2 support floors,
-`RAN\BoosterWpPusherMigrator` prefix/identity policy, source paths, camelCase and
-Yoda-condition compatibility exceptions, template/test exclusions, and every
-Core/release-specific contract.
+`RAN\BoosterWpPusherMigrator` prefix/identity policy, source paths, existing camelCase
+exceptions, template/test exclusions, and every Core/release-specific contract.
+The remaining naming exceptions still require contract-level review; they do
+not establish full WordPress naming compliance.
 
 `@rocketsarenostalgic/quality-config` owns the upstream WordPress Stylelint and
 Prettier ancestry. This repository continues to own the `assets/**/*.css` scope,
