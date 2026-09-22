@@ -24,5 +24,7 @@
         }
       ]
     }
-  }
+  },
+  "draft": true,
+  "force-tag-creation": true
 }
