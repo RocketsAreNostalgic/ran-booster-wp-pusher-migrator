@@ -24,7 +24,7 @@ final readonly class WpPusherPackage {
 			'private',
 			'subdirectory',
 		);
-		if ( $expected !== array_keys( $row ) ) {
+		if ( array_keys( $row ) !== $expected ) {
 			throw new InvalidArgumentException( 'The WP Pusher package row is malformed.' );
 		}
 
