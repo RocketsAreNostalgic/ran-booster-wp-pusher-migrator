@@ -65,16 +65,19 @@
     "archive:build": "bash scripts/build-release.sh",
     "archive:build:head": "bash scripts/build-release.sh \"$(git rev-parse HEAD)\"",
     "archive:verify": "bash scripts/verify-release.sh",
-    "lint:php": "find . -path ./vendor -prune -o -path ./node_modules -prune -o -path ./.git -prune -o -name '*.php' -exec php -l {} \\;",
+    "lint:php": "@lint:syntax",
     "standards": "phpcs --standard=.phpcs.xml.dist --report=summary",
     "test": "phpunit --configuration phpunit.xml",
     "check": [
-      "@lint:php",
+      "@lint:syntax",
       "@standards",
       "@test",
-      "@test:release-candidate-contract"
+      "@test:release-candidate-contract",
+      "@test:syntax-contract"
     ],
-    "test:release-candidate-contract": "bash tests/release-candidate-contract.sh"
+    "test:release-candidate-contract": "bash tests/release-candidate-contract.sh",
+    "lint:syntax": "bash scripts/lint-php.sh",
+    "test:syntax-contract": "bash tests/lint-syntax-contract.sh"
   },
   "config": {
     "sort-packages": true,
