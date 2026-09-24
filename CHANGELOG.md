@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.1.0-beta.10](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/compare/v0.1.0-beta.9...v0.1.0-beta.10) (2026-09-24)
+
+
+### Bug Fixes
+
+* **quality:** enforce WordPress comparison checks ([#44](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/44)) ([e0bfcf2](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/e0bfcf2040e3d9159230d18ec24d30d21a40d160))
+* **quality:** propagate PHP syntax lint failures ([3b67097](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/3b67097ce1fb08acf3e2336d945a4f5d6fb7870c))
+* **quality:** propagate PHP syntax lint failures ([#46](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/46)) ([79a0b74](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/79a0b742a4236fbb556262f0bb2f574cbc1965bb))
+* **release:** adopt shared Profile B lifecycle ([#41](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/41)) ([23ac6e3](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/23ac6e35e8a521bfc5c4b2bc7a53698ec7df36c2))
+
+
+### Miscellaneous Chores
+
+* **main:** release 0.1.0-beta.9 ([#37](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/37)) ([696ee7e](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/696ee7ed73a3782875205dc3b86419389dbab31a))
+* **release:** repin shared Profile B workflow ([#45](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/45)) ([829d823](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/829d823afd87923a20f8170671d2f456465424d9))
+
 ## [0.1.0-beta.9](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/compare/v0.1.0-beta.8...v0.1.0-beta.9) (2026-09-16)
 
 
