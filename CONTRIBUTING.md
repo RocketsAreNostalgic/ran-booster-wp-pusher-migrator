@@ -22,6 +22,13 @@ pnpm check
 composer check
 ```
 
+`composer lint:syntax` recursively parses PHP outside root `vendor`,
+`node_modules`, and `.git`. Parser and file-discovery failures return nonzero.
+`composer lint:php` forwards to it for the existing CI caller.
+`composer test:syntax-contract` exercises invalid PHP, unusual filenames,
+dependency exclusions and discovery failures in a disposable directory; it
+also runs in `composer check`.
+
 Use a Conventional Commit title. Do not edit the release version,
 `.release-please-manifest.json`, or generated changelog entry in an ordinary
 change; Release Please owns those files. Do not commit dependency directories,
