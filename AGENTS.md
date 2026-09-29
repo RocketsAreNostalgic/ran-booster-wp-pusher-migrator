@@ -38,7 +38,10 @@ its selector and empty-line Stylelint exceptions, ignore policy, and the explici
 absence of JavaScript or a compiled frontend pipeline.
 
 `composer check` and `pnpm check` are the ordinary local quality contracts. The
-single-build runtime archive, exact certified-Core API proof, release-candidate
+canonical PHP check/fix pair is `composer standards` / `composer standards:fix`,
+using the same `.phpcs.xml.dist` rules and scope. `composer check` includes the
+disposable actual-command standards regression and repeated-fix stability proof.
+The single-build runtime archive, exact certified-Core API proof, release-candidate
 validation, installed/readback evidence, and immutable-release publication
 rules remain repository-owned specialist gates and must not be weakened to fit
 the organisation baseline.
