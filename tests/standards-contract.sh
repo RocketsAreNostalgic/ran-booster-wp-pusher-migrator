@@ -8,7 +8,13 @@ fixture="$work_root/source tree"
 mkdir "$fixture"
 
 # Copy working-tree bytes, including tracked edits, without dependencies or Git metadata.
-git -C "$repo_root" ls-files -z > "$work_root/files"
+git -C "$repo_root" ls-files -z > "$work_root/tracked-files"
+while IFS= read -r -d '' path; do
+	# Unstaged deletions remain in the index but are absent from the working tree.
+	if [[ -e "$repo_root/$path" || -L "$repo_root/$path" ]]; then
+		printf '%s\0' "$path"
+	fi
+done < "$work_root/tracked-files" > "$work_root/files"
 tar -C "$repo_root" --null -T "$work_root/files" -cf - | tar -C "$fixture" -xf -
 ln -s "$repo_root/vendor" "$fixture/vendor"
 
@@ -21,7 +27,7 @@ fail() {
 	exit 1
 }
 snapshot() {
-	(cd "$fixture" && xargs -0 sha256sum < "$work_root/files") > "$1"
+	(cd "$fixture" && xargs -0 shasum -a 256 -- < "$work_root/files") > "$1"
 }
 fix() {
 	local status=0
@@ -41,7 +47,8 @@ for pass in 1 2; do
 done
 
 # Mutate an existing selected root file, not a path supplied as a CLI override.
-sed -i 's/Silence is golden\.$/Silence is golden.  /' "$fixture/index.php"
+sed 's/Silence is golden\.$/Silence is golden.  /' "$fixture/index.php" > "$work_root/mutated-index.php"
+mv "$work_root/mutated-index.php" "$fixture/index.php"
 if run_command standards; then
 	fail 'trailing-whitespace fixture escaped the configured checking scope'
 fi
