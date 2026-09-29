@@ -67,17 +67,20 @@
     "archive:verify": "bash scripts/verify-release.sh",
     "lint:php": "@lint:syntax",
     "standards": "phpcs --standard=.phpcs.xml.dist --report=summary",
+    "standards:fix": "phpcbf --standard=.phpcs.xml.dist",
     "test": "phpunit --configuration phpunit.xml",
     "check": [
       "@lint:syntax",
       "@standards",
       "@test",
       "@test:release-candidate-contract",
-      "@test:syntax-contract"
+      "@test:syntax-contract",
+      "@test:standards-contract"
     ],
     "test:release-candidate-contract": "bash tests/release-candidate-contract.sh",
     "lint:syntax": "bash scripts/lint-php.sh",
-    "test:syntax-contract": "bash tests/lint-syntax-contract.sh"
+    "test:syntax-contract": "bash tests/lint-syntax-contract.sh",
+    "test:standards-contract": "bash tests/standards-contract.sh"
   },
   "config": {
     "sort-packages": true,

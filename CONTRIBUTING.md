@@ -29,6 +29,15 @@ composer check
 dependency exclusions and discovery failures in a disposable directory; it
 also runs in `composer check`.
 
+`composer standards` checks the repository's `.phpcs.xml.dist` ruleset;
+`composer standards:fix` applies PHPCBF using the same rules and file scope.
+PHPCBF returns 1 when it successfully fixes violations; run `composer standards`
+again to confirm the result. Review formatting changes before committing.
+`composer test:standards-contract` checks the actual commands in a disposable
+copy: clean source, two byte-stable fixer passes, and a trailing-whitespace
+negative fixture that must fail checking and be restored by the fixer. It runs
+in `composer check` and requires Git and the installed development dependencies.
+
 Use a Conventional Commit title. Do not edit the release version,
 `.release-please-manifest.json`, or generated changelog entry in an ordinary
 change; Release Please owns those files. Do not commit dependency directories,
