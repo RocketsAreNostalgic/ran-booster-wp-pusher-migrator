@@ -80,7 +80,8 @@
       "@test:release-candidate-contract",
       "@test:syntax-contract",
       "@test:standards-contract",
-      "@test:analysis-contract"
+      "@test:analysis-contract",
+      "@test:analysis-coverage-contract"
     ],
     "test:release-candidate-contract": "bash tests/release-candidate-contract.sh",
     "lint:syntax": "bash scripts/lint-php.sh",
@@ -91,7 +92,9 @@
       "@analysis:setup",
       "phpstan analyze --configuration=phpstan.neon.dist --memory-limit=512M"
     ],
-    "test:analysis-contract": "bash tests/analysis-contract.sh"
+    "test:analysis-contract": "bash tests/analysis-contract.sh",
+    "analysis:coverage": "php scripts/check-analysis-coverage.php",
+    "test:analysis-coverage-contract": "bash tests/analysis-coverage-contract.sh"
   },
   "config": {
     "sort-packages": true,
