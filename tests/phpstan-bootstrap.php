@@ -14,22 +14,22 @@ require_once dirname( __DIR__ ) . '/scripts/core-certification.php';
 
 // Discover actual certified declarations without loading Core or PHPUnit doubles.
 $ran_booster_wp_pusher_migrator_analysis_core = dirname( __DIR__ ) . '/vendor/ran-certified-core/source';
-if ( realpath( $ran_booster_wp_pusher_migrator_analysis_core ) !== command_output( array( 'git', '-C', $ran_booster_wp_pusher_migrator_analysis_core, 'rev-parse', '--show-toplevel' ) ) ) {
+if ( realpath( $ran_booster_wp_pusher_migrator_analysis_core ) !== command_output( array( 'git', '--no-replace-objects', '-C', $ran_booster_wp_pusher_migrator_analysis_core, 'rev-parse', '--show-toplevel' ) ) ) {
 	throw new RuntimeException( 'Analysis requires its own certified Core checkout. Run composer analysis:setup.' );
 }
 $ran_booster_wp_pusher_migrator_analysis_certification = read_core_certification( dirname( __DIR__ ) . '/composer.json' );
 assert_core_certification_checkout(
 	$ran_booster_wp_pusher_migrator_analysis_certification,
-	command_output( array( 'git', '-C', $ran_booster_wp_pusher_migrator_analysis_core, 'rev-parse', 'HEAD' ) ),
-	command_output( array( 'git', '-C', $ran_booster_wp_pusher_migrator_analysis_core, 'rev-parse', '--verify', 'refs/tags/' . $ran_booster_wp_pusher_migrator_analysis_certification['tag'] . '^{commit}' ) )
+	command_output( array( 'git', '--no-replace-objects', '-C', $ran_booster_wp_pusher_migrator_analysis_core, 'rev-parse', 'HEAD' ) ),
+	command_output( array( 'git', '--no-replace-objects', '-C', $ran_booster_wp_pusher_migrator_analysis_core, 'rev-parse', '--verify', 'refs/tags/' . $ran_booster_wp_pusher_migrator_analysis_certification['tag'] . '^{commit}' ) )
 );
-if ( '' !== command_output( array( 'git', '-C', $ran_booster_wp_pusher_migrator_analysis_core, 'status', '--porcelain', '--untracked-files=all', '--ignored' ) ) ) {
+if ( '' !== command_output( array( 'git', '--no-replace-objects', '-C', $ran_booster_wp_pusher_migrator_analysis_core, 'status', '--porcelain', '--untracked-files=all', '--ignored' ) ) ) {
 	throw new RuntimeException( 'Analysis requires unmodified certified Core source.' );
 }
 
 /** Verify scanned bytes independently of index flags and Git status caching. */
 function verify_scanned_core_source( string $corePath ): void {
-	$entries = command_output( array( 'git', '-C', $corePath, 'ls-tree', '-r', '-z', 'HEAD', '--', 'RAN/' ) );
+	$entries = command_output( array( 'git', '--no-replace-objects', '-C', $corePath, 'ls-tree', '-r', '-z', 'HEAD', '--', 'RAN/' ) );
 	if ( '' === $entries ) {
 		throw new RuntimeException( 'Analysis requires certified Core declarations.' );
 	}

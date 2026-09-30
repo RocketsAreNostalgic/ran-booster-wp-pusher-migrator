@@ -107,6 +107,26 @@ grep -Fq 'Analysis requires unmodified certified Core source.' "$fixture/guard.l
 git -C "$core_cache" update-index --no-skip-worktree -- "$core_file"
 git -C "$core_cache" restore -- "$core_file"
 php "$guard/tests/phpstan-bootstrap.php"
+
+# Replacement refs must not substitute a different tree behind the certified commit.
+certified_head="$(git --no-replace-objects -C "$core_cache" rev-parse HEAD)"
+printf '\n// Replacement-tree negative control\n' >> "$core_cache/$core_file"
+git -C "$core_cache" add -- "$core_file"
+replacement_tree="$(git -C "$core_cache" write-tree)"
+replacement_commit="$(git -C "$core_cache" -c user.name='Analysis contract' -c user.email='analysis@example.invalid' commit-tree "$replacement_tree" -p "$certified_head" <<< 'Analysis replacement negative control')"
+git -C "$core_cache" replace "$certified_head" "$replacement_commit"
+git -C "$core_cache" reset --hard HEAD >/dev/null
+test "$certified_head" = "$(git -C "$core_cache" rev-parse HEAD)"
+test -z "$(git -C "$core_cache" status --porcelain --untracked-files=all --ignored)"
+if php "$guard/tests/phpstan-bootstrap.php" > "$fixture/guard.log" 2>&1; then
+	printf 'Analysis accepted a replacement Core tree.\n' >&2
+	exit 1
+fi
+grep -Fq 'Analysis requires unmodified certified Core source.' "$fixture/guard.log"
+git -C "$core_cache" replace -d "$certified_head" >/dev/null
+git -C "$core_cache" reset --hard "$certified_head" >/dev/null
+php "$guard/tests/phpstan-bootstrap.php"
+
 php -r '
 	$path = $argv[1];
 	$manifest = json_decode(file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
@@ -118,4 +138,4 @@ if php "$guard/tests/phpstan-bootstrap.php" > "$fixture/guard.log" 2>&1; then
 	exit 1
 fi
 grep -Fq 'Checked-out Core HEAD does not match the certified commit.' "$fixture/guard.log"
-printf 'Analysis contract passed: clean source, four selected-path negatives, certified Core method/return checks, altered/ignored/index-hidden/mismatched Core refusals.\n'
+printf 'Analysis contract passed: clean source, four selected-path negatives, certified Core method/return checks, altered/ignored/index-hidden/replacement-tree/mismatched Core refusals.\n'
