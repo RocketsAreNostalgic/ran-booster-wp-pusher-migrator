@@ -60,6 +60,23 @@ missing certified-Core method calls into a new source file, a new template,
 and each root PHP file in a disposable copy. It runs in `composer check`.
 The required repository Quality lane uses that complete aggregate on PRs and
 main; runtime archive and certified-Core checks remain separate required jobs.
+
+`composer analysis:coverage -- <finished-runtime.zip>` compares every shipped
+PHP file (including PHP added beneath `assets/`) with the locked PHPStan CLI's
+actual direct file selection and exact local source bytes. Run `composer
+analysis:setup` first. Imported configuration, exclusion globs, extension filters
+and stub exclusions use PHPStan's own semantics; scan-only declarations do not
+count. The internal discovery API is explicitly qualified for locked PHPStan
+2.2.16 and must be reviewed on a future upgrade. This proves selection, not a
+second analysis pass or the absence of narrowly reviewed diagnostic exceptions.
+
+Required Quality downloads the existing single-build archive, checks its recorded
+digest and source metadata, and runs the guard after `composer check`; it does
+not rebuild release bytes. `composer test:analysis-coverage-contract` runs in
+`composer check` using a disposable Git repository and the real release builder.
+It proves clean-package acceptance, rejection of newly shipped uncovered PHP,
+imported selection/exclusions, scan-only/stub/extension behavior and byte binding.
+
 Level 7 remains a later boundary-typing slice: its measured findings concern
 candidate provider narrowing, the injected database seam and template facade
 types. Adoption at level 6 does not waive that remaining work.

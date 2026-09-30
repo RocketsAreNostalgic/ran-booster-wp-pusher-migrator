@@ -49,6 +49,12 @@ for explicit preparation. Never substitute PHPUnit doubles or a floating Core
 checkout. Two counted POST-guard diagnostics are excepted in configuration under
 #42; retain their defensive behavior. Analysis includes actual-command negative
 controls through `composer test:analysis-contract` in `composer check`.
+`composer test:analysis-coverage-contract` also proves finished-ZIP coverage drift
+in a disposable repository. Required Quality applies `composer analysis:coverage
+-- <zip>` to the same verified archive produced by Runtime archive, using locked
+PHPStan CLI discovery (imports/exclusions/stubs included), with exact source-byte
+comparison. Preserve this single-build boundary and review the internal discovery
+API on any separately authorized PHPStan upgrade.
 
 The single-build runtime archive, exact certified-Core API proof, release-candidate
 validation, installed/readback evidence, and immutable-release publication

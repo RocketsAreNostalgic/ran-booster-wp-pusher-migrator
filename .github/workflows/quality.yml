@@ -216,6 +216,25 @@ jobs:
         run: |
           composer check
 
+      - name: Download the single-build runtime archive
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ needs.runtime-archive.outputs.artifact-name }}
+          path: dist
+
+      - name: Require direct analysis coverage of the verified runtime ZIP
+        env:
+          RAN_ARCHIVE_VERSION: ${{ needs.runtime-archive.outputs.version }}
+          RAN_ARCHIVE_SHA256: ${{ needs.runtime-archive.outputs.archive-sha256 }}
+          RAN_SOURCE_SHA: ${{ needs.runtime-archive.outputs.source-commit }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$RAN_SOURCE_SHA"
+          archive="dist/ran-booster-wp-pusher-migrator-${RAN_ARCHIVE_VERSION}.zip"
+          test "$(sha256sum "$archive" | awk '{ print $1 }')" = "$RAN_ARCHIVE_SHA256"
+          bash scripts/verify-release.sh "$archive" "$RAN_SOURCE_SHA"
+          composer analysis:coverage -- "$archive"
+
   terminal-quality:
     name: quality
     if: ${{ always() && (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') }}
