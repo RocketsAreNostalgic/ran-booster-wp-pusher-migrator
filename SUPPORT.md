@@ -13,7 +13,9 @@ opening an issue, check for an existing report and include:
 - concise reproduction steps, expected behavior, and observed behavior; and
 - the checks already performed.
 
-Redact private repository names when needed. Never post credentials, WordPress
+Never include private repository or site identities in a public issue or pull
+request. Replace them with neutral labels and use a non-sensitive reproducer;
+if that is not possible, do not publish the private material. Never post credentials, WordPress
 salts, database contents, signed URLs, customer data, or full production logs.
 
 Security reports belong in the confidential channel described in
