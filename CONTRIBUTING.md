@@ -38,6 +38,32 @@ copy: clean source, two byte-stable fixer passes, and a trailing-whitespace
 negative fixture that must fail checking and be restored by the fixer. It runs
 in `composer check` and requires Git and the installed development dependencies.
 
+`composer analyze` runs blocking PHPStan level 6 with PHP 8.2 and WordPress 7.0
+signatures. It directly selects all current production PHP: recursive `src/`
+and `views/`, `index.php`, and the plugin entry point (15 files). Tests, fixtures
+and release scripts retain their other checks; this gate does not claim to
+analyse them. There is no blanket baseline or production exclusion.
+
+Analysis discovers the real Core declarations at the tag/commit certified in
+`composer.json`, without executing Core or loading the unit-test doubles. The
+first `composer analyze` (or explicit `composer analysis:setup`) needs Git and
+network access to prepare `vendor/ran-certified-core/source`. Subsequent runs
+verify the cached tag, HEAD and clean worktree and can run offline. A dirty or
+stale cache fails; inspect it and remove that disposable directory before
+preparing it again. Never alter the certification tuple just to make analysis
+pass. Core API constants are dynamic for the runtime compatibility guards;
+two precisely matched, counted POST-guard diagnostics remain excepted under
+#42 because other plugins can mutate the request global.
+
+`composer test:analysis-contract` checks clean source and injects bad return and
+missing certified-Core method calls into a new source file, a new template,
+and each root PHP file in a disposable copy. It runs in `composer check`.
+The required repository Quality lane uses that complete aggregate on PRs and
+main; runtime archive and certified-Core checks remain separate required jobs.
+Level 7 remains a later boundary-typing slice: its measured findings concern
+candidate provider narrowing, the injected database seam and template facade
+types. Adoption at level 6 does not waive that remaining work.
+
 Use a Conventional Commit title. Do not edit the release version,
 `.release-please-manifest.json`, or generated changelog entry in an ordinary
 change; Release Please owns those files. Do not commit dependency directories,

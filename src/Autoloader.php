@@ -16,7 +16,7 @@ final class Autoloader {
 				}
 
 				$relative = substr( $class, strlen( $prefix ) );
-				if ( false === $relative || 1 !== preg_match( '/\A[A-Za-z][A-Za-z0-9\\\\]*\z/D', $relative ) ) {
+				if ( 1 !== preg_match( '/\A[A-Za-z][A-Za-z0-9\\\\]*\z/D', $relative ) ) {
 					return;
 				}
 

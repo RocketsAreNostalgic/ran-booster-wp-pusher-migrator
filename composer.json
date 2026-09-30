@@ -48,12 +48,15 @@
   },
   "require-dev": {
     "dealerdirect/phpcodesniffer-composer-installer": "^1.2.1",
+    "php-stubs/wordpress-stubs": "~7.0.0",
     "phpcompatibility/php-compatibility": "10.0.0-alpha2",
     "phpcompatibility/phpcompatibility-paragonie": "2.0.0-alpha2",
     "phpcompatibility/phpcompatibility-wp": "3.0.0-alpha2",
+    "phpstan/phpstan": "^2.1",
     "phpunit/phpunit": "^11.0",
     "ran/coding-standards": "dev-main",
     "squizlabs/php_codesniffer": "^3.13.5",
+    "szepeviktor/phpstan-wordpress": "^2.0",
     "wp-coding-standards/wpcs": "^3.4.1"
   },
   "autoload-dev": {
@@ -72,15 +75,23 @@
     "check": [
       "@lint:syntax",
       "@standards",
+      "@analyze",
       "@test",
       "@test:release-candidate-contract",
       "@test:syntax-contract",
-      "@test:standards-contract"
+      "@test:standards-contract",
+      "@test:analysis-contract"
     ],
     "test:release-candidate-contract": "bash tests/release-candidate-contract.sh",
     "lint:syntax": "bash scripts/lint-php.sh",
     "test:syntax-contract": "bash tests/lint-syntax-contract.sh",
-    "test:standards-contract": "bash tests/standards-contract.sh"
+    "test:standards-contract": "bash tests/standards-contract.sh",
+    "analysis:setup": "bash scripts/prepare-analysis-core.sh",
+    "analyze": [
+      "@analysis:setup",
+      "phpstan analyze --configuration=phpstan.neon.dist --memory-limit=512M"
+    ],
+    "test:analysis-contract": "bash tests/analysis-contract.sh"
   },
   "config": {
     "sort-packages": true,

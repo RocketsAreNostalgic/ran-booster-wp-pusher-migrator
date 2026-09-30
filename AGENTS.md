@@ -41,6 +41,15 @@ absence of JavaScript or a compiled frontend pipeline.
 canonical PHP check/fix pair is `composer standards` / `composer standards:fix`,
 using the same `.phpcs.xml.dist` rules and scope. `composer check` includes the
 disposable actual-command standards regression and repeated-fix stability proof.
+`composer analyze` blocks at PHPStan level 6 on `src/`, `views/`, `index.php`
+and the plugin entry point, targeting PHP 8.2 with WordPress 7.0 declarations.
+Its first run prepares the exact certified Core source under `vendor/`; later
+runs verify the same clean tag/commit offline. Use `composer analysis:setup`
+for explicit preparation. Never substitute PHPUnit doubles or a floating Core
+checkout. Two counted POST-guard diagnostics are excepted in configuration under
+#42; retain their defensive behavior. Analysis includes actual-command negative
+controls through `composer test:analysis-contract` in `composer check`.
+
 The single-build runtime archive, exact certified-Core API proof, release-candidate
 validation, installed/readback evidence, and immutable-release publication
 rules remain repository-owned specialist gates and must not be weakened to fit

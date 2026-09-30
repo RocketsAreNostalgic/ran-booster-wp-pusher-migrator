@@ -1,0 +1,28 @@
+includes:
+	- vendor/szepeviktor/phpstan-wordpress/extension.neon
+
+parameters:
+	level: 6
+	phpVersion: 80200
+	paths:
+		- src
+		- views
+		- index.php
+		- ran-booster-wp-pusher-migrator.php
+	scanDirectories:
+		- vendor/ran-certified-core/source/RAN
+	bootstrapFiles:
+		- tests/phpstan-bootstrap.php
+	tmpDir: vendor/ran-phpstan-cache
+	# Runtime guards must also reject an incompatible loaded Core generation.
+	dynamicConstantNames:
+		- RAN\AddOn\Portability\PortabilityFacade::API_VERSION
+		- RAN\Admin\Interaction\AdminInteractionFacade::API_VERSION
+	# #42: retain both fail-closed POST guards if a plugin mutates the global.
+	# Only these two checks are excepted; unmatched entries fail analysis.
+	ignoreErrors:
+		-
+			identifier: function.alreadyNarrowedType
+			message: '#^Call to function is_array\(\) with array<mixed> will always evaluate to true\.$#'
+			path: src/MigrationRequestController.php
+			count: 2

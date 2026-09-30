@@ -214,9 +214,7 @@ jobs:
       - run: pnpm check
       - name: Run non-archive Composer quality gates
         run: |
-          composer lint:php
-          composer standards
-          composer test
+          composer check
 
   terminal-quality:
     name: quality
