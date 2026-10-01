@@ -76,6 +76,21 @@ result of each item on the release pull request before merge.
    exact public candidate/archive identities, and a reference to retained
    private evidence where needed.
 
+For the canonical Release Please branch, both PR and dispatched Quality validate
+release-only changes against the PR's actual base SHA and exact head SHA, not the
+candidate's immediate parent or a merge base. Dispatch resolves one open,
+same-repository, bot-owned proposal targeting `main` and rejects a changed head
+or missing/ambiguous identity. PR runs use their event's base/head snapshot. A
+base that has advanced incompatibly requires a refreshed candidate; no missing
+base changes are hidden by selecting an older ancestor.
+
+The final delta must contain exactly the four generated release files, with
+consistent versions, version-only package/bootstrap changes and preserved
+changelog history. Commit count and parent geometry do not establish those
+properties and are not constrained. Full Quality, archive coverage, certified
+Core and the installed-site gate above remain required; this check does not
+create a reduced qualification lane or a second release lifecycle.
+
 The operator-only lane under `tests/installed-candidate/` remains supporting
 historical/partial evidence. Its current driver is deliberately bound to the
 beta.7 proof corpus and **does not by itself satisfy items 3–5 for a new candidate**.
