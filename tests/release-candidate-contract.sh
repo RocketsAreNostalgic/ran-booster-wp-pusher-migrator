@@ -82,7 +82,45 @@ prepare_valid valid
 prepare_valid multi-commit
 git -C "$case_dir" commit --quiet --allow-empty -m 'chore: unexpected second commit'
 head_sha=$(git -C "$case_dir" rev-parse HEAD)
-expect_invalid multi-commit
+(cd "$case_dir" && bash "$validator" "$base_sha" "$head_sha") >/dev/null \
+	|| fail 'content-identical multi-commit candidate should pass'
+
+prepare_valid merge-history
+release_tree=$(git -C "$case_dir" rev-parse HEAD^{tree})
+side_sha=$(printf 'side history\n' | git -C "$case_dir" commit-tree "$base_sha^{tree}" -p "$base_sha")
+head_sha=$(printf 'same release tree\n' | git -C "$case_dir" commit-tree "$release_tree" -p "$base_sha" -p "$side_sha")
+(cd "$case_dir" && bash "$validator" "$base_sha" "$head_sha") >/dev/null \
+	|| fail 'content-identical two-parent candidate should pass'
+
+prepare_valid divergent-equivalent-history
+head_sha=$(printf 'same tree without shared history\n' | git -C "$case_dir" commit-tree HEAD^{tree})
+(cd "$case_dir" && bash "$validator" "$base_sha" "$head_sha") >/dev/null \
+	|| fail 'final product comparison must not require ancestry'
+
+# The old dispatch used the immediate parent X, hiding runtime changes in B..X.
+prepare_valid hidden-runtime-commit
+release_tree=$(git -C "$case_dir" rev-parse HEAD^{tree})
+git -C "$case_dir" reset --quiet --hard "$base_sha"
+printf '<?php // unexpected runtime\n' > "$case_dir/unexpected.php"
+git -C "$case_dir" add .
+git -C "$case_dir" commit --quiet -m 'unexpected runtime before release'
+runtime_sha=$(git -C "$case_dir" rev-parse HEAD)
+git -C "$case_dir" checkout "$release_tree" -- .release-please-manifest.json CHANGELOG.md package.json ran-booster-wp-pusher-migrator.php
+git -C "$case_dir" commit --quiet -m 'generated release after runtime change'
+head_sha=$(git -C "$case_dir" rev-parse HEAD)
+(cd "$case_dir" && bash "$validator" "$runtime_sha" "$head_sha") >/dev/null \
+	|| fail 'fixture must demonstrate the old immediate-parent blind spot'
+expect_invalid hidden-runtime-commit
+
+prepare_valid missing-new-base-content
+release_sha=$head_sha
+git -C "$case_dir" checkout --quiet --detach "$base_sha"
+printf 'new accepted config\n' > "$case_dir/config.txt"
+git -C "$case_dir" add .
+git -C "$case_dir" commit --quiet -m 'base advances'
+base_sha=$(git -C "$case_dir" rev-parse HEAD)
+head_sha=$release_sha
+expect_invalid missing-new-base-content
 
 prepare_valid extra-file
 printf 'unexpected\n' > "$case_dir/unexpected.txt"
@@ -111,4 +149,5 @@ rm -f "$case_dir/CHANGELOG.md.bak"
 amend_case
 expect_invalid changelog-deletion
 
+bash "$repo_root/tests/release-candidate-base-contract.sh"
 printf 'Product release-candidate contract passed.\n'
