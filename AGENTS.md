@@ -5,17 +5,16 @@ Keep the WP Pusher 3.0.13 reader strict and read-only until Core has freshly
 verified a Disabled adopted target. Never import legacy credentials, enable
 deployment, contact providers, delete plugin files, or run WP Pusher uninstall.
 
-Use Core Portability API 2 and Admin Interaction API 2 at their published
-request-local boundaries. Core publishes no logging capability to this add-on.
+This source candidate uses Core Portability API 3 and unchanged Admin Interaction
+API 2 request-local boundaries. Published-host recertification is still required. Core publishes no logging capability to this add-on.
 Do not duplicate Core identity, repository resolution, adoption, or
 package mutation logic.
 
 Preserve the PHP 8.2 baseline, the `RAN\BoosterWpPusherMigrator` namespace,
 the small custom runtime autoloader, and the absence of activation,
-deactivation, or uninstall hooks. The PSR-4 class filenames and camelCase
-OOP/API identifiers intentionally follow the Booster family; their PHPCS
-exceptions are compatibility conventions, not permission to weaken unrelated
-WordPress rules. Keep the exact runtime API and facade checks even though the
+deactivation, or uninstall hooks. Keep PSR-4 class filenames. Owned runtime methods, properties, parameters and
+local variables use snake_case. Preserve the foreign Admin Interaction API 2
+signatures; test doubles and CLI helpers retain separately scoped naming debt. Keep the exact runtime API and facade checks even though the
 plugin header declares `Requires Plugins: ran-booster`: the header cannot
 guarantee that the loaded Booster generation is compatible.
 
@@ -27,8 +26,8 @@ the runtime assets genuinely outgrow that model.
 
 `ran/coding-standards` owns the shared PHP/WordPress coding ancestry only. This
 repository continues to own its WordPress 7.0 and PHP 8.2 support floors,
-`RAN\BoosterWpPusherMigrator` prefix/identity policy, source paths, existing camelCase
-exceptions, template/test exclusions, and every Core/release-specific contract.
+`RAN\BoosterWpPusherMigrator` prefix/identity policy, source paths, receiver-specific foreign signatures,
+test/helper exceptions, and every Core/release-specific contract.
 The remaining naming exceptions still require contract-level review; they do
 not establish full WordPress naming compliance.
 

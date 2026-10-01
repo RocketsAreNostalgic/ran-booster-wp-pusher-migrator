@@ -323,7 +323,7 @@ foreach ( $expectedFiles as $name => $content ) {
 $plugin = $actualFiles[ PACKAGE_ROOT . 'src/Plugin.php' ] ?? '';
 $source = $actualFiles[ PACKAGE_ROOT . 'src/WpPusherSource.php' ] ?? '';
 if ( ! str_contains( $plugin, 'RAN_BOOSTER_PORTABILITY_API_VERSION' )
-	|| ! preg_match( '/REQUIRED_PORTABILITY_API_VERSION\s*=\s*2/', $plugin )
+	|| ! preg_match( '/REQUIRED_PORTABILITY_API_VERSION\s*=\s*3/', $plugin )
 	|| ! preg_match( '/REQUIRED_ADMIN_INTERACTION_API_VERSION\s*=\s*2/', $plugin )
 	|| ! str_contains( $plugin, "'ran_booster_portability_ready'" )
 	|| ! str_contains( $plugin, "'ran_booster_admin_interaction_ready'" )

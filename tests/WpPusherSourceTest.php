@@ -25,10 +25,10 @@ final class WpPusherSourceTest extends TestCase {
 	}
 
 	public function testReportsOptionNamesWithoutReadingValues(): void {
-		$database              = new FakeDatabase();
-		$database->optionNames = array( 'gh_token', 'wppusher_license_key', 'unknown_secret' );
+		$database               = new FakeDatabase();
+		$database->option_names = array( 'gh_token', 'wppusher_license_key', 'unknown_secret' );
 
-		$presence = $this->source( $database )->optionPresence();
+		$presence = $this->source( $database )->option_presence();
 
 		self::assertTrue( $presence['gh_token'] );
 		self::assertTrue( $presence['wppusher_license_key'] );
@@ -41,11 +41,11 @@ final class WpPusherSourceTest extends TestCase {
 	public function testRejectsUnsupportedEnvironment(
 		string $version,
 		array $active,
-		array $networkActive,
+		array $network_active,
 		bool $multisite
 	): void {
 		$this->expectException( RuntimeException::class );
-		$this->source( new FakeDatabase(), $version, $active, $networkActive, $multisite )->packages();
+		$this->source( new FakeDatabase(), $version, $active, $network_active, $multisite )->packages();
 	}
 
 	/** @return iterable<string, array{string, array<int, string>, array<string, int>, bool}> */
@@ -58,10 +58,10 @@ final class WpPusherSourceTest extends TestCase {
 	}
 
 	public function testRejectsSchemaDriftAndDuplicateIdentities(): void {
-		$schemaDrift = new FakeDatabase();
-		array_pop( $schemaDrift->schema );
+		$schema_drift = new FakeDatabase();
+		array_pop( $schema_drift->schema );
 		try {
-			$this->source( $schemaDrift )->packages();
+			$this->source( $schema_drift )->packages();
 			self::fail( 'Schema drift was accepted.' );
 		} catch ( RuntimeException ) {
 			self::assertTrue( true );
@@ -82,15 +82,15 @@ final class WpPusherSourceTest extends TestCase {
 
 	public function testReportsOnlyAnExactSupportedRetainedPackageTable(): void {
 		$database = new FakeDatabase();
-		self::assertTrue( $this->source( $database )->supportedPackageTablePresent() );
+		self::assertTrue( $this->source( $database )->supported_package_table_present() );
 
-		$database->tableExists = false;
-		self::assertFalse( $this->source( $database )->supportedPackageTablePresent() );
+		$database->table_exists = false;
+		self::assertFalse( $this->source( $database )->supported_package_table_present() );
 
 		$database                    = new FakeDatabase();
 		$database->schema[0]['Type'] = 'bigint';
 		$this->expectException( RuntimeException::class );
-		$this->source( $database )->supportedPackageTablePresent();
+		$this->source( $database )->supported_package_table_present();
 	}
 
 	public function testRejectsMalformedRowsAndInventoryOverBound(): void {
@@ -103,10 +103,10 @@ final class WpPusherSourceTest extends TestCase {
 			self::assertTrue( true );
 		}
 
-		$overBound       = new FakeDatabase();
-		$overBound->rows = array_fill( 0, 129, $overBound->rows[0] );
+		$over_bound       = new FakeDatabase();
+		$over_bound->rows = array_fill( 0, 129, $over_bound->rows[0] );
 		$this->expectException( RuntimeException::class );
-		$this->source( $overBound )->packages();
+		$this->source( $over_bound )->packages();
 	}
 
 	public function testDeletesOnlyExactUnchangedRowAndPreservesNullDistinction(): void {
@@ -114,7 +114,7 @@ final class WpPusherSourceTest extends TestCase {
 		$source   = $this->source( $database );
 		$package  = $source->packages()[0];
 
-		self::assertTrue( $source->deleteExact( $package ) );
+		self::assertTrue( $source->delete_exact( $package ) );
 		self::assertStringContainsString( '`subdirectory` IS NULL', implode( ' ', $database->queries ) );
 		self::assertSame( array(), $source->packages() );
 	}
@@ -124,15 +124,15 @@ final class WpPusherSourceTest extends TestCase {
 		$source                      = $this->source( $database );
 		$package                     = $source->packages()[0];
 		$database->rows[0]['branch'] = 'changed';
-		$database->affectedRows      = 0;
+		$database->affected_rows     = 0;
 
-		self::assertFalse( $source->deleteExact( $package ) );
+		self::assertFalse( $source->delete_exact( $package ) );
 		self::assertCount( 1, $database->rows );
 
-		$database               = new FakeDatabase();
-		$database->affectedRows = 0;
-		$source                 = $this->source( $database );
-		self::assertFalse( $source->deleteExact( $source->packages()[0] ) );
+		$database                = new FakeDatabase();
+		$database->affected_rows = 0;
+		$source                  = $this->source( $database );
+		self::assertFalse( $source->delete_exact( $source->packages()[0] ) );
 		self::assertCount( 1, $database->rows );
 	}
 
@@ -140,14 +140,14 @@ final class WpPusherSourceTest extends TestCase {
 		FakeDatabase $database,
 		string $version = '3.0.13',
 		array $active = array(),
-		array $networkActive = array(),
+		array $network_active = array(),
 		bool $multisite = false
 	): WpPusherSource {
 		return new WpPusherSource(
 			$database,
 			static fn (): array => array( WpPusherSource::PLUGIN => array( 'Version' => $version ) ),
 			static fn (): array => $active,
-			static fn (): array => $networkActive,
+			static fn (): array => $network_active,
 			static fn (): bool => $multisite
 		);
 	}
@@ -162,15 +162,15 @@ final class FakeDatabase {
 	public array $queries = array();
 
 	/** @var list<string> */
-	public array $optionNames = array();
+	public array $option_names = array();
 
 	/** @var list<array<string, string>> */
 	public array $schema;
 
 	/** @var list<array<string, mixed>> */
 	public array $rows;
-	public int $affectedRows = 1;
-	public bool $tableExists = true;
+	public int $affected_rows = 1;
+	public bool $table_exists = true;
 
 	public function __construct() {
 		$types        = array(
@@ -214,7 +214,7 @@ final class FakeDatabase {
 		unset( $output );
 		$this->queries[] = $query;
 
-		return str_starts_with( $query, 'SHOW COLUMNS' ) ? ( $this->tableExists ? $this->schema : array() ) : $this->rows;
+		return str_starts_with( $query, 'SHOW COLUMNS' ) ? ( $this->table_exists ? $this->schema : array() ) : $this->rows;
 	}
 
 	public function prepare( string $query, mixed ...$values ): string {
@@ -227,13 +227,13 @@ final class FakeDatabase {
 	public function get_col( string $query ): array {
 		$this->queries[] = $query;
 
-		return $this->optionNames;
+		return $this->option_names;
 	}
 
 	public function get_var( string $query ): string|int|null {
 		$this->queries[] = $query;
 		if ( str_starts_with( $query, 'SHOW TABLES' ) ) {
-			return $this->tableExists ? $this->prefix . 'wppusher_packages' : null;
+			return $this->table_exists ? $this->prefix . 'wppusher_packages' : null;
 		}
 
 		return count( $this->rows );
@@ -241,10 +241,10 @@ final class FakeDatabase {
 
 	public function query( string $query ): int|false {
 		$this->queries[] = $query;
-		if ( str_starts_with( $query, 'DELETE FROM `wp_wppusher_packages`' ) && 1 === $this->affectedRows ) {
+		if ( str_starts_with( $query, 'DELETE FROM `wp_wppusher_packages`' ) && 1 === $this->affected_rows ) {
 			$this->rows = array();
 		}
 
-		return $this->affectedRows;
+		return $this->affected_rows;
 	}
 }

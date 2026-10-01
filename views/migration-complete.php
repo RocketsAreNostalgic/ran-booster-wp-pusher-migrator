@@ -2,13 +2,13 @@
 /**
  * WP Pusher package migration completion advisory.
  *
- * @var bool                $completionVisible
- * @var string              $pluginsUrl
+ * @var bool                $completion_visible
+ * @var string              $plugins_url
  */
 
 defined( 'ABSPATH' ) || exit;
 ?>
-<div id="ran-booster-wp-pusher-migration-complete" class="ran-booster-wp-pusher-migrator__completion-panel<?php echo $completionVisible ? ' ran-booster-wp-pusher-migrator__completion-panel--visible' : ''; ?>">
+<div id="ran-booster-wp-pusher-migration-complete" class="ran-booster-wp-pusher-migrator__completion-panel<?php echo $completion_visible ? ' ran-booster-wp-pusher-migrator__completion-panel--visible' : ''; ?>">
 	<div class="notice notice-success inline ran-booster-wp-pusher-migrator__completion-advisory">
 		<h4><?php esc_html_e( 'Migration complete!', 'ran-booster-wp-pusher-migrator' ); ?></h4>
 		<p><?php esc_html_e( 'No WP Pusher packages remain. You can now uninstall WP Pusher.', 'ran-booster-wp-pusher-migrator' ); ?></p>
@@ -27,7 +27,7 @@ defined( 'ABSPATH' ) || exit;
 			</li>
 		</ol>
 		<p class="ran-booster-wp-pusher-migrator__completion-actions">
-			<a class="button" href="<?php echo esc_url( $pluginsUrl ); ?>"><?php esc_html_e( 'Open Installed Plugins', 'ran-booster-wp-pusher-migrator' ); ?></a>
+			<a class="button" href="<?php echo esc_url( $plugins_url ); ?>"><?php esc_html_e( 'Open Installed Plugins', 'ran-booster-wp-pusher-migrator' ); ?></a>
 			<a class="button" href="https://dashboard.wppusher.com/login" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Open WP Pusher dashboard', 'ran-booster-wp-pusher-migrator' ); ?></a>
 		</p>
 	</div>

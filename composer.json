@@ -31,7 +31,7 @@
       "requires-php": "8.2",
       "booster-apis": {
         "required": {
-          "portability": 2,
+          "portability": 3,
           "admin-interaction": 2
         },
         "optional": {}

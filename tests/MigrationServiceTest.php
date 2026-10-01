@@ -26,7 +26,7 @@ final class MigrationServiceTest extends TestCase {
 		self::assertSame( 'adopt', $result->action );
 		self::assertSame( 'fixture/fixture.php', $facade->candidate?->identifier );
 		self::assertSame( 'valid-review-nonce', $facade->nonce );
-		self::assertSame( 'review:review', $service->nonceAction( 'review', $source ) );
+		self::assertSame( 'review:review', $service->nonce_action( 'review', $source ) );
 	}
 
 	public function testRejectsChangedMissingAndMalformedSourceBeforeFacade(): void {
@@ -61,10 +61,10 @@ final class MigrationServiceTest extends TestCase {
 			'valid-apply-nonce'
 		);
 
-		self::assertTrue( $result->targetVerified );
-		self::assertSame( $review, $facade->expectedFingerprint );
+		self::assertTrue( $result->target_verified );
+		self::assertSame( $review, $facade->expected_fingerprint );
 		self::assertSame( 'valid-apply-nonce', $facade->nonce );
-		self::assertSame( 'apply:' . $review, $service->nonceAction( 'apply', $source, null, $review ) );
+		self::assertSame( 'apply:' . $review, $service->nonce_action( 'apply', $source, null, $review ) );
 	}
 
 	public function testForwardsBitbucketProviderAndReplacementCredentialThroughReviewAndApply(): void {
@@ -79,10 +79,10 @@ final class MigrationServiceTest extends TestCase {
 
 		$service->review( $source->id, $source->fingerprint(), 'bitbucket_profile', 'review-nonce' );
 
-		self::assertSame( 'bb', $facade->candidate?->providerCode );
+		self::assertSame( 'bb', $facade->candidate?->provider_code );
 		self::assertSame( 'fixture-workspace/private-plugin', $facade->candidate?->repository );
 		self::assertSame( 'packages/plugin', $facade->candidate?->subdirectory );
-		self::assertSame( 'bitbucket_profile', $facade->candidate?->credentialId );
+		self::assertSame( 'bitbucket_profile', $facade->candidate?->credential_id );
 
 		$service->apply(
 			$source->id,
@@ -92,8 +92,8 @@ final class MigrationServiceTest extends TestCase {
 			'apply-nonce'
 		);
 
-		self::assertSame( 'bb', $facade->candidate?->providerCode );
-		self::assertSame( 'bitbucket_profile', $facade->candidate?->credentialId );
+		self::assertSame( 'bb', $facade->candidate?->provider_code );
+		self::assertSame( 'bitbucket_profile', $facade->candidate?->credential_id );
 	}
 
 	public function testCleanupRequiresVerifiedTargetAndExactSource(): void {
@@ -115,26 +115,26 @@ final class MigrationServiceTest extends TestCase {
 	}
 
 	public function testNewRequestReconstructsCleanupPendingAndBlockedStates(): void {
-		$database             = new FakeDatabase();
-		$facade               = new FakePortabilityFacade();
-		$facade->reviewAction = 'managed';
-		$facade->applyStatus  = 'unchanged';
-		$service              = $this->service( $facade, $database );
-		$source               = $service->packages()[0];
-		$review               = $service->review( $source->id, $source->fingerprint(), null, 'nonce' );
-		$result               = $service->apply( $source->id, $source->fingerprint(), null, $review->fingerprint, 'nonce' );
+		$database              = new FakeDatabase();
+		$facade                = new FakePortabilityFacade();
+		$facade->review_action = 'managed';
+		$facade->apply_status  = 'unchanged';
+		$service               = $this->service( $facade, $database );
+		$source                = $service->packages()[0];
+		$review                = $service->review( $source->id, $source->fingerprint(), null, 'nonce' );
+		$result                = $service->apply( $source->id, $source->fingerprint(), null, $review->fingerprint, 'nonce' );
 
 		self::assertSame( 'managed', $review->action );
 		self::assertSame( 'unchanged', $result->status );
 		self::assertTrue( $service->cleanup( $source->id, $source->fingerprint(), $result ) );
 		self::assertSame( array(), $database->rows );
 
-		$database               = new FakeDatabase();
-		$facade->targetVerified = false;
-		$facade->applyStatus    = 'blocked';
-		$service                = $this->service( $facade, $database );
-		$source                 = $service->packages()[0];
-		$result                 = $service->apply( $source->id, $source->fingerprint(), null, $review->fingerprint, 'nonce' );
+		$database                = new FakeDatabase();
+		$facade->target_verified = false;
+		$facade->apply_status    = 'blocked';
+		$service                 = $this->service( $facade, $database );
+		$source                  = $service->packages()[0];
+		$result                  = $service->apply( $source->id, $source->fingerprint(), null, $review->fingerprint, 'nonce' );
 		self::assertFalse( $service->cleanup( $source->id, $source->fingerprint(), $result ) );
 		self::assertCount( 1, $database->rows );
 	}
@@ -161,10 +161,10 @@ final class FakePortabilityFacade extends PortabilityFacade {
 
 	public ?PortabilityCandidate $candidate = null;
 	public string $nonce                    = '';
-	public string $expectedFingerprint      = '';
-	public string $reviewAction             = 'adopt';
-	public string $applyStatus              = 'adopted';
-	public bool $targetVerified             = true;
+	public string $expected_fingerprint     = '';
+	public string $review_action            = 'adopt';
+	public string $apply_status             = 'adopted';
+	public bool $target_verified            = true;
 
 	public function review( PortabilityCandidate $candidate, string $nonce ): PortabilityReviewResult {
 		$this->candidate = $candidate;
@@ -172,7 +172,7 @@ final class FakePortabilityFacade extends PortabilityFacade {
 
 		return new PortabilityReviewResult(
 			$candidate,
-			$this->reviewAction,
+			$this->review_action,
 			'ready',
 			'Ready to adopt.',
 			'v1:' . str_repeat( 'a', 64 )
@@ -181,18 +181,18 @@ final class FakePortabilityFacade extends PortabilityFacade {
 
 	public function apply(
 		PortabilityCandidate $candidate,
-		string $expectedFingerprint,
+		string $expected_fingerprint,
 		string $nonce
 	): PortabilityApplyResult {
-		$this->candidate           = $candidate;
-		$this->expectedFingerprint = $expectedFingerprint;
-		$this->nonce               = $nonce;
+		$this->candidate            = $candidate;
+		$this->expected_fingerprint = $expected_fingerprint;
+		$this->nonce                = $nonce;
 
 		return new PortabilityApplyResult(
-			$this->applyStatus,
-			$this->targetVerified ? 'adopted' : 'target_unverified',
-			$this->targetVerified ? 'Adopted.' : 'Target changed.',
-			$this->targetVerified
+			$this->apply_status,
+			$this->target_verified ? 'adopted' : 'target_unverified',
+			$this->target_verified ? 'Adopted.' : 'Target changed.',
+			$this->target_verified
 		);
 	}
 }

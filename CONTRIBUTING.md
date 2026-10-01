@@ -88,3 +88,16 @@ release archives, credentials, database exports, logs, or private site data.
 
 By submitting a contribution, you agree that it may be distributed under this
 project's GPL-2.0-or-later license.
+
+## Portability naming candidate
+
+The owned runtime naming cohort uses snake_case, including promoted properties
+and named parameters. Keep foreign Admin Interaction API 2 identifiers and all
+serialized/database/UI keys unchanged. Tests and CLI helper naming debt remain
+excluded from this cohort; see `docs/migrator-owned-naming-inventory.md`.
+
+The retained Core beta.22 tuple is historical API 2 provenance. Ordinary
+`composer check` and certified-host gates remain mandatory and cannot qualify
+this API 3 candidate until a matching immutable Core release is selected and
+certified. Separate source-candidate proof is preparation evidence only; it
+does not replace those gates or release #43's installed-site acceptance.

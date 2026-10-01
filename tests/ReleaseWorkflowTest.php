@@ -16,7 +16,7 @@ final class ReleaseWorkflowTest extends TestCase {
 			self::assertIsString( $document );
 			self::assertStringContainsString( (string) $tuple['tag'], $document );
 			self::assertStringNotContainsString( (string) $tuple['commit'], $document );
-			self::assertStringContainsString( 'Portability API 2', $document );
+			self::assertStringContainsString( 'README.md' === $documentName ? 'Portability API 3' : 'Portability API 2', $document );
 			self::assertStringContainsString( 'Admin Interaction API 2', $document );
 			self::assertStringContainsString( 'installed', strtolower( $document ) );
 		}

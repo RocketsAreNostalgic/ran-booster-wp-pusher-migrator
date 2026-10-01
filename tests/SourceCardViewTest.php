@@ -20,7 +20,7 @@ final class SourceCardViewTest extends TestCase {
 	private ?SourceCardInteractionSpy $interaction = null;
 
 	public function testRendersEscapedAccessibleNoJavascriptReview(): void {
-		$source            = WpPusherPackage::fromRow(
+		$source              = WpPusherPackage::from_row(
 			array(
 				'id'           => '1',
 				'package'      => 'fixture/fixture.php',
@@ -34,7 +34,7 @@ final class SourceCardViewTest extends TestCase {
 				'subdirectory' => null,
 			)
 		);
-		$candidate         = new PortabilityCandidate(
+		$candidate           = new PortabilityCandidate(
 			'plugin',
 			$source->package,
 			'Fixture',
@@ -42,25 +42,25 @@ final class SourceCardViewTest extends TestCase {
 			$source->repository,
 			'main'
 		);
-		$review            = new PortabilityReviewResult(
+		$review              = new PortabilityReviewResult(
 			$candidate,
 			'blocked',
 			'credential_required',
 			'Use <existing> Booster credentials.',
 			'v1:' . str_repeat( 'a', 64 )
 		);
-		$rows              = array( $this->row( $source, $candidate, $review ) );
-		$error             = '';
-		$hasError          = false;
-		$legacyDataPresent = true;
-		$apply             = null;
-		$applyVisible      = false;
-		$applyClass        = 'notice-error';
-		$applyMessage      = '';
-		$cleanupPending    = false;
-		$completionVisible = false;
-		$pluginsUrl        = 'https://example.test/wp-admin/plugins.php';
-		$adminInteraction  = $this->interaction;
+		$rows                = array( $this->row( $source, $candidate, $review ) );
+		$error               = '';
+		$has_error           = false;
+		$legacy_data_present = true;
+		$apply               = null;
+		$apply_visible       = false;
+		$apply_class         = 'notice-error';
+		$apply_message       = '';
+		$cleanup_pending     = false;
+		$completion_visible  = false;
+		$plugins_url         = 'https://example.test/wp-admin/plugins.php';
+		$admin_interaction   = $this->interaction;
 
 		ob_start();
 		require dirname( __DIR__ ) . '/views/source-card.php';
@@ -92,7 +92,7 @@ final class SourceCardViewTest extends TestCase {
 		require dirname( __DIR__ ) . '/views/migration-mode.php';
 		$mode = (string) ob_get_clean();
 
-		$migrationUrl = 'https://example.test/wp-admin/admin.php?page=ran-booster&amp;tab=portability#ran-booster-portability-wp-pusher';
+		$migration_url = 'https://example.test/wp-admin/admin.php?page=ran-booster&amp;tab=portability#ran-booster-portability-wp-pusher';
 		ob_start();
 		require dirname( __DIR__ ) . '/views/overview-prompt.php';
 		$prompt = (string) ob_get_clean();
@@ -141,7 +141,7 @@ final class SourceCardViewTest extends TestCase {
 	}
 
 	public function testGitLabPackageRendersUserVisibleUnsupportedRowWithoutActions(): void {
-		$source = WpPusherPackage::fromRow(
+		$source = WpPusherPackage::from_row(
 			array(
 				'id'           => '1',
 				'package'      => 'fixture/fixture.php',
@@ -163,7 +163,7 @@ final class SourceCardViewTest extends TestCase {
 		self::assertStringNotContainsString( '>Check</button>', $output );
 		self::assertStringNotContainsString( '>Adopt</button>', $output );
 		self::assertStringNotContainsString( 'name="credential_id"', $output );
-		self::assertSame( array(), $this->interaction?->renderedOperations );
+		self::assertSame( array(), $this->interaction?->rendered_operations );
 	}
 
 	public function testEnhancedCheckAndAdoptUseCoreRowFacade(): void {
@@ -184,7 +184,7 @@ final class SourceCardViewTest extends TestCase {
 		self::assertStringContainsString( '>Adopt</button>', $import );
 		self::assertSame(
 			array( 'wp-pusher:check-package', 'wp-pusher:import-package' ),
-			$interaction->renderedOperations
+			$interaction->rendered_operations
 		);
 	}
 
@@ -200,7 +200,7 @@ final class SourceCardViewTest extends TestCase {
 		);
 		self::assertStringNotContainsString( '>Check</button>', $output );
 		self::assertStringNotContainsString( '>Adopt</button>', $output );
-		self::assertSame( array(), $this->interaction?->renderedOperations );
+		self::assertSame( array(), $this->interaction?->rendered_operations );
 	}
 
 	public function testFinalImportedRowRevealsThePendingCompletionPanel(): void {
@@ -251,12 +251,12 @@ final class SourceCardViewTest extends TestCase {
 	}
 
 	private function renderPublicPackage(
-		?string $reviewAction = null,
+		?string $review_action = null,
 		?SourceCardInteractionSpy $interaction = null,
 		bool $imported = false,
-		bool $migrationComplete = false
+		bool $migration_complete = false
 	): string {
-		$source    = WpPusherPackage::fromRow(
+		$source    = WpPusherPackage::from_row(
 			array(
 				'id'           => '1',
 				'package'      => 'fixture/fixture.php',
@@ -278,18 +278,18 @@ final class SourceCardViewTest extends TestCase {
 			$source->repository,
 			'main'
 		);
-		$review    = null === $reviewAction
+		$review    = null === $review_action
 			? null
 			: new PortabilityReviewResult(
 				$candidate,
-				$reviewAction,
+				$review_action,
 				'ready',
-				'blocked' === $reviewAction ? 'Repository access could not be verified.' : 'Ready to adopt.',
+				'blocked' === $review_action ? 'Repository access could not be verified.' : 'Ready to adopt.',
 				'v1:' . str_repeat( 'a', 64 )
 			);
 		$row       = $this->row( $source, $candidate, $review, $interaction );
 		if ( $imported ) {
-			$row['migration_complete'] = $migrationComplete;
+			$row['migration_complete'] = $migration_complete;
 			$row['status_heading']     = 'Adopted';
 			$row['status_strong']      = true;
 			$row['action']             = 'manage';
@@ -306,20 +306,20 @@ final class SourceCardViewTest extends TestCase {
 
 	/**
 	 * @param list<array<string, mixed>> $rows
-	 * @param array<string, bool>        $optionPresence
+	 * @param array<string, bool>        $option_presence
 	 */
-	private function renderRows( array $rows, array $optionPresence = array() ): string {
-		$error             = '';
-		$hasError          = false;
-		$legacyDataPresent = in_array( true, $optionPresence, true );
-		$apply             = null;
-		$applyVisible      = false;
-		$applyClass        = 'notice-error';
-		$applyMessage      = '';
-		$cleanupPending    = false;
-		$completionVisible = array() === $rows;
-		$pluginsUrl        = 'https://example.test/wp-admin/plugins.php';
-		$adminInteraction  = $this->interaction ?? new SourceCardInteractionSpy();
+	private function renderRows( array $rows, array $option_presence = array() ): string {
+		$error               = '';
+		$has_error           = false;
+		$legacy_data_present = in_array( true, $option_presence, true );
+		$apply               = null;
+		$apply_visible       = false;
+		$apply_class         = 'notice-error';
+		$apply_message       = '';
+		$cleanup_pending     = false;
+		$completion_visible  = array() === $rows;
+		$plugins_url         = 'https://example.test/wp-admin/plugins.php';
+		$admin_interaction   = $this->interaction ?? new SourceCardInteractionSpy();
 
 		ob_start();
 		require dirname( __DIR__ ) . '/views/source-card.php';
@@ -353,10 +353,10 @@ final class SourceCardViewTest extends TestCase {
 final class SourceCardInteractionSpy implements AdminInteractionFacade, TransporterRowAdminInteractionFacade {
 
 	/** @var list<string> */
-	public array $renderedOperations = array();
+	public array $rendered_operations = array();
 
 	public function renderFormAttributes( AdminInteractionRequest $request ): void {
-		$this->renderedOperations[] = $request->operation();
+		$this->rendered_operations[] = $request->operation();
 		echo ' data-test-operation="' . esc_attr( $request->operation() ) . '"';
 	}
 
@@ -373,9 +373,9 @@ final class SourceCardInteractionSpy implements AdminInteractionFacade, Transpor
 
 	public function respondWithTransporterRowFragment(
 		AdminInteractionOutcome $outcome,
-		callable $renderFragment
+		callable $render_fragment
 	): never {
-		unset( $outcome, $renderFragment );
+		unset( $outcome, $render_fragment );
 		throw new RuntimeException( 'Response terminated.' );
 	}
 }

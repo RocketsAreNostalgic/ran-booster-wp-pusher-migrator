@@ -9,12 +9,12 @@ final readonly class PortabilityCandidate {
 	public function __construct(
 		public string $type,
 		public string $identifier,
-		public string $displayName,
-		public string $providerCode,
+		public string $display_name,
+		public string $provider_code,
 		public string $repository,
 		public string $branch,
 		public ?string $subdirectory = null,
-		public ?string $credentialId = null
+		public ?string $credential_id = null
 	) {
 	}
 }
@@ -37,30 +37,30 @@ final readonly class PortabilityApplyResult {
 		public string $status,
 		public string $reason,
 		public string $message,
-		public bool $targetVerified
+		public bool $target_verified
 	) {
 	}
 }
 
 abstract class PortabilityFacade {
 
-	public const API_VERSION = 2;
+	public const API_VERSION = 3;
 
-	public function nonceAction(
+	public function nonce_action(
 		string $operation,
 		PortabilityCandidate $candidate,
-		?string $expectedFingerprint = null
+		?string $expected_fingerprint = null
 	): string {
 		unset( $candidate );
 
-		return $operation . ':' . ( $expectedFingerprint ?? 'review' );
+		return $operation . ':' . ( $expected_fingerprint ?? 'review' );
 	}
 
 	abstract public function review( PortabilityCandidate $candidate, string $nonce ): PortabilityReviewResult;
 
 	abstract public function apply(
 		PortabilityCandidate $candidate,
-		string $expectedFingerprint,
+		string $expected_fingerprint,
 		string $nonce
 	): PortabilityApplyResult;
 }

@@ -30,38 +30,38 @@ final class CandidateFactory {
 	 *
 	 * @return array{type:'plugin'|'theme',identifier:string,display_name:string,provider:'gh'|'bb',repository:string,branch:string,subdirectory:string|null,credential_id:string|null}
 	 */
-	public function candidate( WpPusherPackage $source, ?string $credentialId = null ): array {
+	public function candidate( WpPusherPackage $source, ?string $credential_id = null ): array {
 		if ( 'gl' === $source->host ) {
 			throw new RuntimeException( 'GitLab WP Pusher packages are not supported.' );
 		}
-		if ( 1 === $source->private && null === $credentialId ) {
+		if ( 1 === $source->private && null === $credential_id ) {
 			throw new RuntimeException( 'Choose an existing Booster credential profile for this private repository.' );
 		}
 
-		$displayName = 1 === $source->type
-			? $this->pluginName( $source->package )
-			: $this->themeName( $source->package );
+		$display_name = 1 === $source->type
+			? $this->plugin_name( $source->package )
+			: $this->theme_name( $source->package );
 
-		if ( null !== $credentialId
-			&& 1 !== preg_match( '/\A[A-Za-z0-9_-]{3,64}\z/D', $credentialId ) ) {
+		if ( null !== $credential_id
+			&& 1 !== preg_match( '/\A[A-Za-z0-9_-]{3,64}\z/D', $credential_id ) ) {
 			throw new RuntimeException( 'The Booster credential profile identifier is invalid.' );
 		}
 
 		return array(
 			'type'          => 1 === $source->type ? 'plugin' : 'theme',
 			'identifier'    => $source->package,
-			'display_name'  => $displayName,
+			'display_name'  => $display_name,
 			'provider'      => $source->host,
 			'repository'    => $source->repository,
 			'branch'        => '' === $source->branch ? 'master' : $source->branch,
 			'subdirectory'  => null === $source->subdirectory || '' === $source->subdirectory
 				? null
 				: $source->subdirectory,
-			'credential_id' => $credentialId,
+			'credential_id' => $credential_id,
 		);
 	}
 
-	private function pluginName( string $file ): string {
+	private function plugin_name( string $file ): string {
 		$plugins = ( $this->plugins )();
 		if ( ! isset( $plugins[ $file ]['Name'] )
 			|| ! is_string( $plugins[ $file ]['Name'] )
@@ -72,7 +72,7 @@ final class CandidateFactory {
 		return $plugins[ $file ]['Name'];
 	}
 
-	private function themeName( string $stylesheet ): string {
+	private function theme_name( string $stylesheet ): string {
 		$theme = ( $this->theme )( $stylesheet );
 		if ( ! method_exists( $theme, 'exists' )
 			|| ! $theme->exists()

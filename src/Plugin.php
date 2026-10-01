@@ -10,17 +10,17 @@ use RAN\Admin\Interaction\TransporterRowAdminInteractionFacade;
 
 /** Request-local lifecycle and exact Core facade composition root. */
 final class Plugin {
-	private const REQUIRED_PORTABILITY_API_VERSION       = 2;
+	private const REQUIRED_PORTABILITY_API_VERSION       = 3;
 	private const REQUIRED_ADMIN_INTERACTION_API_VERSION = 2;
 
-	private ?PortabilityFacade $portability                = null;
-	private ?AdminInteractionFacade $adminInteraction      = null;
-	private ?MigrationRequestController $requestController = null;
+	private ?PortabilityFacade $portability                 = null;
+	private ?AdminInteractionFacade $admin_interaction      = null;
+	private ?MigrationRequestController $request_controller = null;
 
 	public function register(): void {
 		add_action( 'ran_booster_portability_ready', array( $this, 'connect' ), 10, 1 );
-		add_action( 'ran_booster_admin_interaction_ready', array( $this, 'captureAdminInteraction' ), 10, 1 );
-		add_action( 'admin_notices', array( $this, 'renderCompatibilityNotice' ) );
+		add_action( 'ran_booster_admin_interaction_ready', array( $this, 'capture_admin_interaction' ), 10, 1 );
+		add_action( 'admin_notices', array( $this, 'render_compatibility_notice' ) );
 	}
 
 	public function connect( mixed $portability ): void {
@@ -36,8 +36,8 @@ final class Plugin {
 		$this->compose();
 	}
 
-	public function captureAdminInteraction( mixed $facade ): void {
-		if ( null !== $this->adminInteraction
+	public function capture_admin_interaction( mixed $facade ): void {
+		if ( null !== $this->admin_interaction
 			|| ! defined( 'RAN_BOOSTER_ADMIN_INTERACTION_API_VERSION' )
 			|| self::REQUIRED_ADMIN_INTERACTION_API_VERSION !== constant( 'RAN_BOOSTER_ADMIN_INTERACTION_API_VERSION' )
 			|| self::REQUIRED_ADMIN_INTERACTION_API_VERSION !== AdminInteractionFacade::API_VERSION
@@ -47,12 +47,12 @@ final class Plugin {
 			return;
 		}
 
-		$this->adminInteraction = $facade;
+		$this->admin_interaction = $facade;
 		$this->compose();
 	}
 
-	public function renderCompatibilityNotice(): void {
-		if ( null !== $this->requestController || ! current_user_can( 'activate_plugins' ) ) {
+	public function render_compatibility_notice(): void {
+		if ( null !== $this->request_controller || ! current_user_can( 'activate_plugins' ) ) {
 			return;
 		}
 		?>
@@ -61,23 +61,23 @@ final class Plugin {
 	}
 
 	private function compose(): void {
-		if ( null !== $this->requestController
+		if ( null !== $this->request_controller
 			|| null === $this->portability
-			|| ! $this->adminInteraction instanceof TransporterRowAdminInteractionFacade ) {
+			|| ! $this->admin_interaction instanceof TransporterRowAdminInteractionFacade ) {
 			return;
 		}
 
 		$source     = new WpPusherSource();
 		$candidates = new CandidateFactory();
 		$migration  = new MigrationService( $source, $candidates, $this->portability );
-		$presenter  = new MigrationPresenter( $candidates, $this->adminInteraction );
+		$presenter  = new MigrationPresenter( $candidates, $this->admin_interaction );
 
-		$this->requestController = new MigrationRequestController(
+		$this->request_controller = new MigrationRequestController(
 			$migration,
 			$source,
 			$presenter,
-			$this->adminInteraction
+			$this->admin_interaction
 		);
-		$this->requestController->register();
+		$this->request_controller->register();
 	}
 }

@@ -10,7 +10,7 @@ use RAN\AddOn\Portability\PortabilityFacade;
 use RAN\AddOn\Portability\PortabilityReviewResult;
 use RuntimeException;
 
-/** Request-local adapter from one exact source row to Portability API 2. */
+/** Request-local adapter from one exact source row to Portability API 3. */
 final readonly class MigrationService {
 
 	public function __construct(
@@ -29,13 +29,13 @@ final readonly class MigrationService {
 	 * Fresh-read and review one unchanged source row through Core.
 	 */
 	public function review(
-		int $sourceId,
-		string $expectedSourceFingerprint,
-		?string $credentialId,
+		int $source_id,
+		string $expected_source_fingerprint,
+		?string $credential_id,
 		string $nonce
 	): PortabilityReviewResult {
-		$source    = $this->unchangedSource( $sourceId, $expectedSourceFingerprint );
-		$candidate = $this->coreCandidate( $this->candidates->candidate( $source, $credentialId ) );
+		$source    = $this->unchanged_source( $source_id, $expected_source_fingerprint );
+		$candidate = $this->core_candidate( $this->candidates->candidate( $source, $credential_id ) );
 
 		return $this->portability->review( $candidate, $nonce );
 	}
@@ -44,50 +44,50 @@ final readonly class MigrationService {
 	 * Fresh-read and apply one unchanged reviewed source row through Core.
 	 */
 	public function apply(
-		int $sourceId,
-		string $expectedSourceFingerprint,
-		?string $credentialId,
-		string $expectedReviewFingerprint,
+		int $source_id,
+		string $expected_source_fingerprint,
+		?string $credential_id,
+		string $expected_review_fingerprint,
 		string $nonce
 	): PortabilityApplyResult {
-		$source    = $this->unchangedSource( $sourceId, $expectedSourceFingerprint );
-		$candidate = $this->coreCandidate( $this->candidates->candidate( $source, $credentialId ) );
+		$source    = $this->unchanged_source( $source_id, $expected_source_fingerprint );
+		$candidate = $this->core_candidate( $this->candidates->candidate( $source, $credential_id ) );
 
-		return $this->portability->apply( $candidate, $expectedReviewFingerprint, $nonce );
+		return $this->portability->apply( $candidate, $expected_review_fingerprint, $nonce );
 	}
 
 	public function cleanup(
-		int $sourceId,
-		string $expectedSourceFingerprint,
+		int $source_id,
+		string $expected_source_fingerprint,
 		PortabilityApplyResult $result
 	): bool {
-		if ( ! $result->targetVerified ) {
+		if ( ! $result->target_verified ) {
 			return false;
 		}
 
-		return $this->source->deleteExact(
-			$this->unchangedSource( $sourceId, $expectedSourceFingerprint )
+		return $this->source->delete_exact(
+			$this->unchanged_source( $source_id, $expected_source_fingerprint )
 		);
 	}
 
-	public function nonceAction(
+	public function nonce_action(
 		string $operation,
 		WpPusherPackage $source,
-		?string $credentialId = null,
-		?string $expectedReviewFingerprint = null
+		?string $credential_id = null,
+		?string $expected_review_fingerprint = null
 	): string {
-		$candidate = $this->coreCandidate( $this->candidates->candidate( $source, $credentialId ) );
+		$candidate = $this->core_candidate( $this->candidates->candidate( $source, $credential_id ) );
 
-		return $this->portability->nonceAction( $operation, $candidate, $expectedReviewFingerprint );
+		return $this->portability->nonce_action( $operation, $candidate, $expected_review_fingerprint );
 	}
 
-	private function unchangedSource( int $sourceId, string $expectedFingerprint ): WpPusherPackage {
-		if ( 1 !== preg_match( '/\Av1:[a-f0-9]{64}\z/D', $expectedFingerprint ) ) {
+	private function unchanged_source( int $source_id, string $expected_fingerprint ): WpPusherPackage {
+		if ( 1 !== preg_match( '/\Av1:[a-f0-9]{64}\z/D', $expected_fingerprint ) ) {
 			throw new RuntimeException( 'Refresh the WP Pusher migration review.' );
 		}
 		foreach ( $this->source->packages() as $source ) {
-			if ( $sourceId === $source->id ) {
-				if ( ! hash_equals( $expectedFingerprint, $source->fingerprint() ) ) {
+			if ( $source_id === $source->id ) {
+				if ( ! hash_equals( $expected_fingerprint, $source->fingerprint() ) ) {
 					throw new RuntimeException( 'The WP Pusher package changed. Review it again.' );
 				}
 
@@ -101,7 +101,7 @@ final readonly class MigrationService {
 	/**
 	 * @param array{type:string,identifier:string,display_name:string,provider:string,repository:string,branch:string,subdirectory:string|null,credential_id:string|null} $fields Candidate fields.
 	 */
-	private function coreCandidate( array $fields ): PortabilityCandidate {
+	private function core_candidate( array $fields ): PortabilityCandidate {
 		return new PortabilityCandidate(
 			$fields['type'],
 			$fields['identifier'],
