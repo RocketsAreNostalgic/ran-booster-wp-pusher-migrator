@@ -48,7 +48,9 @@ final class ReleaseWorkflowTest extends TestCase {
 		self::assertStringContainsString( "  workflow_dispatch:\n  pull_request:", $quality );
 		self::assertStringNotContainsString( 'release_pr:', $quality );
 		self::assertStringNotContainsString( 'release_sha:', $quality );
-		self::assertStringNotContainsString( 'github-actions[bot]', $quality );
+		self::assertStringContainsString( 'base_commit="$(bash scripts/release-candidate-base.sh)"', $quality );
+		self::assertStringContainsString( 'pull-requests: read', $quality );
+		self::assertStringNotContainsString( '${source_commit}^1', $quality );
 		self::assertStringNotContainsString( 'autorelease: pending', $quality );
 		self::assertStringNotContainsString( 'fetch-release-candidate-ref.sh', $quality );
 		self::assertStringContainsString( 'bash scripts/validate-release-candidate.sh "$base_commit" "$source_commit"', $quality );
