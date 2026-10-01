@@ -29,6 +29,7 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: read
+      pull-requests: read
     outputs:
       artifact-name: ${{ steps.archive.outputs.artifact-name }}
       archive-sha256: ${{ steps.archive.outputs.archive-sha256 }}
@@ -43,6 +44,19 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+      - name: Validate canonical release PR content
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RAN_SOURCE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          base_commit="$(bash scripts/release-candidate-base.sh)"
+          if [[ -n "$base_commit" ]]; then
+            source_commit="$RAN_SOURCE_SHA"
+            bash scripts/validate-release-candidate.sh "$base_commit" "$source_commit"
+          fi
 
       - name: Set up PHP
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
@@ -62,12 +76,6 @@ jobs:
           [[ "$source_commit" =~ ^[0-9a-f]{40}$ ]]
           test "$(git rev-parse HEAD)" = "$source_commit"
           test "$(git rev-parse "${source_commit}^{commit}")" = "$source_commit"
-
-          release_branch='release-please--branches--main--components--ran-booster-wp-pusher-migrator'
-          if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch && "$GITHUB_REF_NAME" == "$release_branch" ]]; then
-            base_commit="$(git rev-parse "${source_commit}^1")"
-            bash scripts/validate-release-candidate.sh "$base_commit" "$source_commit"
-          fi
 
           version="$(sed -nE 's/^[[:space:]]*\*[[:space:]]*Version:[[:space:]]*([^[:space:]]+).*/\1/p' ran-booster-wp-pusher-migrator.php)"
           test -n "$version"
