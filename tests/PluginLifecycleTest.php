@@ -203,11 +203,11 @@ final class PluginLifecycleTest extends TestCase {
 	/** @return iterable<string, array{?int, ?int, list<string>, bool}> */
 	public static function incompatibleApiMarkers(): iterable {
 		$markers = array(
-			'old portability'     => array( 2, 2 ),
-			'future portability'  => array( 4, 2 ),
-			'missing portability' => array( null, 2 ),
-			'old interaction'     => array( 3, 1 ),
-			'future interaction'  => array( 3, 3 ),
+			'old portability'     => array( 2, 3 ),
+			'future portability'  => array( 4, 3 ),
+			'missing portability' => array( null, 3 ),
+			'old interaction'     => array( 3, 2 ),
+			'future interaction'  => array( 3, 4 ),
 			'missing interaction' => array( 3, null ),
 		);
 		foreach ( $markers as $label => $versions ) {
@@ -259,7 +259,7 @@ final class PluginLifecycleTest extends TestCase {
 			define( 'RAN_BOOSTER_PORTABILITY_API_VERSION', 3 );
 		}
 		if ( ! defined( 'RAN_BOOSTER_ADMIN_INTERACTION_API_VERSION' ) ) {
-			define( 'RAN_BOOSTER_ADMIN_INTERACTION_API_VERSION', 2 );
+			define( 'RAN_BOOSTER_ADMIN_INTERACTION_API_VERSION', 3 );
 		}
 	}
 

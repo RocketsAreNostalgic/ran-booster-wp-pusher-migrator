@@ -76,7 +76,7 @@ final readonly class AdminInteractionOutcome {
 
 interface AdminInteractionFacade {
 
-	public const API_VERSION = 2;
+	public const API_VERSION = 3;
 
 	public function render_form_attributes( AdminInteractionRequest $request ): void;
 

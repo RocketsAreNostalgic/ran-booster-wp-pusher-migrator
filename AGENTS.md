@@ -5,15 +5,15 @@ Keep the WP Pusher 3.0.13 reader strict and read-only until Core has freshly
 verified a Disabled adopted target. Never import legacy credentials, enable
 deployment, contact providers, delete plugin files, or run WP Pusher uninstall.
 
-This source candidate uses Core Portability API 3 and unchanged Admin Interaction
-API 2 request-local boundaries. Published-host recertification is still required. Core publishes no logging capability to this add-on.
+This source candidate uses Core Portability API 3 and Admin Interaction
+API 3 request-local boundaries. Published-host recertification is still required. Core publishes no logging capability to this add-on.
 Do not duplicate Core identity, repository resolution, adoption, or
 package mutation logic.
 
 Preserve the PHP 8.2 baseline, the `RAN\BoosterWpPusherMigrator` namespace,
 the small custom runtime autoloader, and the absence of activation,
 deactivation, or uninstall hooks. Keep PSR-4 class filenames. Owned runtime methods, properties, parameters and
-local variables use snake_case. Preserve the foreign Admin Interaction API 2
+local variables use snake_case. Use the matching Admin Interaction API 3 snake_case
 signatures; test doubles and CLI helpers retain separately scoped naming debt. Keep the exact runtime API and facade checks even though the
 plugin header declares `Requires Plugins: ran-booster`: the header cannot
 guarantee that the loaded Booster generation is compatible.

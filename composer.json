@@ -32,7 +32,7 @@
       "booster-apis": {
         "required": {
           "portability": 3,
-          "admin-interaction": 2
+          "admin-interaction": 3
         },
         "optional": {}
       },

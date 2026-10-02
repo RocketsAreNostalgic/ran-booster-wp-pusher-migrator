@@ -28,7 +28,7 @@ provider webhooks.
 - WordPress 7.0 or newer and PHP 8.2 or newer.
 - A single-site WordPress installation.
 - WP Pusher 3.0.13 installed but inactive.
-- A compatible RAN Booster release exposing Portability API 3 and Admin Interaction API 2.
+- A compatible RAN Booster release exposing Portability API 3 and Admin Interaction API 3.
 - For Bitbucket Cloud packages, the compatible RAN Booster Bitbucket Cloud
   add-on installed and active.
 - An existing replacement Booster credential profile for each private

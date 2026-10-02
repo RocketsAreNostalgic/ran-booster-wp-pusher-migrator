@@ -11,7 +11,7 @@ use RAN\Admin\Interaction\TransporterRowAdminInteractionFacade;
 /** Request-local lifecycle and exact Core facade composition root. */
 final class Plugin {
 	private const REQUIRED_PORTABILITY_API_VERSION       = 3;
-	private const REQUIRED_ADMIN_INTERACTION_API_VERSION = 2;
+	private const REQUIRED_ADMIN_INTERACTION_API_VERSION = 3;
 
 	private ?PortabilityFacade $portability                 = null;
 	private ?AdminInteractionFacade $admin_interaction      = null;

@@ -92,7 +92,7 @@ project's GPL-2.0-or-later license.
 ## Portability naming candidate
 
 The owned runtime naming cohort uses snake_case, including promoted properties
-and named parameters. Keep foreign Admin Interaction API 2 identifiers and all
+and named parameters. Keep shared Admin Interaction API 3 snake_case identifiers and all
 serialized/database/UI keys unchanged. Tests and CLI helper naming debt remain
 excluded from this cohort; see `docs/migrator-owned-naming-inventory.md`.
 
