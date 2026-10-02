@@ -33,7 +33,7 @@ $migration_complete = true === $row['migration_complete'];
 		<?php } elseif ( 'none' !== $row['action'] ) { ?>
 			<div class="ran-booster-wp-pusher-migrator__actions">
 				<?php if ( 'check' === $row['action'] ) { ?>
-					<form method="post" action="<?php echo esc_url( $row['migration_url'] ); ?>"<?php $admin_interaction->renderFormAttributes( $row['form_request'] ); ?>>
+					<form method="post" action="<?php echo esc_url( $row['migration_url'] ); ?>"<?php $admin_interaction->render_form_attributes( $row['form_request'] ); ?>>
 						<input type="hidden" name="action" value="<?php echo esc_attr( $row['admin_post_action'] ); ?>">
 						<input type="hidden" name="ran_booster_wp_pusher_migrator_action" value="review">
 						<input type="hidden" name="source_id" value="<?php echo esc_attr( (string) $row['source_id'] ); ?>">
@@ -48,7 +48,7 @@ $migration_complete = true === $row['migration_complete'];
 						<button class="button" type="submit"><?php esc_html_e( 'Check', 'ran-booster-wp-pusher-migrator' ); ?></button>
 					</form>
 				<?php } else { ?>
-					<form method="post" action="<?php echo esc_url( $row['migration_url'] ); ?>"<?php $admin_interaction->renderFormAttributes( $row['form_request'] ); ?>>
+					<form method="post" action="<?php echo esc_url( $row['migration_url'] ); ?>"<?php $admin_interaction->render_form_attributes( $row['form_request'] ); ?>>
 						<input type="hidden" name="action" value="<?php echo esc_attr( $row['admin_post_action'] ); ?>">
 						<input type="hidden" name="ran_booster_wp_pusher_migrator_action" value="apply">
 						<input type="hidden" name="source_id" value="<?php echo esc_attr( (string) $row['source_id'] ); ?>">

@@ -129,7 +129,7 @@ final readonly class MigrationPresenter {
 			'manage_url'         => '',
 			'manage_label'       => '',
 			'form_request'       => 'check' === $action ? $check : ( 'apply' === $action ? $import : null ),
-			'target_element_id'  => $check->targetElementId(),
+			'target_element_id'  => $check->target_element_id(),
 			'error_region_id'    => $this->error_region_id( $source ),
 		);
 	}
@@ -157,7 +157,7 @@ final readonly class MigrationPresenter {
 
 	public function interaction_request( WpPusherPackage $source, string $operation ): AdminInteractionRequest {
 		$identity_hash = substr( hash( 'sha256', $source->type . ':' . $source->package ), 0, 40 );
-		return AdminInteractionRequest::transporterMigrationSourceRow(
+		return AdminInteractionRequest::transporter_migration_source_row(
 			'wp-pusher:' . $operation,
 			'wp-pusher:package-' . $identity_hash,
 			$this->migration_url(),

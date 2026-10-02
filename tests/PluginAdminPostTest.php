@@ -286,7 +286,7 @@ final class PluginAdminPostTest extends TestCase {
 			. substr( hash( 'sha256', 'wp-pusher:package-' . $identity_hash ), 0, 32 );
 		self::assertSame( 'success', $interaction->outcome?->kind() );
 		self::assertSame( 'wp-pusher:check-package', $interaction->outcome?->request()->operation() );
-		self::assertSame( $target_id, $interaction->outcome?->request()->targetElementId() );
+		self::assertSame( $target_id, $interaction->outcome?->request()->target_element_id() );
 		self::assertStringStartsWith( '<tr id="' . $target_id . '">', trim( $interaction->fragment ) );
 		self::assertStringContainsString( '<strong>Ready to adopt</strong>', $interaction->fragment );
 		self::assertStringContainsString( '>Adopt</button>', $interaction->fragment );
@@ -553,11 +553,11 @@ final class AdminPostInteractionSpy implements AdminInteractionFacade, Transport
 	public ?AdminInteractionOutcome $outcome = null;
 	public string $fragment                  = '';
 
-	public function renderFormAttributes( AdminInteractionRequest $request ): void {
+	public function render_form_attributes( AdminInteractionRequest $request ): void {
 		echo ' data-test-operation="' . esc_attr( $request->operation() ) . '"';
 	}
 
-	public function isEnhancedRequest( AdminInteractionRequest $request ): bool {
+	public function is_enhanced_request( AdminInteractionRequest $request ): bool {
 		unset( $request );
 
 		return true;
@@ -568,13 +568,13 @@ final class AdminPostInteractionSpy implements AdminInteractionFacade, Transport
 		throw new AdminPostResponse();
 	}
 
-	public function respondWithTransporterRowFragment(
+	public function respond_with_transporter_row_fragment(
 		AdminInteractionOutcome $outcome,
-		callable $renderFragment
+		callable $render_fragment
 	): never {
 		$this->outcome = $outcome;
 		ob_start();
-		$renderFragment( $outcome->request()->targetElementId() );
+		$render_fragment( $outcome->request()->target_element_id() );
 		$this->fragment = (string) ob_get_clean();
 		throw new AdminPostResponse();
 	}

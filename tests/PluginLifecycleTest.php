@@ -306,11 +306,11 @@ final class LifecycleInteractionFacade implements AdminInteractionFacade, Transp
 	/** @var list<string> */
 	public array $rendered_operations = array();
 
-	public function renderFormAttributes( AdminInteractionRequest $request ): void {
+	public function render_form_attributes( AdminInteractionRequest $request ): void {
 		$this->rendered_operations[] = $request->operation();
 	}
 
-	public function isEnhancedRequest( AdminInteractionRequest $request ): bool {
+	public function is_enhanced_request( AdminInteractionRequest $request ): bool {
 		unset( $request );
 
 		return false;
@@ -321,11 +321,11 @@ final class LifecycleInteractionFacade implements AdminInteractionFacade, Transp
 		throw new RuntimeException( 'Lifecycle characterization does not execute transport.' );
 	}
 
-	public function respondWithTransporterRowFragment(
+	public function respond_with_transporter_row_fragment(
 		AdminInteractionOutcome $outcome,
-		callable $renderFragment
+		callable $render_fragment
 	): never {
-		unset( $outcome, $renderFragment );
+		unset( $outcome, $render_fragment );
 		throw new RuntimeException( 'Lifecycle characterization does not execute transport.' );
 	}
 }

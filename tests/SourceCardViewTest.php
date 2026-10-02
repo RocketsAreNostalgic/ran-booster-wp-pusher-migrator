@@ -355,12 +355,12 @@ final class SourceCardInteractionSpy implements AdminInteractionFacade, Transpor
 	/** @var list<string> */
 	public array $rendered_operations = array();
 
-	public function renderFormAttributes( AdminInteractionRequest $request ): void {
+	public function render_form_attributes( AdminInteractionRequest $request ): void {
 		$this->rendered_operations[] = $request->operation();
 		echo ' data-test-operation="' . esc_attr( $request->operation() ) . '"';
 	}
 
-	public function isEnhancedRequest( AdminInteractionRequest $request ): bool {
+	public function is_enhanced_request( AdminInteractionRequest $request ): bool {
 		unset( $request );
 
 		return true;
@@ -371,11 +371,11 @@ final class SourceCardInteractionSpy implements AdminInteractionFacade, Transpor
 		throw new RuntimeException( 'Response terminated.' );
 	}
 
-	public function respondWithTransporterRowFragment(
+	public function respond_with_transporter_row_fragment(
 		AdminInteractionOutcome $outcome,
-		callable $renderFragment
+		callable $render_fragment
 	): never {
-		unset( $outcome, $renderFragment );
+		unset( $outcome, $render_fragment );
 		throw new RuntimeException( 'Response terminated.' );
 	}
 }

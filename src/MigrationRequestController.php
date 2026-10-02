@@ -153,8 +153,8 @@ final readonly class MigrationRequestController {
 		);
 		$interaction_outcome = match ( $outcome['kind'] ) {
 			'success' => AdminInteractionOutcome::success( $request_model, $outcome['message'] ),
-			'validation_failure' => AdminInteractionOutcome::validationFailure( $request_model, $outcome['message'] ),
-			default => AdminInteractionOutcome::unexpectedFailure( $request_model ),
+			'validation_failure' => AdminInteractionOutcome::validation_failure( $request_model, $outcome['message'] ),
+			default => AdminInteractionOutcome::unexpected_failure( $request_model ),
 		};
 		$row = null;
 		if ( 'success' === $outcome['kind'] ) {
@@ -167,7 +167,7 @@ final readonly class MigrationRequestController {
 				);
 		}
 
-		$this->admin_interaction->respondWithTransporterRowFragment(
+		$this->admin_interaction->respond_with_transporter_row_fragment(
 			$interaction_outcome,
 			fn ( string $target_element_id ): mixed => is_array( $row )
 				? $this->presenter->render_source_row( $row, $target_element_id )
