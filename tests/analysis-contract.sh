@@ -139,3 +139,5 @@ if php "$guard/tests/phpstan-bootstrap.php" > "$fixture/guard.log" 2>&1; then
 fi
 grep -Fq 'Checked-out Core does not match the pinned source commit and tree.' "$fixture/guard.log"
 printf 'Analysis contract passed: clean source, four selected-path negatives, certified Core method/return checks, altered/ignored/index-hidden/replacement-tree/mismatched Core refusals.\n'
+
+bash tests/source-behaviour-manifest-contract.sh

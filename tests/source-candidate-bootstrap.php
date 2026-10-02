@@ -14,7 +14,7 @@ require_once dirname( __DIR__ ) . '/scripts/core-certification.php';
  *
  * @param list<string> $scope Committed source roots used by this proof.
  */
-function verify_source( string $path, string $commit, array $scope = array( 'RAN/', 'autoload.php', 'composer.lock' ) ): void {
+function verify_source( string $path, string $commit, array $scope = array( 'RAN/', 'autoload.php', 'composer.json', 'composer.lock' ) ): void {
 	if ( 1 !== preg_match( '/\A[0-9a-f]{40}\z/D', $commit ) || realpath( $path ) !== $path ) {
 		throw new RuntimeException( 'Source candidate requires a canonical path and exact full commit.' );
 	}
