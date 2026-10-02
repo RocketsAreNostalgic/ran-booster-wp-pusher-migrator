@@ -2,7 +2,7 @@
 
 This source-candidate cohort starts at Migrator
 `4e707dc3f05233fbde4b06b933f1ac85ee03a494`. It requires the matching Core
-Portability API 3 candidate; Admin Interaction remains API 2. It is not
+Portability API 3 and Admin Interaction API 3 candidate. It is not
 certification against a published Core release and does not complete #43's
 owner-verified installed acceptance.
 
@@ -51,7 +51,7 @@ promotions `displayName`, `providerCode`, `credentialId` to `display_name`,
 `target_verified`. Facade parameter `expectedFingerprint` becomes
 `expected_fingerprint` in corresponding test overrides. Review-result properties
 are already compliant. These are breaking PHP contracts: the runtime checks
-require exact Portability API 3, retaining exact Admin Interaction API 2 checks.
+require exact Portability API 3 and exact Admin Interaction API 3 checks.
 
 Other Core consumers and Core-side declarations/callers belong to the connected
 Core handoff and must be reviewed there before integration. This Migrator change
@@ -59,13 +59,13 @@ does not authorize broader Core ownership.
 
 ## Preserved foreign and data contracts
 
-Admin Interaction is an excluded shared boundary. Its DTO factories/accessors,
-facade methods and local test implementations retain their exact foreign names:
-`transporterMigrationSourceRow`, `targetElementId`, `canonicalUrl`,
-`errorRegionId`, `validationFailure`, `unexpectedFailure`,
-`renderFormAttributes`, `isEnhancedRequest`, `respondWithTransporterRowFragment`.
-In particular, the presenter-owned `errorRegionId` changes while the Core DTO
-method does not. Native `Closure::fromCallable`, `Throwable::getMessage`, wpdb
+Core owns the Admin Interaction API 3 declarations; Migrator owns their connected
+callers and local test implementations. Both use the matching snake_case names:
+`transporter_migration_source_row`, `target_element_id`, `canonical_url`,
+`error_region_id`, `validation_failure`, `unexpected_failure`,
+`render_form_attributes`, `is_enhanced_request`,
+`respond_with_transporter_row_fragment`. The presenter-owned `error_region_id`
+and the Core DTO accessor now follow the same naming contract. Native `Closure::fromCallable`, `Throwable::getMessage`, wpdb
 methods, theme `exists`/`get`, and PHPUnit signatures are preserved.
 
 No serialized key, WP Pusher column or option, source fingerprint JSON key/order,

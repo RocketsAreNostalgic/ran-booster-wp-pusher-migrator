@@ -5,7 +5,9 @@ boundary guards and consumer fixtures for Provider 14 / Add-on 17 / Admin Intera
 Core keeps Portability 3 and its existing hash domain. Prospective Release 8 remains
 Core-owned; these satellite runtime guards do not claim that capability.
 
-Final source qualification uses published Core
+## Historical recovery checkpoint — 2 October 2026, before source CI separation
+
+This checkpoint used published Core
 `ae4de158e3ae02d99162b9b8d0babdc9269a36da` (Core draft PR #224),
 whose tree `f5ad8aa484fbe63b7d966eeef96ae9afd5d78a94` exactly matches
 local checkpoint `fa5265731f50dad658d1c1bda63ad3cca7168a42`.
@@ -31,6 +33,19 @@ Canonical checks after retrying existing fixtures outside the sandbox:
   Portability 3 / Admin Interaction 3 surface. Its source-candidate level 6 proof
   passes. The canonical released-host gate remains held until matching immutable
   Core recertification; no fallback, baseline, or suppression was introduced.
+
+## Final reviewed source qualification — 2 October 2026
+
+Migrator source head `83e484338f340ae7dcecc2008cfdedf4a0095d42`, tree
+`c436e2d1572f5ea509ce15609355762cf69defb4`, uses the exact Core commit/tree
+recorded above. With exact locked dependencies, complete `composer check` passes:
+129 tests / 1,478 assertions, level 6 PHPStan, real Core behavior, analysis negative
+contracts and direct shipped-file/archive coverage. `pnpm check` also passes.
+Native Quality run `37003784566` passes every job, including the required `quality`
+aggregate, on that reviewed source head. These results supersede the earlier
+128-test checkpoint and its canonical-source failure description. Later
+documentation-only commits do not change that source qualification tuple; their
+native checks are recorded separately on the pull request.
 
 ## Canonical source qualification and release separation
 
