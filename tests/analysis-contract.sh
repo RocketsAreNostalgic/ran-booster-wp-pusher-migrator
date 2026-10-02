@@ -9,7 +9,7 @@ trap 'rm -rf "$fixture"' EXIT
 mkdir -p "$fixture/scripts" "$fixture/tests"
 cp -R src views "$fixture/"
 cp composer.json phpstan.neon.dist index.php ran-booster-wp-pusher-migrator.php "$fixture/"
-cp scripts/core-certification.php scripts/prepare-analysis-core.sh "$fixture/scripts/"
+cp scripts/core-certification.php scripts/core-source.php scripts/prepare-analysis-core.sh "$fixture/scripts/"
 cp tests/phpstan-bootstrap.php "$fixture/tests/"
 ln -s "$project_root/vendor" "$fixture/vendor"
 
@@ -59,31 +59,31 @@ analyze > "$fixture/result.json"
 
 # Verify a disposable Core cache fails closed on altered bytes or certification.
 guard="$fixture/core-guard"
-mkdir -p "$guard/scripts" "$guard/tests" "$guard/vendor/ran-certified-core"
+mkdir -p "$guard/scripts" "$guard/tests" "$guard/vendor/ran-source-core"
 cp composer.json "$guard/"
-cp scripts/core-certification.php "$guard/scripts/"
+cp scripts/core-certification.php scripts/core-source.php "$guard/scripts/"
 cp tests/phpstan-bootstrap.php "$guard/tests/"
-git clone --quiet --shared -- "$project_root/vendor/ran-certified-core/source" "$guard/vendor/ran-certified-core/source"
+git clone --quiet --shared -- "$project_root/vendor/ran-source-core/source" "$guard/vendor/ran-source-core/source"
 php "$guard/tests/phpstan-bootstrap.php"
-printf '\n# Analysis negative control\n' >> "$guard/vendor/ran-certified-core/source/.gitignore"
+printf '\n# Analysis negative control\n' >> "$guard/vendor/ran-source-core/source/.gitignore"
 if php "$guard/tests/phpstan-bootstrap.php" > "$fixture/guard.log" 2>&1; then
 	printf 'Analysis accepted altered Core source.\n' >&2
 	exit 1
 fi
-grep -Fq 'Analysis requires unmodified certified Core source.' "$fixture/guard.log"
-git -C "$guard/vendor/ran-certified-core/source" restore -- .gitignore
-printf 'RAN/AnalysisIgnored.php\n' >> "$guard/vendor/ran-certified-core/source/.git/info/exclude"
-printf '<?php\nclass RanIgnoredAnalysisDeclaration {}\n' > "$guard/vendor/ran-certified-core/source/RAN/AnalysisIgnored.php"
-test -z "$(git -C "$guard/vendor/ran-certified-core/source" status --porcelain --untracked-files=all)"
+grep -Fq 'Analysis requires unmodified pinned Core source.' "$fixture/guard.log"
+git -C "$guard/vendor/ran-source-core/source" restore -- .gitignore
+printf 'RAN/AnalysisIgnored.php\n' >> "$guard/vendor/ran-source-core/source/.git/info/exclude"
+printf '<?php\nclass RanIgnoredAnalysisDeclaration {}\n' > "$guard/vendor/ran-source-core/source/RAN/AnalysisIgnored.php"
+test -z "$(git -C "$guard/vendor/ran-source-core/source" status --porcelain --untracked-files=all)"
 if php "$guard/tests/phpstan-bootstrap.php" > "$fixture/guard.log" 2>&1; then
 	printf 'Analysis accepted ignored Core declarations.\n' >&2
 	exit 1
 fi
-grep -Fq 'Analysis requires unmodified certified Core source.' "$fixture/guard.log"
-rm "$guard/vendor/ran-certified-core/source/RAN/AnalysisIgnored.php"
+grep -Fq 'Analysis requires unmodified pinned Core source.' "$fixture/guard.log"
+rm "$guard/vendor/ran-source-core/source/RAN/AnalysisIgnored.php"
 
 # Git status must not certify bytes hidden by assume-unchanged or sparse-checkout flags.
-core_cache="$guard/vendor/ran-certified-core/source"
+core_cache="$guard/vendor/ran-source-core/source"
 core_file="$(git -C "$core_cache" ls-files 'RAN/*.php' | sed -n '1p')"
 test -n "$core_file"
 git -C "$core_cache" update-index --assume-unchanged -- "$core_file"
@@ -93,7 +93,7 @@ if php "$guard/tests/phpstan-bootstrap.php" > "$fixture/guard.log" 2>&1; then
 	printf 'Analysis accepted assume-unchanged Core bytes.\n' >&2
 	exit 1
 fi
-grep -Fq 'Analysis requires unmodified certified Core source.' "$fixture/guard.log"
+grep -Fq 'Analysis requires unmodified pinned Core source.' "$fixture/guard.log"
 git -C "$core_cache" update-index --no-assume-unchanged -- "$core_file"
 git -C "$core_cache" restore -- "$core_file"
 git -C "$core_cache" update-index --skip-worktree -- "$core_file"
@@ -103,7 +103,7 @@ if php "$guard/tests/phpstan-bootstrap.php" > "$fixture/guard.log" 2>&1; then
 	printf 'Analysis accepted missing skip-worktree Core source.\n' >&2
 	exit 1
 fi
-grep -Fq 'Analysis requires unmodified certified Core source.' "$fixture/guard.log"
+grep -Fq 'Analysis requires unmodified pinned Core source.' "$fixture/guard.log"
 git -C "$core_cache" update-index --no-skip-worktree -- "$core_file"
 git -C "$core_cache" restore -- "$core_file"
 php "$guard/tests/phpstan-bootstrap.php"
@@ -122,7 +122,7 @@ if php "$guard/tests/phpstan-bootstrap.php" > "$fixture/guard.log" 2>&1; then
 	printf 'Analysis accepted a replacement Core tree.\n' >&2
 	exit 1
 fi
-grep -Fq 'Analysis requires unmodified certified Core source.' "$fixture/guard.log"
+grep -Fq 'Analysis requires unmodified pinned Core source.' "$fixture/guard.log"
 git -C "$core_cache" replace -d "$certified_head" >/dev/null
 git -C "$core_cache" reset --hard "$certified_head" >/dev/null
 php "$guard/tests/phpstan-bootstrap.php"
@@ -130,12 +130,14 @@ php "$guard/tests/phpstan-bootstrap.php"
 php -r '
 	$path = $argv[1];
 	$manifest = json_decode(file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
-	$manifest["extra"]["ran-booster-core-certification"]["commit"] = str_repeat("0", 40);
+	$manifest["extra"]["ran-booster-core-source"]["commit"] = str_repeat("0", 40);
 	file_put_contents($path, json_encode($manifest, JSON_THROW_ON_ERROR));
 ' "$guard/composer.json"
 if php "$guard/tests/phpstan-bootstrap.php" > "$fixture/guard.log" 2>&1; then
 	printf 'Analysis accepted a mismatched Core certification.\n' >&2
 	exit 1
 fi
-grep -Fq 'Checked-out Core HEAD does not match the certified commit.' "$fixture/guard.log"
+grep -Fq 'Checked-out Core does not match the pinned source commit and tree.' "$fixture/guard.log"
 printf 'Analysis contract passed: clean source, four selected-path negatives, certified Core method/return checks, altered/ignored/index-hidden/replacement-tree/mismatched Core refusals.\n'
+
+bash tests/source-behaviour-manifest-contract.sh

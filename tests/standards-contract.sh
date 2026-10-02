@@ -60,4 +60,22 @@ fix
 snapshot "$work_root/after"
 cmp -s "$work_root/before" "$work_root/after" || fail 'second fixture fixer pass changed tracked bytes'
 
+# Completed runtime naming is blocking through the same canonical standards gate.
+cp "$fixture/src/WpPusherPackage.php" "$work_root/clean-package.php"
+sed 's/function fingerprint(/function fingerprintProbe(/' "$work_root/clean-package.php" > "$fixture/src/WpPusherPackage.php"
+if run_command standards; then
+	fail 'owned camelCase method escaped runtime naming enforcement'
+fi
+"$repo_root/vendor/bin/phpcs" --standard="$fixture/.phpcs.xml.dist" --report=full -s "$fixture/src/WpPusherPackage.php" >> "$work_root/output" 2>&1 || true
+grep -q 'MethodNameInvalid' "$work_root/output" || fail 'method control failed for an unrelated reason'
+cp "$work_root/clean-package.php" "$fixture/src/WpPusherPackage.php"
+sed 's/public int $id/public int $packageId/' "$work_root/clean-package.php" > "$fixture/src/WpPusherPackage.php"
+if run_command standards; then
+	fail 'owned promoted camelCase property escaped runtime naming enforcement'
+fi
+"$repo_root/vendor/bin/phpcs" --standard="$fixture/.phpcs.xml.dist" --report=full -s "$fixture/src/WpPusherPackage.php" >> "$work_root/output" 2>&1 || true
+grep -q 'NotSnakeCase' "$work_root/output" || fail 'property control failed for an unrelated reason'
+cp "$work_root/clean-package.php" "$fixture/src/WpPusherPackage.php"
+run_command standards || fail 'restored naming controls do not pass standards'
+
 printf 'PASS actual standards/check-fix commands reject and restore the fixture; repeated fixes preserve tracked bytes\n'

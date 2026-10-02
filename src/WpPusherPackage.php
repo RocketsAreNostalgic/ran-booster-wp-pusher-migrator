@@ -11,7 +11,7 @@ use JsonException;
 final readonly class WpPusherPackage {
 
 	/** @param array<string, mixed> $row */
-	public static function fromRow( array $row ): self {
+	public static function from_row( array $row ): self {
 		$expected = array(
 			'id',
 			'package',
@@ -29,15 +29,15 @@ final readonly class WpPusherPackage {
 		}
 
 		return new self(
-			self::positiveInteger( $row['id'] ),
-			self::boundedString( $row['package'] ),
+			self::positive_integer( $row['id'] ),
+			self::bounded_string( $row['package'] ),
 			self::repository( $row['repository'] ),
-			self::boundedString( $row['branch'], true ),
-			self::oneOfIntegers( $row['type'], array( 1, 2 ) ),
-			self::booleanInteger( $row['status'] ),
-			self::booleanInteger( $row['ptd'] ),
-			self::oneOfStrings( $row['host'], array( 'gh', 'bb', 'gl' ) ),
-			self::booleanInteger( $row['private'] ),
+			self::bounded_string( $row['branch'], true ),
+			self::one_of_integers( $row['type'], array( 1, 2 ) ),
+			self::boolean_integer( $row['status'] ),
+			self::boolean_integer( $row['ptd'] ),
+			self::one_of_strings( $row['host'], array( 'gh', 'bb', 'gl' ) ),
+			self::boolean_integer( $row['private'] ),
 			self::subdirectory( $row['subdirectory'] )
 		);
 	}
@@ -59,7 +59,7 @@ final readonly class WpPusherPackage {
 	public function fingerprint(): string {
 		try {
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Canonical local fingerprint.
-			$json = json_encode( $this->toArray(), JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES );
+			$json = json_encode( $this->to_array(), JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES );
 		} catch ( JsonException ) {
 			throw new InvalidArgumentException( 'The WP Pusher package could not be fingerprinted.' );
 		}
@@ -68,7 +68,7 @@ final readonly class WpPusherPackage {
 	}
 
 	/** @return array{id:int,package:string,repository:string,branch:string,type:int,status:int,ptd:int,host:string,private:int,subdirectory:string|null} */
-	public function toArray(): array {
+	public function to_array(): array {
 		return array(
 			'id'           => $this->id,
 			'package'      => $this->package,
@@ -83,7 +83,7 @@ final readonly class WpPusherPackage {
 		);
 	}
 
-	private static function positiveInteger( mixed $value ): int {
+	private static function positive_integer( mixed $value ): int {
 		$integer = filter_var( $value, FILTER_VALIDATE_INT );
 		if ( false === $integer || $integer < 1 ) {
 			throw new InvalidArgumentException( 'The WP Pusher package identifier is invalid.' );
@@ -93,7 +93,7 @@ final readonly class WpPusherPackage {
 	}
 
 	/** @param list<int> $allowed */
-	private static function oneOfIntegers( mixed $value, array $allowed ): int {
+	private static function one_of_integers( mixed $value, array $allowed ): int {
 		$integer = filter_var( $value, FILTER_VALIDATE_INT );
 		if ( false === $integer || ! in_array( $integer, $allowed, true ) ) {
 			throw new InvalidArgumentException( 'The WP Pusher package field is unsupported.' );
@@ -102,12 +102,12 @@ final readonly class WpPusherPackage {
 		return $integer;
 	}
 
-	private static function booleanInteger( mixed $value ): int {
-		return self::oneOfIntegers( $value, array( 0, 1 ) );
+	private static function boolean_integer( mixed $value ): int {
+		return self::one_of_integers( $value, array( 0, 1 ) );
 	}
 
 	/** @param list<string> $allowed */
-	private static function oneOfStrings( mixed $value, array $allowed ): string {
+	private static function one_of_strings( mixed $value, array $allowed ): string {
 		if ( ! is_string( $value ) || ! in_array( $value, $allowed, true ) ) {
 			throw new InvalidArgumentException( 'The WP Pusher provider is unsupported.' );
 		}
@@ -115,10 +115,10 @@ final readonly class WpPusherPackage {
 		return $value;
 	}
 
-	private static function boundedString( mixed $value, bool $allowEmpty = false ): string {
+	private static function bounded_string( mixed $value, bool $allow_empty = false ): string {
 		if ( ! is_string( $value )
 			|| strlen( $value ) > 255
-			|| ( ! $allowEmpty && '' === $value )
+			|| ( ! $allow_empty && '' === $value )
 			|| 1 === preg_match( '/[\x00-\x1F\x7F]/', $value ) ) {
 			throw new InvalidArgumentException( 'The WP Pusher package field is invalid.' );
 		}
@@ -127,7 +127,7 @@ final readonly class WpPusherPackage {
 	}
 
 	private static function repository( mixed $value ): string {
-		$repository = self::boundedString( $value );
+		$repository = self::bounded_string( $value );
 		if ( 1 !== preg_match( '/\A[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\z/D', $repository ) ) {
 			throw new InvalidArgumentException( 'The WP Pusher repository is invalid.' );
 		}
@@ -140,7 +140,7 @@ final readonly class WpPusherPackage {
 			return null;
 		}
 
-		$path = self::boundedString( $value, true );
+		$path = self::bounded_string( $value, true );
 		if ( '' === $path ) {
 			return '';
 		}

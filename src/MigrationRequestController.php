@@ -26,30 +26,30 @@ final readonly class MigrationRequestController {
 		private MigrationService $migration,
 		private WpPusherSource $source,
 		private MigrationPresenter $presenter,
-		private AdminInteractionFacade&TransporterRowAdminInteractionFacade $adminInteraction
+		private AdminInteractionFacade&TransporterRowAdminInteractionFacade $admin_interaction
 	) {
 	}
 
 	public function register(): void {
-		add_action( 'ran_booster_portability_render_migration_modes', array( $this, 'renderMode' ), 20 );
-		add_action( 'ran_booster_portability_render_migration_flows', array( $this, 'renderPanel' ), 20 );
-		add_action( 'ran_booster_overview_render_migration_prompt', array( $this, 'renderOverviewPrompt' ), 20 );
-		add_action( 'admin_post_' . self::ADMIN_POST_ACTION, array( $this, 'handleAdminPost' ) );
-		add_action( 'admin_enqueue_scripts', array( $this, 'enqueueAssets' ), 20 );
+		add_action( 'ran_booster_portability_render_migration_modes', array( $this, 'render_mode' ), 20 );
+		add_action( 'ran_booster_portability_render_migration_flows', array( $this, 'render_panel' ), 20 );
+		add_action( 'ran_booster_overview_render_migration_prompt', array( $this, 'render_overview_prompt' ), 20 );
+		add_action( 'admin_post_' . self::ADMIN_POST_ACTION, array( $this, 'handle_admin_post' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ), 20 );
 	}
 
-	public function renderMode(): void {
+	public function render_mode(): void {
 		if ( current_user_can( 'manage_options' ) ) {
-			$this->presenter->renderMode();
+			$this->presenter->render_mode();
 		}
 	}
 
-	public function renderPanel(): void {
+	public function render_panel(): void {
 		$request   = is_array( $_POST ) ? wp_unslash( $_POST ) : array();
-		$operation = $this->requestOperation( $request );
-		$submitted = $this->isSubmittedRequest( $request );
+		$operation = $this->request_operation( $request );
+		$submitted = $this->is_submitted_request( $request );
 		if ( $submitted && ! in_array( $operation, array( 'review', 'apply' ), true ) ) {
-			$this->invalidOperation();
+			$this->invalid_operation();
 		}
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
@@ -59,22 +59,22 @@ final readonly class MigrationRequestController {
 		}
 
 		try {
-			$outcome  = $submitted ? $this->operationOutcome( $operation, $request ) : null;
+			$outcome  = $submitted ? $this->operation_outcome( $operation, $request ) : null;
 			$error    = null !== $outcome && 'success' !== $outcome['kind'] && null === $outcome['apply']
 				? ( 'unexpected_failure' === $outcome['kind']
 					? __( 'Booster could not safely process this WP Pusher package. Reload Transporter and try again.', 'ran-booster-wp-pusher-migrator' )
 					: $outcome['message'] )
 				: '';
 			$packages = '' === $error ? $this->migration->packages() : array();
-			$this->presenter->renderPanel(
+			$this->presenter->render_panel(
 				$packages,
 				$outcome['review'] ?? null,
 				$outcome['apply'] ?? null,
-				'' === $error ? $this->source->optionPresence() : array(),
+				'' === $error ? $this->source->option_presence() : array(),
 				$error
 			);
 		} catch ( Throwable ) {
-			$this->presenter->renderPanel(
+			$this->presenter->render_panel(
 				array(),
 				null,
 				null,
@@ -84,21 +84,21 @@ final readonly class MigrationRequestController {
 		}
 	}
 
-	public function renderOverviewPrompt(): void {
+	public function render_overview_prompt(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
 		try {
-			if ( ! $this->source->supportedPackageTablePresent() ) {
+			if ( ! $this->source->supported_package_table_present() ) {
 				return;
 			}
 		} catch ( Throwable ) {
 			return;
 		}
-		$this->presenter->renderOverviewPrompt();
+		$this->presenter->render_overview_prompt();
 	}
 
-	public function enqueueAssets( mixed $hook ): void {
+	public function enqueue_assets( mixed $hook ): void {
 		if ( 'toplevel_page_ran-booster' !== $hook ) {
 			return;
 		}
@@ -122,11 +122,11 @@ final readonly class MigrationRequestController {
 		);
 	}
 
-	public function handleAdminPost(): void {
+	public function handle_admin_post(): void {
 		$request   = is_array( $_POST ) ? wp_unslash( $_POST ) : array();
-		$operation = $this->requestOperation( $request );
+		$operation = $this->request_operation( $request );
 		if ( ! in_array( $operation, array( 'review', 'apply' ), true ) ) {
-			$this->invalidOperation();
+			$this->invalid_operation();
 		}
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die(
@@ -137,7 +137,7 @@ final readonly class MigrationRequestController {
 		}
 		check_admin_referer( 'review' === $operation ? self::FORM_ACTION : self::APPLY_FORM_ACTION );
 
-		$outcome = $this->operationOutcome( $operation, $request );
+		$outcome = $this->operation_outcome( $operation, $request );
 		$source  = $outcome['source'];
 		if ( ! $source instanceof WpPusherPackage ) {
 			wp_die(
@@ -147,30 +147,30 @@ final readonly class MigrationRequestController {
 			);
 		}
 
-		$requestModel       = $this->presenter->interactionRequest(
+		$request_model       = $this->presenter->interaction_request(
 			$source,
 			'review' === $operation ? 'check-package' : 'import-package'
 		);
-		$interactionOutcome = match ( $outcome['kind'] ) {
-			'success' => AdminInteractionOutcome::success( $requestModel, $outcome['message'] ),
-			'validation_failure' => AdminInteractionOutcome::validationFailure( $requestModel, $outcome['message'] ),
-			default => AdminInteractionOutcome::unexpectedFailure( $requestModel ),
+		$interaction_outcome = match ( $outcome['kind'] ) {
+			'success' => AdminInteractionOutcome::success( $request_model, $outcome['message'] ),
+			'validation_failure' => AdminInteractionOutcome::validation_failure( $request_model, $outcome['message'] ),
+			default => AdminInteractionOutcome::unexpected_failure( $request_model ),
 		};
 		$row = null;
 		if ( 'success' === $outcome['kind'] ) {
 			$row = 'review' === $operation
 				? $this->presenter->row( $source, $outcome['review'] )
-				: $this->presenter->importedRow(
+				: $this->presenter->imported_row(
 					$source,
 					$outcome['apply']['result'],
 					$outcome['migration_complete']
 				);
 		}
 
-		$this->adminInteraction->respondWithTransporterRowFragment(
-			$interactionOutcome,
-			fn ( string $targetElementId ): mixed => is_array( $row )
-				? $this->presenter->renderSourceRow( $row, $targetElementId )
+		$this->admin_interaction->respond_with_transporter_row_fragment(
+			$interaction_outcome,
+			fn ( string $target_element_id ): mixed => is_array( $row )
+				? $this->presenter->render_source_row( $row, $target_element_id )
 				: null
 		);
 	}
@@ -179,7 +179,7 @@ final readonly class MigrationRequestController {
 	 * @param array<string, mixed> $request Authorized request values.
 	 * @return array{kind:'success'|'validation_failure'|'unexpected_failure',message:string,source:WpPusherPackage|null,review:PortabilityReviewResult|null,apply:array{result:PortabilityApplyResult,cleanup_pending:bool}|null,migration_complete:bool}
 	 */
-	private function operationOutcome( string $operation, array $request ): array {
+	private function operation_outcome( string $operation, array $request ): array {
 		$outcome = array(
 			'kind'               => 'success',
 			'message'            => '',
@@ -189,50 +189,50 @@ final readonly class MigrationRequestController {
 			'migration_complete' => false,
 		);
 		try {
-			$source            = $this->package( $this->migration->packages(), isset( $request['source_id'] ) ? absint( $request['source_id'] ) : 0 );
-			$outcome['source'] = $source;
-			$credentialId      = $this->requestValue( $request, 'credential_id' );
-			$credentialId      = '' === $credentialId ? null : $credentialId;
-			$sourceFingerprint = $this->requestValue( $request, 'source_fingerprint' );
+			$source             = $this->package( $this->migration->packages(), isset( $request['source_id'] ) ? absint( $request['source_id'] ) : 0 );
+			$outcome['source']  = $source;
+			$credential_id      = $this->request_value( $request, 'credential_id' );
+			$credential_id      = '' === $credential_id ? null : $credential_id;
+			$source_fingerprint = $this->request_value( $request, 'source_fingerprint' );
 			if ( 'review' === $operation ) {
-				$nonce              = wp_create_nonce( $this->migration->nonceAction( 'review', $source, $credentialId ) );
-				$outcome['review']  = $this->migration->review( $source->id, $sourceFingerprint, $credentialId, $nonce );
+				$nonce              = wp_create_nonce( $this->migration->nonce_action( 'review', $source, $credential_id ) );
+				$outcome['review']  = $this->migration->review( $source->id, $source_fingerprint, $credential_id, $nonce );
 				$outcome['message'] = $outcome['review']->message;
 				return $outcome;
 			}
 
-			$reviewFingerprint             = $this->requestValue( $request, 'review_fingerprint' );
-			$nonce                         = wp_create_nonce( $this->migration->nonceAction( 'apply', $source, $credentialId, $reviewFingerprint ) );
-			$result                        = $this->migration->apply( $source->id, $sourceFingerprint, $credentialId, $reviewFingerprint, $nonce );
-			$removed                       = $result->targetVerified && $this->migration->cleanup( $source->id, $sourceFingerprint, $result );
-			$cleanupPending                = $result->targetVerified && ! $removed;
+			$review_fingerprint            = $this->request_value( $request, 'review_fingerprint' );
+			$nonce                         = wp_create_nonce( $this->migration->nonce_action( 'apply', $source, $credential_id, $review_fingerprint ) );
+			$result                        = $this->migration->apply( $source->id, $source_fingerprint, $credential_id, $review_fingerprint, $nonce );
+			$removed                       = $result->target_verified && $this->migration->cleanup( $source->id, $source_fingerprint, $result );
+			$cleanup_pending               = $result->target_verified && ! $removed;
 			$outcome['apply']              = array(
 				'result'          => $result,
-				'cleanup_pending' => $cleanupPending,
+				'cleanup_pending' => $cleanup_pending,
 			);
-			$outcome['migration_complete'] = ! $cleanupPending && $result->targetVerified && $this->migrationComplete();
-			$outcome['message']            = $cleanupPending
+			$outcome['migration_complete'] = ! $cleanup_pending && $result->target_verified && $this->migration_complete();
+			$outcome['message']            = $cleanup_pending
 				? __( 'Booster verified the adopted package, but its exact WP Pusher source record could not be removed. Keep WP Pusher inactive and try again.', 'ran-booster-wp-pusher-migrator' )
 				: $result->message;
-			$outcome['kind']               = $result->targetVerified && ! $cleanupPending ? 'success' : 'validation_failure';
+			$outcome['kind']               = $result->target_verified && ! $cleanup_pending ? 'success' : 'validation_failure';
 		} catch ( Throwable $failure ) {
-			$outcome['message'] = $this->presenter->failureMessage( $failure ) ?? '';
+			$outcome['message'] = $this->presenter->failure_message( $failure ) ?? '';
 			$outcome['kind']    = '' === $outcome['message'] ? 'unexpected_failure' : 'validation_failure';
 		}
 		return $outcome;
 	}
 
 	/** @param list<WpPusherPackage> $packages */
-	private function package( array $packages, int $sourceId ): WpPusherPackage {
+	private function package( array $packages, int $source_id ): WpPusherPackage {
 		foreach ( $packages as $package ) {
-			if ( $sourceId === $package->id ) {
+			if ( $source_id === $package->id ) {
 				return $package;
 			}
 		}
 		throw new RuntimeException( 'The WP Pusher package is no longer available.' );
 	}
 
-	private function migrationComplete(): bool {
+	private function migration_complete(): bool {
 		try {
 			return array() === $this->migration->packages();
 		} catch ( Throwable ) {
@@ -241,26 +241,26 @@ final readonly class MigrationRequestController {
 	}
 
 	/** @param array<string, mixed> $request */
-	private function requestOperation( array $request ): string {
-		return $this->requestValue( $request, 'ran_booster_wp_pusher_migrator_action', true );
+	private function request_operation( array $request ): string {
+		return $this->request_value( $request, 'ran_booster_wp_pusher_migrator_action', true );
 	}
 
 	/** @param array<string, mixed> $request */
-	private function requestValue( array $request, string $key, bool $sanitizeKey = false ): string {
+	private function request_value( array $request, string $key, bool $sanitize_key = false ): string {
 		if ( ! isset( $request[ $key ] ) || ! is_scalar( $request[ $key ] ) ) {
 			return '';
 		}
-		return $sanitizeKey ? sanitize_key( (string) $request[ $key ] ) : sanitize_text_field( (string) $request[ $key ] );
+		return $sanitize_key ? sanitize_key( (string) $request[ $key ] ) : sanitize_text_field( (string) $request[ $key ] );
 	}
 
 	/** @param array<string, mixed> $request */
-	private function isSubmittedRequest( array $request ): bool {
+	private function is_submitted_request( array $request ): bool {
 		return array_key_exists( 'ran_booster_wp_pusher_migrator_action', $request )
 			|| ( isset( $request['action'] ) && is_scalar( $request['action'] )
 				&& self::ADMIN_POST_ACTION === sanitize_key( (string) $request['action'] ) );
 	}
 
-	private function invalidOperation(): never {
+	private function invalid_operation(): never {
 		wp_die(
 			esc_html__( 'Choose a valid WP Pusher migration action.', 'ran-booster-wp-pusher-migrator' ),
 			esc_html__( 'Invalid migration request', 'ran-booster-wp-pusher-migrator' ),

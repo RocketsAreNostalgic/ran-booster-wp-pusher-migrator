@@ -10,11 +10,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /** @param callable|array{class-string,string}|string $callback */
-function add_action( string $hook, callable|array|string $callback, int $priority = 10, int $acceptedArgs = 1 ): void {
+function add_action( string $hook, callable|array|string $callback, int $priority = 10, int $accepted_args = 1 ): void {
 	$GLOBALS['ran_booster_wp_pusher_test_hooks'][ $hook ][] = array(
 		'callback'      => $callback,
 		'priority'      => $priority,
-		'accepted_args' => $acceptedArgs,
+		'accepted_args' => $accepted_args,
 	);
 }
 

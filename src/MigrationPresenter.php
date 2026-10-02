@@ -24,41 +24,41 @@ final readonly class MigrationPresenter {
 
 	public function __construct(
 		private CandidateFactory $candidates,
-		private AdminInteractionFacade&TransporterRowAdminInteractionFacade $adminInteraction
+		private AdminInteractionFacade&TransporterRowAdminInteractionFacade $admin_interaction
 	) {
 	}
 
-	public function renderMode(): void {
+	public function render_mode(): void {
 		require dirname( __DIR__ ) . '/views/migration-mode.php';
 	}
 
 	/**
 	 * @param list<WpPusherPackage> $packages
 	 * @param array{result:PortabilityApplyResult,cleanup_pending:bool}|null $apply
-	 * @param array<string, bool> $optionPresence
+	 * @param array<string, bool> $option_presence
 	 */
-	public function renderPanel(
+	public function render_panel(
 		array $packages,
 		?PortabilityReviewResult $review,
 		?array $apply,
-		array $optionPresence,
+		array $option_presence,
 		string $error
 	): void {
-		$rows              = $this->rows( $packages, $review );
-		$hasError          = '' !== $error;
-		$legacyDataPresent = ! $hasError && in_array( true, $optionPresence, true );
-		$applyVisible      = null !== $apply;
-		$applyClass        = $applyVisible && $apply['result']->targetVerified ? 'notice-success' : 'notice-error';
-		$applyMessage      = $apply['result']->message ?? '';
-		$cleanupPending    = $apply['cleanup_pending'] ?? false;
-		$completionVisible = array() === $rows;
-		$adminInteraction  = $this->adminInteraction;
-		$pluginsUrl        = admin_url( 'plugins.php' );
+		$rows                = $this->rows( $packages, $review );
+		$has_error           = '' !== $error;
+		$legacy_data_present = ! $has_error && in_array( true, $option_presence, true );
+		$apply_visible       = null !== $apply;
+		$apply_class         = $apply_visible && $apply['result']->target_verified ? 'notice-success' : 'notice-error';
+		$apply_message       = $apply['result']->message ?? '';
+		$cleanup_pending     = $apply['cleanup_pending'] ?? false;
+		$completion_visible  = array() === $rows;
+		$admin_interaction   = $this->admin_interaction;
+		$plugins_url         = admin_url( 'plugins.php' );
 		require dirname( __DIR__ ) . '/views/source-card.php';
 	}
 
-	public function renderOverviewPrompt(): void {
-		$migrationUrl = $this->migrationUrl();
+	public function render_overview_prompt(): void {
+		$migration_url = $this->migration_url();
 		require dirname( __DIR__ ) . '/views/overview-prompt.php';
 	}
 
@@ -81,37 +81,37 @@ final readonly class MigrationPresenter {
 		try {
 			$candidate = $this->candidates->candidate( $source, 1 === $source->private ? 'credential_required' : null );
 		} catch ( Throwable $failure ) {
-			$error = $this->failureMessage( $failure ) ?? __( 'This retained package is unsupported.', 'ran-booster-wp-pusher-migrator' );
+			$error = $this->failure_message( $failure ) ?? __( 'This retained package is unsupported.', 'ran-booster-wp-pusher-migrator' );
 		}
 		$actionable = null !== $review && in_array( $review->action, array( 'adopt', 'managed' ), true );
 		$managed    = null !== $review && 'managed' === $review->action;
-		$check      = $this->interactionRequest( $source, 'check-package' );
-		$import     = $this->interactionRequest( $source, 'import-package' );
+		$check      = $this->interaction_request( $source, 'check-package' );
+		$import     = $this->interaction_request( $source, 'import-package' );
 
-		$statusHeading = '';
-		$statusMessage = '';
-		$statusStrong  = true;
+		$status_heading = '';
+		$status_message = '';
+		$status_strong  = true;
 		if ( '' !== $error ) {
-			$statusHeading = __( 'Cannot adopt', 'ran-booster-wp-pusher-migrator' );
-			$statusMessage = $error;
+			$status_heading = __( 'Cannot adopt', 'ran-booster-wp-pusher-migrator' );
+			$status_message = $error;
 		} elseif ( $managed ) {
-			$statusHeading = __( 'Adoption incomplete', 'ran-booster-wp-pusher-migrator' );
-			$statusMessage = __( 'Booster manages this package; a WP Pusher record remains.', 'ran-booster-wp-pusher-migrator' );
+			$status_heading = __( 'Adoption incomplete', 'ran-booster-wp-pusher-migrator' );
+			$status_message = __( 'Booster manages this package; a WP Pusher record remains.', 'ran-booster-wp-pusher-migrator' );
 		} elseif ( $actionable ) {
-			$statusHeading = __( 'Ready to adopt', 'ran-booster-wp-pusher-migrator' );
+			$status_heading = __( 'Ready to adopt', 'ran-booster-wp-pusher-migrator' );
 		} elseif ( null !== $review ) {
-			$statusHeading = __( 'Cannot adopt', 'ran-booster-wp-pusher-migrator' );
-			$statusMessage = $review->message;
+			$status_heading = __( 'Cannot adopt', 'ran-booster-wp-pusher-migrator' );
+			$status_message = $review->message;
 		} else {
-			$statusHeading = __( 'Ready to check', 'ran-booster-wp-pusher-migrator' );
-			$statusStrong  = false;
+			$status_heading = __( 'Ready to check', 'ran-booster-wp-pusher-migrator' );
+			$status_strong  = false;
 		}
 
 		$action = null === $candidate ? 'none' : ( $actionable ? 'apply' : 'check' );
 		return array(
 			'package'            => $source->package,
 			'repository'         => $source->repository,
-			'migration_url'      => $this->migrationUrl(),
+			'migration_url'      => $this->migration_url(),
 			'form_action'        => self::FORM_ACTION,
 			'apply_form_action'  => self::APPLY_FORM_ACTION,
 			'admin_post_action'  => self::ADMIN_POST_ACTION,
@@ -119,25 +119,25 @@ final readonly class MigrationPresenter {
 			'source_fingerprint' => $source->fingerprint(),
 			'private'            => 1 === $source->private,
 			'review_fingerprint' => $review->fingerprint ?? '',
-			'credential_id'      => $review->candidate->credentialId ?? '',
+			'credential_id'      => $review->candidate->credential_id ?? '',
 			'migration_complete' => false,
-			'status_heading'     => $statusHeading,
-			'status_message'     => $statusMessage,
-			'status_strong'      => $statusStrong,
+			'status_heading'     => $status_heading,
+			'status_message'     => $status_message,
+			'status_strong'      => $status_strong,
 			'action'             => $action,
 			'action_label'       => $managed ? __( 'Finish', 'ran-booster-wp-pusher-migrator' ) : __( 'Adopt', 'ran-booster-wp-pusher-migrator' ),
 			'manage_url'         => '',
 			'manage_label'       => '',
 			'form_request'       => 'check' === $action ? $check : ( 'apply' === $action ? $import : null ),
-			'target_element_id'  => $check->targetElementId(),
-			'error_region_id'    => $this->errorRegionId( $source ),
+			'target_element_id'  => $check->target_element_id(),
+			'error_region_id'    => $this->error_region_id( $source ),
 		);
 	}
 
 	/** @return array<string, mixed> */
-	public function importedRow( WpPusherPackage $source, PortabilityApplyResult $result, bool $migrationComplete ): array {
+	public function imported_row( WpPusherPackage $source, PortabilityApplyResult $result, bool $migration_complete ): array {
 		$row                       = $this->row( $source, null );
-		$row['migration_complete'] = $migrationComplete;
+		$row['migration_complete'] = $migration_complete;
 		$row['status_heading']     = 'adopted' === $result->status ? __( 'Adopted', 'ran-booster-wp-pusher-migrator' ) : __( 'Adoption verified', 'ran-booster-wp-pusher-migrator' );
 		$row['status_message']     = '';
 		$row['status_strong']      = true;
@@ -149,31 +149,31 @@ final readonly class MigrationPresenter {
 	}
 
 	/** @param array<string, mixed> $row */
-	public function renderSourceRow( array $row, string $targetElementId ): void {
-		$row['target_element_id'] = $targetElementId;
-		$adminInteraction         = $this->adminInteraction;
+	public function render_source_row( array $row, string $target_element_id ): void {
+		$row['target_element_id'] = $target_element_id;
+		$admin_interaction        = $this->admin_interaction;
 		require dirname( __DIR__ ) . '/views/source-row.php';
 	}
 
-	public function interactionRequest( WpPusherPackage $source, string $operation ): AdminInteractionRequest {
-		$identityHash = substr( hash( 'sha256', $source->type . ':' . $source->package ), 0, 40 );
-		return AdminInteractionRequest::transporterMigrationSourceRow(
+	public function interaction_request( WpPusherPackage $source, string $operation ): AdminInteractionRequest {
+		$identity_hash = substr( hash( 'sha256', $source->type . ':' . $source->package ), 0, 40 );
+		return AdminInteractionRequest::transporter_migration_source_row(
 			'wp-pusher:' . $operation,
-			'wp-pusher:package-' . $identityHash,
-			$this->migrationUrl(),
-			$this->errorRegionId( $source )
+			'wp-pusher:package-' . $identity_hash,
+			$this->migration_url(),
+			$this->error_region_id( $source )
 		);
 	}
 
-	private function errorRegionId( WpPusherPackage $source ): string {
+	private function error_region_id( WpPusherPackage $source ): string {
 		return 'ran-booster-wp-pusher-row-error-' . substr( hash( 'sha256', $source->type . ':' . $source->package ), 0, 32 );
 	}
 
-	private function migrationUrl(): string {
+	private function migration_url(): string {
 		return admin_url( 'admin.php?page=ran-booster&tab=portability#ran-booster-portability-wp-pusher' );
 	}
 
-	public function failureMessage( Throwable $failure ): ?string {
+	public function failure_message( Throwable $failure ): ?string {
 		if ( ! $failure instanceof RuntimeException ) {
 			return null;
 		}

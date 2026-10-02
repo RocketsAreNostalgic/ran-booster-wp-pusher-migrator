@@ -44,19 +44,30 @@ and `views/`, `index.php`, and the plugin entry point (15 files). Tests, fixture
 and release scripts retain their other checks; this gate does not claim to
 analyse them. There is no blanket baseline or production exclusion.
 
-Analysis discovers the real Core declarations at the tag/commit certified in
-`composer.json`, without executing Core or loading the unit-test doubles. The
-first `composer analyze` (or explicit `composer analysis:setup`) needs Git and
-network access to prepare `vendor/ran-certified-core/source`. Subsequent runs
-verify the cached tag, HEAD and clean worktree and can run offline. A dirty or
-stale cache fails; inspect it and remove that disposable directory before
-preparing it again. Never alter the certification tuple just to make analysis
-pass. Core API constants are dynamic for the runtime compatibility guards;
+Analysis discovers real Core declarations at the exact commit/tree in
+`extra.ran-booster-core-source`, without executing Core or loading unit-test
+doubles. This reviewed source tuple is separate from the unchanged historical
+`ran-booster-core-certification` tag/commit. `composer analysis:setup` fetches
+only the pinned commit into `vendor/ran-source-core/source`; cached HEAD, tree,
+tracked bytes and clean worktree must match, including ignored/index-hidden
+changes. An existing wrong cache fails rather than being silently replaced.
+
+Canonical `composer check` uses that source tuple and runs the real facade/DTO
+behavior proof, including source fingerprints, nonce payloads and verified-only
+cleanup. Source Quality and exact ZIP coverage do not certify an immutable host.
+`composer analyze:certified` separately prepares the immutable tagged Core and
+analyzes the same production selection against its real declarations. Release
+candidate Quality and the existing shared Release Please caller require it;
+the caller binds that proof to the successful same-repository push/main Quality
+head. The historical API2 tuple fails this gate until matching released API3
+certification is truthfully adopted. Installed acceptance remains required.
+
+Core API constants are dynamic for the runtime compatibility guards;
 two precisely matched, counted POST-guard diagnostics remain excepted under
 #42 because other plugins can mutate the request global.
 
 `composer test:analysis-contract` checks clean source and injects bad return and
-missing certified-Core method calls into a new source file, a new template,
+missing pinned-Core method calls into a new source file, a new template,
 and each root PHP file in a disposable copy. It runs in `composer check`.
 The required repository Quality lane uses that complete aggregate on PRs and
 main; runtime archive and certified-Core checks remain separate required jobs.
@@ -88,3 +99,16 @@ release archives, credentials, database exports, logs, or private site data.
 
 By submitting a contribution, you agree that it may be distributed under this
 project's GPL-2.0-or-later license.
+
+## Portability naming candidate
+
+The owned runtime naming cohort uses snake_case, including promoted properties
+and named parameters. Keep shared Admin Interaction API 3 snake_case identifiers and all
+serialized/database/UI keys unchanged. Tests and CLI helper naming debt remain
+excluded from this cohort; see `docs/migrator-owned-naming-inventory.md`.
+
+The retained Core beta.22 tuple is historical API 2 provenance. Canonical
+`composer check` qualifies the pinned API3 source, while `composer
+analyze:certified` remains a failing released-host gate until matching immutable
+Core certification is selected. Neither source CI nor that automated host gate
+replaces release #43's installed-site acceptance.

@@ -110,11 +110,11 @@ final class CandidateFactoryTest extends TestCase {
 	public function testRejectsUnsupportedOrMissingCandidate(
 		WpPusherPackage $package,
 		array $plugins,
-		bool $themeExists,
-		?string $credentialId
+		bool $theme_exists,
+		?string $credential_id
 	): void {
 		$this->expectException( RuntimeException::class );
-		$this->factory( $plugins, $themeExists )->candidate( $package, $credentialId );
+		$this->factory( $plugins, $theme_exists )->candidate( $package, $credential_id );
 	}
 
 	/** @return iterable<string, array{WpPusherPackage, array<string, array<string, string>>, bool, string|null}> */
@@ -141,12 +141,12 @@ final class CandidateFactoryTest extends TestCase {
 	}
 
 	/** @param array<string, array<string, string>>|null $plugins */
-	private function factory( ?array $plugins = null, bool $themeExists = true ): CandidateFactory {
+	private function factory( ?array $plugins = null, bool $theme_exists = true ): CandidateFactory {
 		$plugins ??= array( 'fixture/fixture.php' => array( 'Name' => 'Fixture Plugin' ) );
 
 		return new CandidateFactory(
 			static fn (): array => $plugins,
-			static fn ( string $stylesheet ): object => new FakeTheme( $stylesheet, $themeExists )
+			static fn ( string $stylesheet ): object => new FakeTheme( $stylesheet, $theme_exists )
 		);
 	}
 
@@ -157,7 +157,7 @@ final class CandidateFactoryTest extends TestCase {
 
 	/** @param array<string, mixed> $overrides */
 	private static function staticPackage( array $overrides = array() ): WpPusherPackage {
-		return WpPusherPackage::fromRow(
+		return WpPusherPackage::from_row(
 			array_merge(
 				array(
 					'id'           => '1',

@@ -13,7 +13,7 @@ WP Pusher records have been adopted or migrated manually.
 - Finds retained GitHub and Bitbucket Cloud package rows from the exact
   supported WP Pusher schema.
 - Passes one unchanged source row at a time through RAN Booster's Portability
-  API 2 review and apply flow.
+  API 3 review and apply flow.
 - Adopts packages with deployment Disabled.
 - Removes a source row only after Core verifies the adopted target and the
   bridge confirms that the retained row is unchanged.
@@ -28,14 +28,17 @@ provider webhooks.
 - WordPress 7.0 or newer and PHP 8.2 or newer.
 - A single-site WordPress installation.
 - WP Pusher 3.0.13 installed but inactive.
-- A compatible RAN Booster release exposing Portability API 2 and Admin Interaction API 2.
+- A compatible RAN Booster release exposing Portability API 3 and Admin Interaction API 3.
 - For Bitbucket Cloud packages, the compatible RAN Booster Bitbucket Cloud
   add-on installed and active.
 - An existing replacement Booster credential profile for each private
   repository, including private Bitbucket repositories. The bridge never copies
   WP Pusher credentials.
 
-This source tree is certified against RAN Booster `v1.0.0-beta.22`.
+The historical source baseline was certified against RAN Booster `v1.0.0-beta.22`.
+This naming candidate requires Portability API 3 and is not certified against
+that API 2 release. It must not be released until a matching published Core
+has passed the existing certification and installed acceptance gates.
 `extra.ran-booster-core-certification` in `composer.json` records the exact tag
 and commit. Runtime compatibility still depends on the loaded API markers and
 facade types; `Requires Plugins` and matching version strings are not sufficient.

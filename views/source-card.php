@@ -4,14 +4,14 @@
  *
  * @var string $error
  * @var list<array<string,mixed>> $rows Complete passive row display models.
- * @var bool                $hasError
- * @var bool                $legacyDataPresent
- * @var bool                $applyVisible
- * @var string              $applyClass
- * @var string              $applyMessage
- * @var bool                $cleanupPending
- * @var bool                $completionVisible
- * @var string              $pluginsUrl
+ * @var bool                $has_error
+ * @var bool                $legacy_data_present
+ * @var bool                $apply_visible
+ * @var string              $apply_class
+ * @var string              $apply_message
+ * @var bool                $cleanup_pending
+ * @var bool                $completion_visible
+ * @var string              $plugins_url
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -24,20 +24,20 @@ defined( 'ABSPATH' ) || exit;
 		<p><?php esc_html_e( 'Move each package into Booster and check the result before continuing. Migrated packages start with automatic deployments turned off.', 'ran-booster-wp-pusher-migrator' ); ?></p>
 	</header>
 
-	<?php if ( $hasError ) { ?>
+	<?php if ( $has_error ) { ?>
 		<div class="notice notice-error inline"><p><?php echo esc_html( $error ); ?></p></div>
 	<?php } else { ?>
-		<?php if ( $applyVisible ) { ?>
-			<div class="notice <?php echo esc_attr( $applyClass ); ?> inline">
+		<?php if ( $apply_visible ) { ?>
+			<div class="notice <?php echo esc_attr( $apply_class ); ?> inline">
 				<p>
-					<?php echo esc_html( $applyMessage ); ?>
-					<?php if ( $cleanupPending ) { ?>
+					<?php echo esc_html( $apply_message ); ?>
+					<?php if ( $cleanup_pending ) { ?>
 						<?php esc_html_e( 'The package is safely stored in Booster, but its old WP Pusher record remains. Keep WP Pusher inactive and try again.', 'ran-booster-wp-pusher-migrator' ); ?>
 					<?php } ?>
 				</p>
 			</div>
 		<?php } ?>
-		<?php if ( $legacyDataPresent && array() !== $rows ) { ?>
+		<?php if ( $legacy_data_present && array() !== $rows ) { ?>
 			<div class="notice notice-warning inline"><p><?php esc_html_e( 'WP Pusher settings found: Not all Pusher settings can be migrated. Private repositories will need to access credentials.', 'ran-booster-wp-pusher-migrator' ); ?></p></div>
 		<?php } ?>
 

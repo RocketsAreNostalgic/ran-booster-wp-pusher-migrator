@@ -19,10 +19,17 @@
 	<arg name="parallel" value="4"/>
 	<arg value="sp"/>
 
-	<rule ref="RANWordPressPlugin">
-		<!-- Preserve the Booster-family camelCase OOP/API convention. -->
-		<exclude name="WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid"/>
-		<exclude name="WordPress.NamingConventions.ValidVariableName"/>
+	<rule ref="RANWordPressPlugin"/>
+
+	<!-- #42: enforce the complete owned runtime cohort; test doubles and CLI
+	     helpers retain separately audited foreign/deferred signatures. -->
+	<rule ref="WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid">
+		<exclude-pattern>/tests/</exclude-pattern>
+		<exclude-pattern>/scripts/</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.NamingConventions.ValidVariableName">
+		<exclude-pattern>/tests/</exclude-pattern>
+		<exclude-pattern>/scripts/</exclude-pattern>
 	</rule>
 
 	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
