@@ -38,11 +38,17 @@ final class MigratorNamingContractTest extends TestCase {
 				$tokens = token_get_all( file_get_contents( $file->getPathname() ) );
 				foreach ( $tokens as $token ) {
 					if ( is_array( $token ) && in_array( $token[0], array( T_COMMENT, T_DOC_COMMENT ), true ) ) {
-						self::assertDoesNotMatchRegularExpression( '/\bphpcs:(?:disable|ignore)(?:[ \t]*(?:--|$|\*\/))/', $token[1], $file->getPathname() . ':' . $token[2] );
+						self::assertFalse( self::is_blanket_suppression( $token[1] ), $file->getPathname() . ':' . $token[2] . ' blanket PHPCS suppression' );
 					}
 				}
 			}
 		}
+	}
+
+	private static function is_blanket_suppression( string $comment ): bool {
+		// PHPCS annotations are case-insensitive; doc comments can split the directive over lines.
+		$normalized = preg_replace( '/[\s*\/]+/', ' ', $comment );
+		return 1 === preg_match( '/(?:@?phpcs:ignorefile\b|@codingStandardsIgnore(?:File|Start|Line)\b|@?phpcs:(?:disable|ignore)(?=\s*(?:--|$)))/i', trim( $normalized ) );
 	}
 
 	public function test_named_arguments_preserve_candidate_wire_fields(): void {
