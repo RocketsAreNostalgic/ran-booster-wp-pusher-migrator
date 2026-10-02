@@ -65,7 +65,7 @@ final class ReleaseWorkflowTest extends TestCase {
 		self::assertSame( 1, substr_count( $quality, 'bash scripts/build-release.sh' ) );
 	}
 
-	public function test_quality_emits_the_standard_profile_bpromotion_manifest(): void {
+	public function test_quality_emits_the_standard_profile_b_promotion_manifest(): void {
 		$quality = file_get_contents( dirname( __DIR__ ) . '/.github/workflows/quality.yml' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local workflow contract.
 		self::assertIsString( $quality );
 
@@ -131,7 +131,7 @@ final class ReleaseWorkflowTest extends TestCase {
 		self::assertStringContainsString( 'run: composer analyze:certified', $quality );
 	}
 
-	public function test_release_workflow_is_athin_pinned_profile_bcaller(): void {
+	public function test_release_workflow_is_a_thin_pinned_profile_b_caller(): void {
 		$release = file_get_contents( dirname( __DIR__ ) . '/.github/workflows/release-please.yml' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local workflow contract.
 		self::assertIsString( $release );
 
@@ -159,7 +159,7 @@ final class ReleaseWorkflowTest extends TestCase {
 		self::assertStringContainsString( 'does not by itself satisfy items 3–5 for a new candidate', $release );
 	}
 
-	public function test_release_please_configuration_provides_profile_bdraft_semantics(): void {
+	public function test_release_please_configuration_provides_profile_b_draft_semantics(): void {
 		$config = json_decode( (string) file_get_contents( dirname( __DIR__ ) . '/release-please-config.json' ), true, 512, JSON_THROW_ON_ERROR ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local release contract.
 		self::assertTrue( $config['draft'] ?? false );
 		self::assertTrue( $config['force-tag-creation'] ?? false );

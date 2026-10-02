@@ -132,7 +132,7 @@ final class SourceCardViewTest extends TestCase {
 		self::assertStringNotContainsString( '>Adopt</button>', $output );
 	}
 
-	public function test_blocked_review_keeps_its_reason_below_aconcise_heading(): void {
+	public function test_blocked_review_keeps_its_reason_below_a_concise_heading(): void {
 		$output = $this->render_public_package( 'blocked' );
 
 		self::assertStringContainsString( '<strong>Cannot adopt</strong>', $output );
@@ -222,7 +222,7 @@ final class SourceCardViewTest extends TestCase {
 		);
 	}
 
-	public function test_empty_inventory_renders_the_completion_panel_visible_without_atable(): void {
+	public function test_empty_inventory_renders_the_completion_panel_visible_without_a_table(): void {
 		$output = $this->render_empty_inventory();
 
 		self::assertStringContainsString(

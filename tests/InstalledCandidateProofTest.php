@@ -39,7 +39,7 @@ final class InstalledCandidateProofTest extends TestCase {
 		self::assertStringContainsString( 'diff -qr "$recovery/extracted-migrator/ran-booster-wp-pusher-migrator"', $this->driver );
 	}
 
-	public function test_driver_owns_arecoverable_database_physical_and_sparse_option_boundary(): void {
+	public function test_driver_owns_a_recoverable_database_physical_and_sparse_option_boundary(): void {
 		self::assertStringContainsString( 'mysqldump_binary', $this->driver );
 		self::assertStringContainsString( '--single-transaction', $this->driver );
 		self::assertStringContainsString( 'DROP DATABASE', $this->driver );
