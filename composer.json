@@ -41,6 +41,10 @@
       "support-uri": "https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues",
       "security-uri": "https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/security/policy",
       "readiness": "public-release-required"
+    },
+    "ran-booster-core-source": {
+      "commit": "ae4de158e3ae02d99162b9b8d0babdc9269a36da",
+      "tree": "f5ad8aa484fbe63b7d966eeef96ae9afd5d78a94"
     }
   },
   "require": {
@@ -77,6 +81,7 @@
       "@standards",
       "@analyze",
       "@test",
+      "@test:source-behaviour",
       "@test:release-candidate-contract",
       "@test:syntax-contract",
       "@test:standards-contract",
@@ -94,7 +99,9 @@
     ],
     "test:analysis-contract": "bash tests/analysis-contract.sh",
     "analysis:coverage": "php scripts/check-analysis-coverage.php",
-    "test:analysis-coverage-contract": "bash tests/analysis-coverage-contract.sh"
+    "test:analysis-coverage-contract": "bash tests/analysis-coverage-contract.sh",
+    "analyze:certified": "bash tests/certified-core-analysis.sh",
+    "test:source-behaviour": "bash tests/pinned-source-behaviour.sh"
   },
   "config": {
     "sort-packages": true,

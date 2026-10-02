@@ -9,7 +9,43 @@ on:
 permissions: {}
 
 jobs:
+  released-core-proof:
+    name: Released Core compatibility
+    if: >-
+      ${{ github.event.workflow_run.conclusion == 'success'
+          && github.event.workflow_run.event == 'push'
+          && github.event.workflow_run.head_branch == 'main'
+          && github.event.workflow_run.head_repository.id == github.repository_id
+          && github.event.workflow_run.head_repository.full_name == github.repository
+          && github.event.workflow_run.path == '.github/workflows/quality.yml' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+      - name: Verify the exact successful source revision
+        env:
+          RAN_SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          [[ "$RAN_SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$RAN_SOURCE_SHA"
+      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: '8.2'
+          coverage: none
+          tools: composer:v2
+      - run: composer validate --strict --no-check-publish
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Require real immutable released Core compatibility
+        run: composer analyze:certified
+
   release:
+    needs: released-core-proof
     permissions:
       contents: write
       issues: write

@@ -29,7 +29,11 @@ expect( false !== $ran_booster_wp_pusher_migrator_root, 'Migrator source is miss
 verify_source( $ran_booster_wp_pusher_migrator_root, $argv[3] ?? '', array( 'src/', 'views/', 'tests/WpPusherSourceTest.php', 'composer.lock' ) );
 define( 'ABSPATH', '/tmp/source-candidate-wordpress/' );
 define( 'ARRAY_A', 'ARRAY_A' );
-require (string) getenv( 'RAN_MIGRATOR_SOURCE_CORE' ) . '/vendor/autoload.php';
+$ran_booster_wp_pusher_migrator_core_vendor = getenv( 'RAN_MIGRATOR_SOURCE_CORE_VENDOR' );
+if ( false === $ran_booster_wp_pusher_migrator_core_vendor || '' === $ran_booster_wp_pusher_migrator_core_vendor ) {
+	$ran_booster_wp_pusher_migrator_core_vendor = (string) getenv( 'RAN_MIGRATOR_SOURCE_CORE' ) . '/vendor';
+}
+require $ran_booster_wp_pusher_migrator_core_vendor . '/autoload.php';
 require (string) getenv( 'RAN_MIGRATOR_SOURCE_CORE' ) . '/autoload.php';
 require $ran_booster_wp_pusher_migrator_root . '/vendor/autoload.php';
 require $ran_booster_wp_pusher_migrator_root . '/src/Autoloader.php';

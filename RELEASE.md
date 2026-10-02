@@ -25,9 +25,10 @@ The repository-local contract remains:
 - retain the repository-specific installed/manual migration evidence required
   by the product.
 
-The current source/CI certification uses immutable Booster
-`v1.0.0-beta.22`. The sole machine-readable tag/full-commit tuple is
-`extra.ran-booster-core-certification` in `composer.json`. This source
+The historical released-host certification uses immutable Booster
+`v1.0.0-beta.22` with Portability API 2 and Admin Interaction API 2 only.
+The sole machine-readable tag/full-commit tuple is
+`extra.ran-booster-core-certification` in `composer.json`. This historical
 certification is not a runtime Core pin and does not replace the installed-site
 release gate.
 
@@ -47,7 +48,12 @@ that exact candidate head and its built ZIP.** Record the exact candidate SHA,
 ZIP SHA-256, certified Booster tag, date, disposable-site identity, and the
 result of each item on the release pull request before merge.
 
-1. Run `composer validate --strict --no-check-publish`, `pnpm install
+1. Run `composer analyze:certified` against the matching immutable Core. The
+   historical beta.22/API2 tuple cannot qualify this Portability3 / Admin
+   Interaction3 source. Update certification only after the matching real Core
+   release and installed evidence exist. Both release-candidate Quality and the
+   Release Please caller enforce real released-Core analysis; source-only Quality
+   cannot authorize publication. Then run `composer validate --strict --no-check-publish`, `pnpm install
    --frozen-lockfile`, `pnpm check`, and `composer check` against the exact
    candidate.
 2. Build twice from clean checkouts of that candidate and confirm matching ZIP
@@ -55,7 +61,7 @@ result of each item on the release pull request before merge.
    `ran-booster-wp-pusher-migrator/` root and no tests, tools, workflows,
    scripts, dependency directories, or repository metadata.
 3. Install that exact ZIP beside the certified released Booster generation
-   exposing **Portability API 2 and Admin Interaction API 2**, with no add-on
+   exposing **Portability API 3 and Admin Interaction API 3**, with no add-on
    Logging API, in an isolated disposable single-site WordPress installation.
    For Bitbucket coverage, also install the compatible released RAN Booster
    Bitbucket Cloud add-on.

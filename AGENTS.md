@@ -42,10 +42,13 @@ using the same `.phpcs.xml.dist` rules and scope. `composer check` includes the
 disposable actual-command standards regression and repeated-fix stability proof.
 `composer analyze` blocks at PHPStan level 6 on `src/`, `views/`, `index.php`
 and the plugin entry point, targeting PHP 8.2 with WordPress 7.0 declarations.
-Its first run prepares the exact certified Core source under `vendor/`; later
-runs verify the same clean tag/commit offline. Use `composer analysis:setup`
+Its first run prepares the exact reviewed Core source commit/tree under `vendor/`;
+later runs verify the same clean bytes offline. Use `composer analysis:setup`
 for explicit preparation. Never substitute PHPUnit doubles or a floating Core
-checkout. Two counted POST-guard diagnostics are excepted in configuration under
+checkout. `composer analyze:certified` separately verifies the immutable tagged
+Core and analyzes current production against it; release-candidate Quality and
+the Release Please caller require that gate. Green source Quality alone is not
+released-host or installed acceptance. Two counted POST-guard diagnostics are excepted in configuration under
 #42; retain their defensive behavior. Analysis includes actual-command negative
 controls through `composer test:analysis-contract` in `composer check`.
 `composer test:analysis-coverage-contract` also proves finished-ZIP coverage drift

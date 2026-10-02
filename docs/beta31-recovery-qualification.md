@@ -31,3 +31,15 @@ Canonical checks after retrying existing fixtures outside the sandbox:
   Portability 3 / Admin Interaction 3 surface. Its source-candidate level 6 proof
   passes. The canonical released-host gate remains held until matching immutable
   Core recertification; no fallback, baseline, or suppression was introduced.
+
+## Canonical source qualification and release separation
+
+Source Quality now analyzes against `extra.ran-booster-core-source`, the exact
+Core commit/tree above, and exercises real facade/DTO behavior in `composer check`.
+The previously observed thirteen historical-host errors remain an intentional
+`composer analyze:certified` failure, not the canonical source analysis target.
+No diagnostic exclusions or runtime fallbacks were added. Release-candidate
+Quality and the shared Release Please caller require the separate immutable-host
+analysis; the latter checks the exact successful same-repository push/main Quality
+head before invoking the existing shared lifecycle. Historical certification and
+installed acceptance remain unchanged and do not become true through source CI.

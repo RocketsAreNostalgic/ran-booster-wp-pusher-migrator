@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# An explicit additional source-only lane; never substitutes for composer check.
+# An explicit alternate exact-source audit; canonical composer check uses the manifest source tuple.
 set -euo pipefail
 project_root="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$project_root"
@@ -14,7 +14,7 @@ $config = file_get_contents("phpstan.neon.dist");
 $core = getenv("RAN_MIGRATOR_SOURCE_CORE");
 if (strpbrk($core, "\r\n\t\"\\") !== false) { throw new RuntimeException("Unsupported Core path."); }
 foreach ([
- "vendor/ran-certified-core/source/RAN" => "\"" . $core . "/RAN\"",
+ "vendor/ran-source-core/source/RAN" => "\"" . $core . "/RAN\"",
  "tests/phpstan-bootstrap.php" => "tests/source-candidate-bootstrap.php",
  "vendor/ran-phpstan-cache" => "vendor/ran-source-candidate-cache",
 ] as $from => $to) {

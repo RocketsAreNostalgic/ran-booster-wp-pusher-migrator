@@ -10,7 +10,7 @@ parameters:
 		- index.php
 		- ran-booster-wp-pusher-migrator.php
 	scanDirectories:
-		- vendor/ran-certified-core/source/RAN
+		- vendor/ran-source-core/source/RAN
 	bootstrapFiles:
 		- tests/phpstan-bootstrap.php
 	tmpDir: vendor/ran-phpstan-cache

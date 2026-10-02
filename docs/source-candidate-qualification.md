@@ -1,5 +1,12 @@
 # Source-candidate naming qualification
 
+Canonical `composer check` now uses the exact commit/tree recorded in
+`extra.ran-booster-core-source` and includes real Core facade/DTO behavior.
+`composer analyze:certified` remains the separate immutable released-host gate;
+release-candidate Quality and the Release Please caller require it. The explicit
+alternate-source commands below remain audit tools, not certification overrides.
+
+
 The additional source-only lane checks an exact committed Core/Migrator pair.
 It does **not** change the released-host certification tuple in `composer.json`,
 replace `composer check`, satisfy installed-site acceptance, or authorize a

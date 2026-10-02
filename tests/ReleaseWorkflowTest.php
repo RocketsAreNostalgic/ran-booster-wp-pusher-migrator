@@ -114,6 +114,23 @@ final class ReleaseWorkflowTest extends TestCase {
 		self::assertStringContainsString( 'php migrator/scripts/core-certification.php verify migrator/composer.json core', $quality );
 	}
 
+	public function testSourceQualityCannotPublishWithoutReleasedCoreAnalysis(): void {
+		$root    = dirname( __DIR__ );
+		$release = file_get_contents( $root . '/.github/workflows/release-please.yml' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local release guard contract.
+		$quality = file_get_contents( $root . '/.github/workflows/quality.yml' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local release guard contract.
+		self::assertIsString( $release );
+		self::assertIsString( $quality );
+		self::assertStringContainsString( 'needs: released-core-proof', $release );
+		self::assertStringContainsString( 'run: composer analyze:certified', $release );
+		self::assertStringContainsString( 'ref: ${{ github.event.workflow_run.head_sha }}', $release );
+		self::assertStringContainsString( 'test "$(git rev-parse HEAD)" = "$RAN_SOURCE_SHA"', $release );
+		foreach ( array( "conclusion == 'success'", "event == 'push'", "head_branch == 'main'", 'head_repository.id == github.repository_id', 'head_repository.full_name == github.repository', "path == '.github/workflows/quality.yml'" ) as $predicate ) {
+			self::assertStringContainsString( $predicate, $release );
+		}
+		self::assertStringContainsString( "needs.runtime-archive.outputs.release-candidate == 'true'", $quality );
+		self::assertStringContainsString( 'run: composer analyze:certified', $quality );
+	}
+
 	public function testReleaseWorkflowIsAThinPinnedProfileBCaller(): void {
 		$release = file_get_contents( dirname( __DIR__ ) . '/.github/workflows/release-please.yml' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local workflow contract.
 		self::assertIsString( $release );
@@ -136,7 +153,7 @@ final class ReleaseWorkflowTest extends TestCase {
 		self::assertIsString( $release );
 
 		self::assertStringContainsString( 'Do not merge a Release Please pull request until this gate is complete', $release );
-		self::assertStringContainsString( 'Portability API 2 and Admin Interaction API 2', $release );
+		self::assertStringContainsString( 'Portability API 3 and Admin Interaction API 3', $release );
 		self::assertStringContainsString( 'disposable single-site WordPress installation', $release );
 		self::assertStringContainsString( 'Record the exact candidate SHA', $release );
 		self::assertStringContainsString( 'does not by itself satisfy items 3–5 for a new candidate', $release );
