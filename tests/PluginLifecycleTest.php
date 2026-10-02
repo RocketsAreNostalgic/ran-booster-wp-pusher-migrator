@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Tests;
 
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 use RAN\AddOn\Portability\PortabilityApplyResult;
 use RAN\AddOn\Portability\PortabilityCandidate;
@@ -27,12 +29,6 @@ final class PluginLifecycleTest extends TestCase {
 		$GLOBALS['ran_booster_wp_pusher_test_capabilities'] = array();
 		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Isolated lifecycle fixture supplies the constructor's WordPress database global.
 		$GLOBALS['wpdb'] = new stdClass();
-		if ( ! defined( 'RAN_BOOSTER_PORTABILITY_API_VERSION' ) ) {
-			define( 'RAN_BOOSTER_PORTABILITY_API_VERSION', 3 );
-		}
-		if ( ! defined( 'RAN_BOOSTER_ADMIN_INTERACTION_API_VERSION' ) ) {
-			define( 'RAN_BOOSTER_ADMIN_INTERACTION_API_VERSION', 2 );
-		}
 	}
 
 	protected function tearDown(): void {
@@ -46,6 +42,7 @@ final class PluginLifecycleTest extends TestCase {
 	}
 
 	public function testInitialRegistrationContainsOnlyCompatibilityBoundaries(): void {
+		$this->defineCompatibleApis();
 		( new Plugin() )->register();
 
 		self::assertSame(
@@ -59,6 +56,7 @@ final class PluginLifecycleTest extends TestCase {
 	}
 
 	public function testWrongFacadeDeliveriesAreInertAndLeaveFeatureHooksAbsent(): void {
+		$this->defineCompatibleApis();
 		( new Plugin() )->register();
 		$hooks = $GLOBALS['ran_booster_wp_pusher_test_hooks'];
 
@@ -81,6 +79,7 @@ final class PluginLifecycleTest extends TestCase {
 	/** @param list<string> $order */
 	#[DataProvider( 'facadeDeliveryOrders' )]
 	public function testSecondExactFacadeRegistersEveryFeatureHookExactlyOnce( array $order ): void {
+		$this->defineCompatibleApis();
 		( new Plugin() )->register();
 		$initial     = $GLOBALS['ran_booster_wp_pusher_test_hooks'];
 		$portability = new LifecyclePortabilityFacade();
@@ -116,6 +115,7 @@ final class PluginLifecycleTest extends TestCase {
 	}
 
 	public function testFirstExactFacadeInstancesWinAgainstDuplicateAndConflictingDeliveries(): void {
+		$this->defineCompatibleApis();
 		( new Plugin() )->register();
 		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Isolated registered-flow fixture.
 		$GLOBALS['wpdb']                               = new LifecycleDatabase();
@@ -165,6 +165,7 @@ final class PluginLifecycleTest extends TestCase {
 	}
 
 	public function testMissingEitherFacadeLeavesEveryFeatureHookAbsent(): void {
+		$this->defineCompatibleApis();
 		( new Plugin() )->register();
 		$initial = $GLOBALS['ran_booster_wp_pusher_test_hooks'];
 		$this->deliver( 'ran_booster_portability_ready', new LifecyclePortabilityFacade() );
@@ -179,6 +180,7 @@ final class PluginLifecycleTest extends TestCase {
 	}
 
 	public function testCompatibilityNoticeIsCapabilityGatedAndSilentAfterComposition(): void {
+		$this->defineCompatibleApis();
 		( new Plugin() )->register();
 		$GLOBALS['ran_booster_wp_pusher_test_capabilities']['activate_plugins'] = false;
 		ob_start();
@@ -196,6 +198,69 @@ final class PluginLifecycleTest extends TestCase {
 		ob_start();
 		$this->runHook( 'admin_notices' );
 		self::assertSame( '', (string) ob_get_clean() );
+	}
+
+	/** @return iterable<string, array{?int, ?int, list<string>, bool}> */
+	public static function incompatibleApiMarkers(): iterable {
+		$markers = array(
+			'old portability'     => array( 2, 2 ),
+			'future portability'  => array( 4, 2 ),
+			'missing portability' => array( null, 2 ),
+			'old interaction'     => array( 3, 1 ),
+			'future interaction'  => array( 3, 3 ),
+			'missing interaction' => array( 3, null ),
+		);
+		foreach ( $markers as $label => $versions ) {
+			foreach ( self::facadeDeliveryOrders() as $order_label => [ $order ] ) {
+				foreach ( array( true, false ) as $before_registration ) {
+					yield $label . ', ' . $order_label . ( $before_registration ? ', Core first' : ', Migrator first' ) => array( $versions[0], $versions[1], $order, $before_registration );
+				}
+			}
+		}
+	}
+
+	/** @param list<string> $order */
+	#[DataProvider( 'incompatibleApiMarkers' )]
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function testIncompatibleMarkersNeverAdmitFacadesOrFeatureHooks( ?int $portability_version, ?int $interaction_version, array $order, bool $before_registration ): void {
+		$publish_markers = static function () use ( $portability_version, $interaction_version ): void {
+			if ( null !== $portability_version ) {
+				define( 'RAN_BOOSTER_PORTABILITY_API_VERSION', $portability_version );
+			}
+			if ( null !== $interaction_version ) {
+				define( 'RAN_BOOSTER_ADMIN_INTERACTION_API_VERSION', $interaction_version );
+			}
+		};
+		if ( $before_registration ) {
+			$publish_markers();
+		}
+		( new Plugin() )->register();
+		$initial = $GLOBALS['ran_booster_wp_pusher_test_hooks'];
+		if ( ! $before_registration ) {
+			$publish_markers();
+		}
+		$portability = new LifecyclePortabilityFacade();
+		$interaction = new LifecycleInteractionFacade();
+		foreach ( array_merge( $order, $order ) as $boundary ) {
+			$this->deliver(
+				'portability' === $boundary ? 'ran_booster_portability_ready' : 'ran_booster_admin_interaction_ready',
+				'portability' === $boundary ? $portability : $interaction
+			);
+			self::assertSame( $initial, $GLOBALS['ran_booster_wp_pusher_test_hooks'] );
+		}
+		self::assertSame( 0, $portability->review_calls );
+		self::assertSame( array(), $interaction->rendered_operations );
+		self::assertArrayNotHasKey( 'admin_post_ran_booster_wp_pusher_migrator_package', $GLOBALS['ran_booster_wp_pusher_test_hooks'] );
+	}
+
+	private function defineCompatibleApis(): void {
+		if ( ! defined( 'RAN_BOOSTER_PORTABILITY_API_VERSION' ) ) {
+			define( 'RAN_BOOSTER_PORTABILITY_API_VERSION', 3 );
+		}
+		if ( ! defined( 'RAN_BOOSTER_ADMIN_INTERACTION_API_VERSION' ) ) {
+			define( 'RAN_BOOSTER_ADMIN_INTERACTION_API_VERSION', 2 );
+		}
 	}
 
 	private function deliver( string $hook, mixed $facade ): void {
@@ -258,9 +323,9 @@ final class LifecycleInteractionFacade implements AdminInteractionFacade, Transp
 
 	public function respondWithTransporterRowFragment(
 		AdminInteractionOutcome $outcome,
-		callable $render_fragment
+		callable $renderFragment
 	): never {
-		unset( $outcome, $render_fragment );
+		unset( $outcome, $renderFragment );
 		throw new RuntimeException( 'Lifecycle characterization does not execute transport.' );
 	}
 }

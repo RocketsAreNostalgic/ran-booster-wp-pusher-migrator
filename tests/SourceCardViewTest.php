@@ -373,9 +373,9 @@ final class SourceCardInteractionSpy implements AdminInteractionFacade, Transpor
 
 	public function respondWithTransporterRowFragment(
 		AdminInteractionOutcome $outcome,
-		callable $render_fragment
+		callable $renderFragment
 	): never {
-		unset( $outcome, $render_fragment );
+		unset( $outcome, $renderFragment );
 		throw new RuntimeException( 'Response terminated.' );
 	}
 }

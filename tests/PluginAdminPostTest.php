@@ -570,11 +570,11 @@ final class AdminPostInteractionSpy implements AdminInteractionFacade, Transport
 
 	public function respondWithTransporterRowFragment(
 		AdminInteractionOutcome $outcome,
-		callable $render_fragment
+		callable $renderFragment
 	): never {
 		$this->outcome = $outcome;
 		ob_start();
-		$render_fragment( $outcome->request()->targetElementId() );
+		$renderFragment( $outcome->request()->targetElementId() );
 		$this->fragment = (string) ob_get_clean();
 		throw new AdminPostResponse();
 	}
