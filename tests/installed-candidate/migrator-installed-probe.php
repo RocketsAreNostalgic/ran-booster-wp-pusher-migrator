@@ -2,7 +2,7 @@
 
 // Executed only through WP-CLI by migrator-installed-proof.sh.
 // Do not add strict_types: WP-CLI eval-file wraps the file before evaluation.
-// phpcs:disable -- This private hostile fixture intentionally uses exact local files, serialization and proof-owned SQL.
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode,WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode,WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize,WordPress.PHP.DiscouragedPHPFunctions.serialize_unserialize,WordPress.PHP.NoSilencedErrors.Discouraged,WordPress.PHP.YodaConditions.NotYoda,WordPress.Security.EscapeOutput.ExceptionNotEscaped,WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents,WordPress.WP.AlternativeFunctions.file_system_operations_chmod,WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents,WordPress.WP.GlobalVariablesOverride.Prohibited -- This private hostile fixture intentionally uses exact local files, serialization and proof-owned SQL. Naming checks remain enabled.
 
 if ( ! defined( 'WP_CLI' ) || ! WP_CLI || '1' !== getenv( 'RAN_MIGRATOR_PROOF_DISPOSABLE' ) ) {
 	throw new RuntimeException( 'The Migrator proof is restricted to its disposable WP-CLI driver.' );
@@ -94,7 +94,7 @@ function ran_migrator_expect_runtime_message( Closure $operation, string $expect
 /** @return list<string> */
 function ran_migrator_owned_callbacks(): array {
 	$callbacks = array();
-	foreach ( $GLOBALS['wp_filter'] as $hookName => $hook ) {
+	foreach ( $GLOBALS['wp_filter'] as $hook_name => $hook ) {
 		foreach ( is_object( $hook ) && is_array( $hook->callbacks ?? null ) ? $hook->callbacks : array() as $priority => $entries ) {
 			foreach ( is_array( $entries ) ? $entries : array() as $entry ) {
 				$callback = is_array( $entry ) ? ( $entry['function'] ?? null ) : null;
@@ -102,7 +102,7 @@ function ran_migrator_owned_callbacks(): array {
 					|| ! in_array( get_class( $callback[0] ), array( 'RAN\\BoosterWpPusherMigrator\\Plugin', 'RAN\\BoosterWpPusherMigrator\\MigrationRequestController' ), true ) ) {
 					continue;
 				}
-				$callbacks[] = sprintf( '%s|%d|%s|%d', (string) $hookName, (int) $priority, (string) ( $callback[1] ?? '' ), (int) ( $entry['accepted_args'] ?? 1 ) );
+				$callbacks[] = sprintf( '%s|%d|%s|%d', (string) $hook_name, (int) $priority, (string) ( $callback[1] ?? '' ), (int) ( $entry['accepted_args'] ?? 1 ) );
 			}
 		}
 	}
@@ -140,7 +140,7 @@ if ( 'snapshot-active' === $mode ) {
 		),
 		JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
 	);
-	$path = ran_migrator_required_env( 'RAN_MIGRATOR_ACTIVE_SNAPSHOT' );
+	$path    = ran_migrator_required_env( 'RAN_MIGRATOR_ACTIVE_SNAPSHOT' );
 	if ( strlen( $payload ) !== file_put_contents( $path, $payload, LOCK_EX ) || ! chmod( $path, 0600 ) ) {
 		throw new RuntimeException( 'The active_plugins recovery snapshot could not be retained.' );
 	}
@@ -160,9 +160,15 @@ if ( 'compare-active' === $mode ) {
 if ( 'set-order' === $mode ) {
 	$order = ran_migrator_required_env( 'RAN_MIGRATOR_LOAD_ORDER' );
 	if ( 'core-first' === $order ) {
-		$active = array( 2 => 'ran-booster/ran-booster.php', 7 => 'ran-booster-wp-pusher-migrator/ran-booster-wp-pusher-migrator.php' );
+		$active = array(
+			2 => 'ran-booster/ran-booster.php',
+			7 => 'ran-booster-wp-pusher-migrator/ran-booster-wp-pusher-migrator.php',
+		);
 	} elseif ( 'addon-first' === $order ) {
-		$active = array( 2 => 'ran-booster-wp-pusher-migrator/ran-booster-wp-pusher-migrator.php', 7 => 'ran-booster/ran-booster.php' );
+		$active = array(
+			2 => 'ran-booster-wp-pusher-migrator/ran-booster-wp-pusher-migrator.php',
+			7 => 'ran-booster/ran-booster.php',
+		);
 	} else {
 		throw new RuntimeException( 'Unsupported physical load order.' );
 	}
@@ -213,18 +219,50 @@ if ( 'source-cases' === $mode ) {
 	if ( 5 !== count( $packages ) || array( 'gh', 'bb', 'bb', 'gh', 'gl' ) !== array_map( static fn ( $package ): string => $package->host, $packages ) ) {
 		throw new RuntimeException( 'The exact plugin, theme and Bitbucket fixture inventory was not read.' );
 	}
-	$factory    = new \RAN\BoosterWpPusherMigrator\CandidateFactory();
-	$stylesheet = (string) get_option( 'stylesheet' );
-	$expectedCandidates = array(
-		array( 'type' => 'plugin', 'identifier' => 'ran-booster-wp-pusher-migrator/ran-booster-wp-pusher-migrator.php', 'provider' => 'gh', 'repository' => 'RocketsAreNostalgic/ran-booster-wp-pusher-migrator', 'branch' => 'main', 'subdirectory' => null, 'credential_id' => null ),
-		array( 'type' => 'plugin', 'identifier' => 'ran-booster/ran-booster.php', 'provider' => 'bb', 'repository' => 'workspace/core-public', 'branch' => 'stable', 'subdirectory' => null, 'credential_id' => null ),
-		array( 'type' => 'plugin', 'identifier' => 'wppusher/wppusher.php', 'provider' => 'bb', 'repository' => 'workspace/private-legacy', 'branch' => 'main', 'subdirectory' => null, 'credential_id' => 'proof_profile' ),
-		array( 'type' => 'theme', 'identifier' => $stylesheet, 'provider' => 'gh', 'repository' => 'RocketsAreNostalgic/theme-fixture', 'branch' => 'main', 'subdirectory' => null, 'credential_id' => null ),
+	$factory             = new \RAN\BoosterWpPusherMigrator\CandidateFactory();
+	$stylesheet          = (string) get_option( 'stylesheet' );
+	$expected_candidates = array(
+		array(
+			'type'          => 'plugin',
+			'identifier'    => 'ran-booster-wp-pusher-migrator/ran-booster-wp-pusher-migrator.php',
+			'provider'      => 'gh',
+			'repository'    => 'RocketsAreNostalgic/ran-booster-wp-pusher-migrator',
+			'branch'        => 'main',
+			'subdirectory'  => null,
+			'credential_id' => null,
+		),
+		array(
+			'type'          => 'plugin',
+			'identifier'    => 'ran-booster/ran-booster.php',
+			'provider'      => 'bb',
+			'repository'    => 'workspace/core-public',
+			'branch'        => 'stable',
+			'subdirectory'  => null,
+			'credential_id' => null,
+		),
+		array(
+			'type'          => 'plugin',
+			'identifier'    => 'wppusher/wppusher.php',
+			'provider'      => 'bb',
+			'repository'    => 'workspace/private-legacy',
+			'branch'        => 'main',
+			'subdirectory'  => null,
+			'credential_id' => 'proof_profile',
+		),
+		array(
+			'type'          => 'theme',
+			'identifier'    => $stylesheet,
+			'provider'      => 'gh',
+			'repository'    => 'RocketsAreNostalgic/theme-fixture',
+			'branch'        => 'main',
+			'subdirectory'  => null,
+			'credential_id' => null,
+		),
 	);
-	foreach ( $expectedCandidates as $index => $expectedCandidate ) {
+	foreach ( $expected_candidates as $index => $expected_candidate ) {
 		$candidate = $factory->candidate( $packages[ $index ], 2 === $index ? 'proof_profile' : null );
-		foreach ( $expectedCandidate as $field => $expectedValue ) {
-			if ( $expectedValue !== ( $candidate[ $field ] ?? null ) ) {
+		foreach ( $expected_candidate as $field => $expected_value ) {
+			if ( $expected_value !== ( $candidate[ $field ] ?? null ) ) {
 				throw new RuntimeException( 'An installed candidate field was not mapped exactly: ' . $field );
 			}
 		}
@@ -237,11 +275,11 @@ if ( 'source-cases' === $mode ) {
 		static fn (): array => $factory->candidate( $packages[4] ),
 		'GitLab WP Pusher packages are not supported.'
 	);
-	$plugins = static fn (): array => array( 'wppusher/wppusher.php' => array( 'Version' => '3.0.13' ) );
-	$activeSource = new \RAN\BoosterWpPusherMigrator\WpPusherSource( null, $plugins, static fn (): array => array( 'wppusher/wppusher.php' ) );
-	ran_migrator_expect_runtime_message( static fn (): array => $activeSource->packages(), 'Deactivate WP Pusher before assessing retained packages.' );
-	$wrongVersionSource = new \RAN\BoosterWpPusherMigrator\WpPusherSource( null, static fn (): array => array( 'wppusher/wppusher.php' => array( 'Version' => '3.0.12' ) ) );
-	ran_migrator_expect_runtime_message( static fn (): array => $wrongVersionSource->packages(), 'Only retained WP Pusher 3.0.13 data is supported.' );
+	$plugins       = static fn (): array => array( 'wppusher/wppusher.php' => array( 'Version' => '3.0.13' ) );
+	$active_source = new \RAN\BoosterWpPusherMigrator\WpPusherSource( null, $plugins, static fn (): array => array( 'wppusher/wppusher.php' ) );
+	ran_migrator_expect_runtime_message( static fn (): array => $active_source->packages(), 'Deactivate WP Pusher before assessing retained packages.' );
+	$wrong_version_source = new \RAN\BoosterWpPusherMigrator\WpPusherSource( null, static fn (): array => array( 'wppusher/wppusher.php' => array( 'Version' => '3.0.12' ) ) );
+	ran_migrator_expect_runtime_message( static fn (): array => $wrong_version_source->packages(), 'Only retained WP Pusher 3.0.13 data is supported.' );
 	global $wpdb;
 	$old = $packages[0];
 	$wpdb->update( $wpdb->prefix . 'wppusher_packages', array( 'branch' => 'changed-after-review' ), array( 'id' => $old->id ) );
@@ -262,10 +300,10 @@ if ( 'source-cases' === $mode ) {
 
 if ( 'compatible' === $mode ) {
 	require_once ABSPATH . 'wp-admin/includes/plugin.php';
-	$core     = get_plugin_data( WP_PLUGIN_DIR . '/ran-booster/ran-booster.php', false, false );
-	$migrator = get_plugin_data( WP_PLUGIN_DIR . '/ran-booster-wp-pusher-migrator/ran-booster-wp-pusher-migrator.php', false, false );
-	$wpPusher = get_plugin_data( WP_PLUGIN_DIR . '/wppusher/wppusher.php', false, false );
-	if ( '1.0.0-beta.22' !== $core['Version'] || '0.1.0-beta.7' !== $migrator['Version'] || '3.0.13' !== $wpPusher['Version'] ) {
+	$core      = get_plugin_data( WP_PLUGIN_DIR . '/ran-booster/ran-booster.php', false, false );
+	$migrator  = get_plugin_data( WP_PLUGIN_DIR . '/ran-booster-wp-pusher-migrator/ran-booster-wp-pusher-migrator.php', false, false );
+	$wp_pusher = get_plugin_data( WP_PLUGIN_DIR . '/wppusher/wppusher.php', false, false );
+	if ( '1.0.0-beta.22' !== $core['Version'] || '0.1.0-beta.7' !== $migrator['Version'] || '3.0.13' !== $wp_pusher['Version'] ) {
 		throw new RuntimeException( 'An installed plugin header is not the exact approved version.' );
 	}
 	if ( in_array( 'wppusher/wppusher.php', (array) get_option( 'active_plugins', array() ), true ) ) {
@@ -278,11 +316,11 @@ if ( 'compatible' === $mode ) {
 	$expected = 'core-first' === ran_migrator_required_env( 'RAN_MIGRATOR_LOAD_ORDER' )
 		? array( 'ran-booster/ran-booster.php', 'ran-booster-wp-pusher-migrator/ran-booster-wp-pusher-migrator.php' )
 		: array( 'ran-booster-wp-pusher-migrator/ran-booster-wp-pusher-migrator.php', 'ran-booster/ran-booster.php' );
-	$loaded = array_values( array_filter( (array) ( $GLOBALS['ran_migrator_proof_loaded_plugins'] ?? array() ), static fn ( $plugin ): bool => in_array( $plugin, $expected, true ) ) );
+	$loaded   = array_values( array_filter( (array) ( $GLOBALS['ran_migrator_proof_loaded_plugins'] ?? array() ), static fn ( $plugin ): bool => in_array( $plugin, $expected, true ) ) );
 	if ( $expected !== $loaded ) {
 		throw new RuntimeException( 'The executed plugin_loaded order did not match the requested physical order.' );
 	}
-	$expectedCallbacks = array(
+	$expected_callbacks = array(
 		'admin_enqueue_scripts|20|enqueueAssets|1',
 		'admin_notices|10|renderCompatibilityNotice|1',
 		'admin_post_ran_booster_wp_pusher_migrator_package|10|handleAdminPost|1',
@@ -292,8 +330,8 @@ if ( 'compatible' === $mode ) {
 		'ran_booster_portability_render_migration_flows|20|renderPanel|1',
 		'ran_booster_portability_render_migration_modes|20|renderMode|1',
 	);
-	sort( $expectedCallbacks, SORT_STRING );
-	if ( $expectedCallbacks !== ran_migrator_owned_callbacks() ) {
+	sort( $expected_callbacks, SORT_STRING );
+	if ( $expected_callbacks !== ran_migrator_owned_callbacks() ) {
 		throw new RuntimeException( 'The exact installed Migrator callback set was not composed.' );
 	}
 	ran_migrator_assert_http_blocker();

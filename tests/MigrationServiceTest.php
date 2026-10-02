@@ -16,7 +16,7 @@ use RuntimeException;
 
 final class MigrationServiceTest extends TestCase {
 
-	public function testReviewsOneFreshUnchangedCandidateThroughFacade(): void {
+	public function test_reviews_one_fresh_unchanged_candidate_through_facade(): void {
 		$facade  = new FakePortabilityFacade();
 		$service = $this->service( $facade );
 		$source  = $service->packages()[0];
@@ -29,7 +29,7 @@ final class MigrationServiceTest extends TestCase {
 		self::assertSame( 'review:review', $service->nonce_action( 'review', $source ) );
 	}
 
-	public function testRejectsChangedMissingAndMalformedSourceBeforeFacade(): void {
+	public function test_rejects_changed_missing_and_malformed_source_before_facade(): void {
 		$facade  = new FakePortabilityFacade();
 		$service = $this->service( $facade );
 		$source  = $service->packages()[0];
@@ -47,7 +47,7 @@ final class MigrationServiceTest extends TestCase {
 		$service->review( 999, $source->fingerprint(), null, 'nonce' );
 	}
 
-	public function testApplyFreshRevalidatesSourceAndForwardsExactReview(): void {
+	public function test_apply_fresh_revalidates_source_and_forwards_exact_review(): void {
 		$facade  = new FakePortabilityFacade();
 		$service = $this->service( $facade );
 		$source  = $service->packages()[0];
@@ -67,7 +67,7 @@ final class MigrationServiceTest extends TestCase {
 		self::assertSame( 'apply:' . $review, $service->nonce_action( 'apply', $source, null, $review ) );
 	}
 
-	public function testForwardsBitbucketProviderAndReplacementCredentialThroughReviewAndApply(): void {
+	public function test_forwards_bitbucket_provider_and_replacement_credential_through_review_and_apply(): void {
 		$database                          = new FakeDatabase();
 		$database->rows[0]['host']         = 'bb';
 		$database->rows[0]['private']      = '1';
@@ -96,7 +96,7 @@ final class MigrationServiceTest extends TestCase {
 		self::assertSame( 'bitbucket_profile', $facade->candidate?->credential_id );
 	}
 
-	public function testCleanupRequiresVerifiedTargetAndExactSource(): void {
+	public function test_cleanup_requires_verified_target_and_exact_source(): void {
 		$database = new FakeDatabase();
 		$facade   = new FakePortabilityFacade();
 		$service  = $this->service( $facade, $database );
@@ -114,7 +114,7 @@ final class MigrationServiceTest extends TestCase {
 		self::assertCount( 1, $database->rows );
 	}
 
-	public function testNewRequestReconstructsCleanupPendingAndBlockedStates(): void {
+	public function test_new_request_reconstructs_cleanup_pending_and_blocked_states(): void {
 		$database              = new FakeDatabase();
 		$facade                = new FakePortabilityFacade();
 		$facade->review_action = 'managed';

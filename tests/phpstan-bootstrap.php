@@ -30,8 +30,8 @@ if ( '' !== command_output( array( 'git', '--no-replace-objects', '-C', $ran_boo
 }
 
 /** Verify scanned bytes independently of index flags and Git status caching. */
-function verify_scanned_core_source( string $corePath ): void {
-	$entries = command_output( array( 'git', '--no-replace-objects', '-C', $corePath, 'ls-tree', '-r', '-z', 'HEAD', '--', 'RAN/' ) );
+function verify_scanned_core_source( string $core_path ): void {
+	$entries = command_output( array( 'git', '--no-replace-objects', '-C', $core_path, 'ls-tree', '-r', '-z', 'HEAD', '--', 'RAN/' ) );
 	if ( '' === $entries ) {
 		throw new RuntimeException( 'Analysis requires pinned Core declarations.' );
 	}
@@ -39,7 +39,7 @@ function verify_scanned_core_source( string $corePath ): void {
 		if ( 1 !== preg_match( '/\A100(?:644|755) blob ([0-9a-f]{40})\t(.+)\z/sD', $entry, $matches ) ) {
 			throw new RuntimeException( 'Analysis requires ordinary pinned Core source files.' );
 		}
-		$path = realpath( $corePath ) . '/' . $matches[2];
+		$path = realpath( $core_path ) . '/' . $matches[2];
 		if ( ! is_file( $path ) || is_link( $path ) || realpath( $path ) !== $path ) {
 			throw new RuntimeException( 'Analysis requires unmodified pinned Core source.' );
 		}

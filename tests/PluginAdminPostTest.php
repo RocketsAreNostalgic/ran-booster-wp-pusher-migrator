@@ -24,6 +24,7 @@ use RuntimeException;
 final class PluginAdminPostTest extends TestCase {
 	private MigrationRequestController $controller;
 
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Exact PHPUnit lifecycle override.
 	protected function setUp(): void {
 		parent::setUp();
 		$_POST = array();
@@ -35,18 +36,19 @@ final class PluginAdminPostTest extends TestCase {
 		);
 	}
 
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Exact PHPUnit lifecycle override.
 	protected function tearDown(): void {
 		$_POST = array();
 		$GLOBALS['ran_booster_wp_pusher_test_capabilities'] = array();
 		parent::tearDown();
 	}
 
-	public function testOperationCapabilityAndPurposeNoncePrecedeSourceInventory(): void {
+	public function test_operation_capability_and_purpose_nonce_precede_source_inventory(): void {
 		$database    = new AdminPostDatabase();
 		$portability = new AdminPostPortabilityFacade();
 		$interaction = new AdminPostInteractionSpy();
 		$this->connect( $database, $portability, $interaction );
-		$source = $this->sourcePackage( $database );
+		$source = $this->source_package( $database );
 
 		$GLOBALS['ran_booster_wp_pusher_test_events']     = array();
 		$GLOBALS['ran_booster_wp_pusher_test_can_manage'] = false;
@@ -59,7 +61,7 @@ final class PluginAdminPostTest extends TestCase {
 		}
 		self::assertSame( array(), $GLOBALS['ran_booster_wp_pusher_test_events'] );
 
-		$_POST = $this->reviewRequest( $source );
+		$_POST = $this->review_request( $source );
 		try {
 			$this->controller->handle_admin_post();
 			self::fail( 'Unauthorized request did not stop.' );
@@ -70,7 +72,7 @@ final class PluginAdminPostTest extends TestCase {
 
 		$GLOBALS['ran_booster_wp_pusher_test_can_manage'] = true;
 		$GLOBALS['ran_booster_wp_pusher_test_events']     = array();
-		$_POST = $this->reviewRequest( $source, 'wrong-nonce' );
+		$_POST = $this->review_request( $source, 'wrong-nonce' );
 		try {
 			$this->controller->handle_admin_post();
 			self::fail( 'Invalid nonce did not stop.' );
@@ -86,7 +88,7 @@ final class PluginAdminPostTest extends TestCase {
 		);
 
 		$GLOBALS['ran_booster_wp_pusher_test_events'] = array();
-		$_POST                                        = $this->applyRequest( $source, 'v1:' . str_repeat( 'a', 64 ) );
+		$_POST                                        = $this->apply_request( $source, 'v1:' . str_repeat( 'a', 64 ) );
 		$_POST['_wpnonce']                            = 'wrong-nonce';
 		try {
 			$this->controller->handle_admin_post();
@@ -103,10 +105,10 @@ final class PluginAdminPostTest extends TestCase {
 		);
 		self::assertSame( 0, $portability->review_calls );
 		self::assertSame( 0, $portability->apply_calls );
-		self::assertSame( array( AdminPostDatabase::fixtureRow() ), $database->rows );
+		self::assertSame( array( AdminPostDatabase::fixture_row() ), $database->rows );
 	}
 
-	public function testNativeMalformedSubmissionCannotFallThroughToGetInventory(): void {
+	public function test_native_malformed_submission_cannot_fall_through_to_get_inventory(): void {
 		$database    = new AdminPostDatabase();
 		$portability = new AdminPostPortabilityFacade();
 		$interaction = new AdminPostInteractionSpy();
@@ -125,19 +127,19 @@ final class PluginAdminPostTest extends TestCase {
 		self::assertSame( array(), $GLOBALS['ran_booster_wp_pusher_test_events'] );
 		self::assertSame( 0, $portability->review_calls );
 		self::assertSame( 0, $portability->apply_calls );
-		self::assertSame( array( AdminPostDatabase::fixtureRow() ), $database->rows );
+		self::assertSame( array( AdminPostDatabase::fixture_row() ), $database->rows );
 	}
 
-	public function testNativeCapabilityAndPurposeNoncePrecedeInventory(): void {
+	public function test_native_capability_and_purpose_nonce_precede_inventory(): void {
 		$database    = new AdminPostDatabase();
 		$portability = new AdminPostPortabilityFacade();
 		$interaction = new AdminPostInteractionSpy();
 		$this->connect( $database, $portability, $interaction );
-		$source = $this->sourcePackage( $database );
+		$source = $this->source_package( $database );
 
 		$GLOBALS['ran_booster_wp_pusher_test_events']     = array();
 		$GLOBALS['ran_booster_wp_pusher_test_can_manage'] = false;
-		$_POST = $this->reviewRequest( $source );
+		$_POST = $this->review_request( $source );
 		ob_start();
 		$this->controller->render_panel();
 		self::assertSame( '', (string) ob_get_clean() );
@@ -147,8 +149,8 @@ final class PluginAdminPostTest extends TestCase {
 		foreach ( array( 'review', 'apply' ) as $operation ) {
 			$GLOBALS['ran_booster_wp_pusher_test_events'] = array();
 			$_POST                                        = 'review' === $operation
-				? $this->reviewRequest( $source, 'wrong-nonce' )
-				: $this->applyRequest( $source, 'v1:' . str_repeat( 'a', 64 ) );
+				? $this->review_request( $source, 'wrong-nonce' )
+				: $this->apply_request( $source, 'v1:' . str_repeat( 'a', 64 ) );
 			$_POST['_wpnonce']                            = 'wrong-nonce';
 			try {
 				$this->controller->render_panel();
@@ -166,10 +168,10 @@ final class PluginAdminPostTest extends TestCase {
 		}
 		self::assertSame( 0, $portability->review_calls );
 		self::assertSame( 0, $portability->apply_calls );
-		self::assertSame( array( AdminPostDatabase::fixtureRow() ), $database->rows );
+		self::assertSame( array( AdminPostDatabase::fixture_row() ), $database->rows );
 	}
 
-	public function testAuthorizedNativeGetMayReadAndRenderInventory(): void {
+	public function test_authorized_native_get_may_read_and_render_inventory(): void {
 		$database    = new AdminPostDatabase();
 		$portability = new AdminPostPortabilityFacade();
 		$interaction = new AdminPostInteractionSpy();
@@ -187,14 +189,14 @@ final class PluginAdminPostTest extends TestCase {
 		self::assertSame( 0, $portability->review_calls );
 	}
 
-	public function testNativeReviewUsesTheSharedSemanticOutcomeAfterAuthorization(): void {
+	public function test_native_review_uses_the_shared_semantic_outcome_after_authorization(): void {
 		$database    = new AdminPostDatabase();
 		$portability = new AdminPostPortabilityFacade();
 		$interaction = new AdminPostInteractionSpy();
 		$this->connect( $database, $portability, $interaction );
-		$source                                       = $this->sourcePackage( $database );
+		$source                                       = $this->source_package( $database );
 		$GLOBALS['ran_booster_wp_pusher_test_events'] = array();
-		$_POST                                        = $this->reviewRequest( $source );
+		$_POST                                        = $this->review_request( $source );
 
 		ob_start();
 		$this->controller->render_panel();
@@ -213,19 +215,19 @@ final class PluginAdminPostTest extends TestCase {
 		self::assertStringContainsString( '>Adopt</button>', $output );
 	}
 
-	public function testNativeAndAdminPostShareStaleSourceValidationOutcome(): void {
+	public function test_native_and_admin_post_share_stale_source_validation_outcome(): void {
 		$database    = new AdminPostDatabase();
 		$portability = new AdminPostPortabilityFacade();
 		$interaction = new AdminPostInteractionSpy();
 		$this->connect( $database, $portability, $interaction );
-		$source                      = $this->sourcePackage( $database );
-		$_POST                       = $this->reviewRequest( $source );
+		$source                      = $this->source_package( $database );
+		$_POST                       = $this->review_request( $source );
 		$_POST['source_fingerprint'] = 'v1:' . str_repeat( 'b', 64 );
 
 		ob_start();
 		$this->controller->render_panel();
 		$native = (string) ob_get_clean();
-		$this->runHandler();
+		$this->run_handler();
 
 		self::assertStringContainsString( 'The WP Pusher package changed. Review it again.', $native );
 		self::assertSame( 'validation_failure', $interaction->outcome?->kind() );
@@ -233,14 +235,14 @@ final class PluginAdminPostTest extends TestCase {
 		self::assertSame( 0, $portability->review_calls );
 	}
 
-	public function testNativeCleanupPendingRetainsTypedApplyOutcomeAndSourceRow(): void {
+	public function test_native_cleanup_pending_retains_typed_apply_outcome_and_source_row(): void {
 		$database                = new AdminPostDatabase();
 		$database->delete_result = 0;
 		$portability             = new AdminPostPortabilityFacade();
 		$interaction             = new AdminPostInteractionSpy();
 		$this->connect( $database, $portability, $interaction );
-		$source = $this->sourcePackage( $database );
-		$_POST  = $this->applyRequest( $source, 'v1:' . str_repeat( 'a', 64 ) );
+		$source = $this->source_package( $database );
+		$_POST  = $this->apply_request( $source, 'v1:' . str_repeat( 'a', 64 ) );
 
 		ob_start();
 		$this->controller->render_panel();
@@ -252,15 +254,15 @@ final class PluginAdminPostTest extends TestCase {
 		self::assertStringContainsString( 'fixture/fixture.php', $output );
 	}
 
-	public function testNativeUnverifiedApplyRetainsTypedFailureAndSourceRow(): void {
+	public function test_native_unverified_apply_retains_typed_failure_and_source_row(): void {
 		$database                     = new AdminPostDatabase();
 		$portability                  = new AdminPostPortabilityFacade();
 		$portability->apply_status    = 'blocked';
 		$portability->target_verified = false;
 		$interaction                  = new AdminPostInteractionSpy();
 		$this->connect( $database, $portability, $interaction );
-		$source = $this->sourcePackage( $database );
-		$_POST  = $this->applyRequest( $source, 'v1:' . str_repeat( 'a', 64 ) );
+		$source = $this->source_package( $database );
+		$_POST  = $this->apply_request( $source, 'v1:' . str_repeat( 'a', 64 ) );
 
 		ob_start();
 		$this->controller->render_panel();
@@ -271,15 +273,15 @@ final class PluginAdminPostTest extends TestCase {
 		self::assertStringContainsString( 'fixture/fixture.php', $output );
 	}
 
-	public function testReviewReplacesOnlyExactRowWithCheckedImportAction(): void {
+	public function test_review_replaces_only_exact_row_with_checked_import_action(): void {
 		$database    = new AdminPostDatabase();
 		$portability = new AdminPostPortabilityFacade();
 		$interaction = new AdminPostInteractionSpy();
 		$this->connect( $database, $portability, $interaction );
-		$source = $this->sourcePackage( $database );
-		$_POST  = $this->reviewRequest( $source );
+		$source = $this->source_package( $database );
+		$_POST  = $this->review_request( $source );
 
-		$this->runHandler();
+		$this->run_handler();
 
 		$identity_hash = substr( hash( 'sha256', $source->type . ':' . $source->package ), 0, 40 );
 		$target_id     = 'ran-booster-transporter-migration-source-'
@@ -295,7 +297,7 @@ final class PluginAdminPostTest extends TestCase {
 		self::assertSame( $source->fingerprint(), $portability->reviewed_source_fingerprint );
 	}
 
-	public function testPrivateBitbucketProviderAndReplacementCredentialReachReviewAndApply(): void {
+	public function test_private_bitbucket_provider_and_replacement_credential_reach_review_and_apply(): void {
 		$database                        = new AdminPostDatabase();
 		$database->rows[0]['host']       = 'bb';
 		$database->rows[0]['private']    = '1';
@@ -303,39 +305,39 @@ final class PluginAdminPostTest extends TestCase {
 		$portability                     = new AdminPostPortabilityFacade();
 		$interaction                     = new AdminPostInteractionSpy();
 		$this->connect( $database, $portability, $interaction );
-		$source                 = $this->sourcePackage( $database );
-		$_POST                  = $this->reviewRequest( $source );
+		$source                 = $this->source_package( $database );
+		$_POST                  = $this->review_request( $source );
 		$_POST['credential_id'] = 'bitbucket_profile';
 
-		$this->runHandler();
+		$this->run_handler();
 
 		self::assertSame( 'bb', $portability->candidate?->provider_code );
 		self::assertSame( 'fixture-workspace/private-plugin', $portability->candidate?->repository );
 		self::assertSame( 'bitbucket_profile', $portability->candidate?->credential_id );
 		self::assertStringContainsString( 'name="credential_id" value="bitbucket_profile"', $interaction->fragment );
 
-		$_POST = $this->applyRequest(
+		$_POST = $this->apply_request(
 			$source,
 			'v1:' . str_repeat( 'a', 64 ),
 			'bitbucket_profile'
 		);
 
-		$this->runHandler();
+		$this->run_handler();
 
 		self::assertSame( 'bb', $portability->candidate?->provider_code );
 		self::assertSame( 'bitbucket_profile', $portability->candidate?->credential_id );
 	}
 
-	public function testStaleSourceFingerprintFailsLocallyWithoutApplying(): void {
+	public function test_stale_source_fingerprint_fails_locally_without_applying(): void {
 		$database    = new AdminPostDatabase();
 		$portability = new AdminPostPortabilityFacade();
 		$interaction = new AdminPostInteractionSpy();
 		$this->connect( $database, $portability, $interaction );
-		$source                      = $this->sourcePackage( $database );
-		$_POST                       = $this->reviewRequest( $source );
+		$source                      = $this->source_package( $database );
+		$_POST                       = $this->review_request( $source );
 		$_POST['source_fingerprint'] = 'v1:' . str_repeat( 'b', 64 );
 
-		$this->runHandler();
+		$this->run_handler();
 
 		self::assertSame( 'validation_failure', $interaction->outcome?->kind() );
 		self::assertSame( 'The WP Pusher package changed. Review it again.', $interaction->outcome?->message() );
@@ -343,16 +345,16 @@ final class PluginAdminPostTest extends TestCase {
 		self::assertCount( 1, $database->rows );
 	}
 
-	public function testVerifiedApplyDeletesExactSourceAndReturnsImportedManageRow(): void {
+	public function test_verified_apply_deletes_exact_source_and_returns_imported_manage_row(): void {
 		$database    = new AdminPostDatabase();
 		$portability = new AdminPostPortabilityFacade();
 		$interaction = new AdminPostInteractionSpy();
 		$this->connect( $database, $portability, $interaction );
-		$source             = $this->sourcePackage( $database );
+		$source             = $this->source_package( $database );
 		$review_fingerprint = 'v1:' . str_repeat( 'c', 64 );
-		$_POST              = $this->applyRequest( $source, $review_fingerprint );
+		$_POST              = $this->apply_request( $source, $review_fingerprint );
 
-		$this->runHandler();
+		$this->run_handler();
 
 		self::assertSame( 'success', $interaction->outcome?->kind() );
 		self::assertSame( 'wp-pusher:import-package', $interaction->outcome?->request()->operation() );
@@ -368,19 +370,19 @@ final class PluginAdminPostTest extends TestCase {
 		self::assertStringNotContainsString( 'deployment remains off', strtolower( $interaction->fragment ) );
 	}
 
-	public function testApplyDoesNotMarkCompletionWhileAnotherSourceRemains(): void {
+	public function test_apply_does_not_mark_completion_while_another_source_remains(): void {
 		$database             = new AdminPostDatabase();
-		$remaining            = AdminPostDatabase::fixtureRow();
+		$remaining            = AdminPostDatabase::fixture_row();
 		$remaining['id']      = '2';
 		$remaining['package'] = 'other/other.php';
 		$database->rows[]     = $remaining;
 		$portability          = new AdminPostPortabilityFacade();
 		$interaction          = new AdminPostInteractionSpy();
 		$this->connect( $database, $portability, $interaction );
-		$source = $this->sourcePackage( $database );
-		$_POST  = $this->applyRequest( $source, 'v1:' . str_repeat( 'f', 64 ) );
+		$source = $this->source_package( $database );
+		$_POST  = $this->apply_request( $source, 'v1:' . str_repeat( 'f', 64 ) );
 
-		$this->runHandler();
+		$this->run_handler();
 
 		self::assertCount( 1, $database->rows );
 		self::assertSame( 'other/other.php', $database->rows[0]['package'] );
@@ -388,46 +390,46 @@ final class PluginAdminPostTest extends TestCase {
 		self::assertStringNotContainsString( 'data-ran-booster-wp-pusher-migration-complete', $interaction->fragment );
 	}
 
-	public function testCompletionReadbackFailureDoesNotClaimCompletion(): void {
+	public function test_completion_readback_failure_does_not_claim_completion(): void {
 		$database                                   = new AdminPostDatabase();
 		$database->fail_inventory_read_after_delete = true;
 		$portability                                = new AdminPostPortabilityFacade();
 		$interaction                                = new AdminPostInteractionSpy();
 		$this->connect( $database, $portability, $interaction );
-		$source = $this->sourcePackage( $database );
-		$_POST  = $this->applyRequest( $source, 'v1:' . str_repeat( '9', 64 ) );
+		$source = $this->source_package( $database );
+		$_POST  = $this->apply_request( $source, 'v1:' . str_repeat( '9', 64 ) );
 
-		$this->runHandler();
+		$this->run_handler();
 
 		self::assertStringNotContainsString( 'data-ran-booster-wp-pusher-migration-complete', $interaction->fragment );
 	}
 
-	public function testAlreadyManagedApplyReturnsOneLineVerifiedStatus(): void {
+	public function test_already_managed_apply_returns_one_line_verified_status(): void {
 		$database                  = new AdminPostDatabase();
 		$portability               = new AdminPostPortabilityFacade();
 		$portability->apply_status = 'unchanged';
 		$interaction               = new AdminPostInteractionSpy();
 		$this->connect( $database, $portability, $interaction );
-		$source = $this->sourcePackage( $database );
-		$_POST  = $this->applyRequest( $source, 'v1:' . str_repeat( 'e', 64 ) );
+		$source = $this->source_package( $database );
+		$_POST  = $this->apply_request( $source, 'v1:' . str_repeat( 'e', 64 ) );
 
-		$this->runHandler();
+		$this->run_handler();
 
 		self::assertStringContainsString( '<strong>Adoption verified</strong>', $interaction->fragment );
 		self::assertStringNotContainsString( 'Managed by Booster.', $interaction->fragment );
 		self::assertStringContainsString( '>Settings</a>', $interaction->fragment );
 	}
 
-	public function testCleanupPendingUsesBoundedLocalFailureAndKeepsSource(): void {
+	public function test_cleanup_pending_uses_bounded_local_failure_and_keeps_source(): void {
 		$database                = new AdminPostDatabase();
 		$database->delete_result = 0;
 		$portability             = new AdminPostPortabilityFacade();
 		$interaction             = new AdminPostInteractionSpy();
 		$this->connect( $database, $portability, $interaction );
-		$source = $this->sourcePackage( $database );
-		$_POST  = $this->applyRequest( $source, 'v1:' . str_repeat( 'd', 64 ) );
+		$source = $this->source_package( $database );
+		$_POST  = $this->apply_request( $source, 'v1:' . str_repeat( 'd', 64 ) );
 
-		$this->runHandler();
+		$this->run_handler();
 
 		self::assertSame( 'validation_failure', $interaction->outcome?->kind() );
 		self::assertSame(
@@ -438,13 +440,13 @@ final class PluginAdminPostTest extends TestCase {
 		self::assertCount( 1, $database->rows );
 	}
 
-	public function testMissingSourceReturnsConflictWithoutReplacingTheRow(): void {
+	public function test_missing_source_returns_conflict_without_replacing_the_row(): void {
 		$database    = new AdminPostDatabase();
 		$portability = new AdminPostPortabilityFacade();
 		$interaction = new AdminPostInteractionSpy();
 		$this->connect( $database, $portability, $interaction );
-		$source             = $this->sourcePackage( $database );
-		$_POST              = $this->reviewRequest( $source );
+		$source             = $this->source_package( $database );
+		$_POST              = $this->review_request( $source );
 		$_POST['source_id'] = '999';
 
 		try {
@@ -459,23 +461,23 @@ final class PluginAdminPostTest extends TestCase {
 		self::assertSame( 0, $portability->review_calls );
 	}
 
-	public function testUnexpectedSourceFailureReturnsGenericLocalFailure(): void {
+	public function test_unexpected_source_failure_returns_generic_local_failure(): void {
 		$database                    = new AdminPostDatabase();
 		$portability                 = new AdminPostPortabilityFacade();
 		$portability->review_failure = new RuntimeException( 'SECRET-CANARY /private/source.php' );
 		$interaction                 = new AdminPostInteractionSpy();
 		$this->connect( $database, $portability, $interaction );
-		$source = $this->sourcePackage( $database );
-		$_POST  = $this->reviewRequest( $source );
+		$source = $this->source_package( $database );
+		$_POST  = $this->review_request( $source );
 
-		$this->runHandler();
+		$this->run_handler();
 
 		self::assertSame( 'unexpected_failure', $interaction->outcome?->kind() );
 		self::assertSame( 'We could not complete that request. Please try again.', $interaction->outcome?->message() );
 		self::assertStringNotContainsString( 'SECRET-CANARY', (string) $interaction->outcome?->message() );
 	}
 
-	private function runHandler(): void {
+	private function run_handler(): void {
 		try {
 			$this->controller->handle_admin_post();
 			self::fail( 'The administration interaction did not terminate the response.' );
@@ -504,7 +506,7 @@ final class PluginAdminPostTest extends TestCase {
 		$this->controller = new MigrationRequestController( $service, $source, $presenter, $interaction );
 	}
 
-	private function sourcePackage( AdminPostDatabase $database ): WpPusherPackage {
+	private function source_package( AdminPostDatabase $database ): WpPusherPackage {
 		$source = new WpPusherSource(
 			$database,
 			static fn (): array => array( WpPusherSource::PLUGIN => array( 'Version' => '3.0.13' ) ),
@@ -517,7 +519,7 @@ final class PluginAdminPostTest extends TestCase {
 	}
 
 	/** @return array<string, string> */
-	private function reviewRequest( WpPusherPackage $source, string $nonce = 'ran-booster-wp-pusher-migrator-review-v1' ): array {
+	private function review_request( WpPusherPackage $source, string $nonce = 'ran-booster-wp-pusher-migrator-review-v1' ): array {
 		return array(
 			'action'                                => 'ran_booster_wp_pusher_migrator_package',
 			'ran_booster_wp_pusher_migrator_action' => 'review',
@@ -528,7 +530,7 @@ final class PluginAdminPostTest extends TestCase {
 	}
 
 	/** @return array<string, string> */
-	private function applyRequest(
+	private function apply_request(
 		WpPusherPackage $source,
 		string $review_fingerprint,
 		string $credential_id = ''
@@ -598,7 +600,7 @@ final class AdminPostPortabilityFacade extends PortabilityFacade {
 			throw $this->review_failure;
 		}
 		$this->candidate                   = $candidate;
-		$this->reviewed_source_fingerprint = WpPusherPackage::from_row( AdminPostDatabase::fixtureRow() )->fingerprint();
+		$this->reviewed_source_fingerprint = WpPusherPackage::from_row( AdminPostDatabase::fixture_row() )->fingerprint();
 
 		return new PortabilityReviewResult(
 			$candidate,
@@ -642,11 +644,11 @@ final class AdminPostDatabase {
 	private bool $deleted          = false;
 
 	public function __construct() {
-		$this->rows = array( self::fixtureRow() );
+		$this->rows = array( self::fixture_row() );
 	}
 
 	/** @return array<string, mixed> */
-	public static function fixtureRow(): array {
+	public static function fixture_row(): array {
 		return array(
 			'id'           => '1',
 			'package'      => 'fixture/fixture.php',

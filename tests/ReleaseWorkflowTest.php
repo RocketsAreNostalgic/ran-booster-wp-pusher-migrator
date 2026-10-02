@@ -7,22 +7,22 @@ namespace Tests;
 use PHPUnit\Framework\TestCase;
 
 final class ReleaseWorkflowTest extends TestCase {
-	public function testDocumentationProjectsTheCanonicalCoreTagWithoutDuplicatingItsCommit(): void {
+	public function test_documentation_projects_the_canonical_core_tag_without_duplicating_its_commit(): void {
 		$composer = json_decode( (string) file_get_contents( dirname( __DIR__ ) . '/composer.json' ), true, 512, JSON_THROW_ON_ERROR ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local release contract.
 		$tuple    = $composer['extra']['ran-booster-core-certification'] ?? null;
 		self::assertIsArray( $tuple );
-		foreach ( array( 'README.md', 'RELEASE.md' ) as $documentName ) {
-			$document = file_get_contents( dirname( __DIR__ ) . '/' . $documentName ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local release-contract document.
+		foreach ( array( 'README.md', 'RELEASE.md' ) as $document_name ) {
+			$document = file_get_contents( dirname( __DIR__ ) . '/' . $document_name ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local release-contract document.
 			self::assertIsString( $document );
 			self::assertStringContainsString( (string) $tuple['tag'], $document );
 			self::assertStringNotContainsString( (string) $tuple['commit'], $document );
-			self::assertStringContainsString( 'README.md' === $documentName ? 'Portability API 3' : 'Portability API 2', $document );
-			self::assertStringContainsString( 'README.md' === $documentName ? 'Admin Interaction API 3' : 'Admin Interaction API 2', $document );
+			self::assertStringContainsString( 'README.md' === $document_name ? 'Portability API 3' : 'Portability API 2', $document );
+			self::assertStringContainsString( 'README.md' === $document_name ? 'Admin Interaction API 3' : 'Admin Interaction API 2', $document );
 			self::assertStringContainsString( 'installed', strtolower( $document ) );
 		}
 	}
 
-	public function testArchiveCommandsBindMetadataAndRuntimeBytesToOneExplicitCommit(): void {
+	public function test_archive_commands_bind_metadata_and_runtime_bytes_to_one_explicit_commit(): void {
 		$builder  = file_get_contents( dirname( __DIR__ ) . '/scripts/build-release.sh' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local release contract.
 		$wrapper  = file_get_contents( dirname( __DIR__ ) . '/scripts/verify-release.sh' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local release contract.
 		$verifier = file_get_contents( dirname( __DIR__ ) . '/scripts/verify-release.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local release contract.
@@ -36,12 +36,12 @@ final class ReleaseWorkflowTest extends TestCase {
 		self::assertStringContainsString( 'git show "${source_commit}:release-contents.txt"', $builder );
 		self::assertStringContainsString( 'git archive', $builder );
 		self::assertStringContainsString( 'exec php "$root/scripts/verify-release.php" "$@"', $wrapper );
-		self::assertStringContainsString( '$sourceCommit = $argv[2] ??', $verifier );
-		self::assertStringContainsString( "'commit'             => \$sourceCommit", $verifier );
+		self::assertStringContainsString( '$source_commit = $argv[2] ??', $verifier );
+		self::assertStringContainsString( "'commit'             => \$source_commit", $verifier );
 		self::assertStringContainsString( 'bash scripts/build-release.sh "$source_commit"', $quality );
 	}
 
-	public function testQualityUsesExactEventRevisionAndInputlessDispatch(): void {
+	public function test_quality_uses_exact_event_revision_and_inputless_dispatch(): void {
 		$quality = file_get_contents( dirname( __DIR__ ) . '/.github/workflows/quality.yml' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local workflow contract.
 		self::assertIsString( $quality );
 
@@ -56,16 +56,16 @@ final class ReleaseWorkflowTest extends TestCase {
 		self::assertStringContainsString( 'bash scripts/validate-release-candidate.sh "$base_commit" "$source_commit"', $quality );
 		self::assertStringNotContainsString( 'has-trusted-release-candidate-run.sh', $quality );
 
-		$exactRevision = '${{ github.event_name == \'pull_request\' && github.event.pull_request.head.sha || github.sha }}';
-		self::assertStringContainsString( 'ref: ' . $exactRevision, $quality );
-		self::assertStringContainsString( 'RAN_SOURCE_SHA: ' . $exactRevision, $quality );
+		$exact_revision = '${{ github.event_name == \'pull_request\' && github.event.pull_request.head.sha || github.sha }}';
+		self::assertStringContainsString( 'ref: ' . $exact_revision, $quality );
+		self::assertStringContainsString( 'RAN_SOURCE_SHA: ' . $exact_revision, $quality );
 		self::assertStringContainsString( 'test "$(git rev-parse HEAD)" = "$source_commit"', $quality );
 		self::assertStringContainsString( 'quality_commit: $quality_commit', $quality );
 		self::assertStringContainsString( 'source_commit: $source_commit', $quality );
 		self::assertSame( 1, substr_count( $quality, 'bash scripts/build-release.sh' ) );
 	}
 
-	public function testQualityEmitsTheStandardProfileBPromotionManifest(): void {
+	public function test_quality_emits_the_standard_profile_bpromotion_manifest(): void {
 		$quality = file_get_contents( dirname( __DIR__ ) . '/.github/workflows/quality.yml' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local workflow contract.
 		self::assertIsString( $quality );
 
@@ -80,13 +80,13 @@ final class ReleaseWorkflowTest extends TestCase {
 		self::assertStringContainsString( 'ran-booster-wp-pusher-migrator-runtime-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}', $quality );
 	}
 
-	public function testPullRequestAndDispatchedQualityRequireTheLocalProductLanes(): void {
+	public function test_pull_request_and_dispatched_quality_require_the_local_product_lanes(): void {
 		$quality = file_get_contents( dirname( __DIR__ ) . '/.github/workflows/quality.yml' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local workflow contract.
 		self::assertIsString( $quality );
 
-		$terminalStart = strpos( $quality, "  terminal-quality:\n" );
-		self::assertIsInt( $terminalStart );
-		$terminal = substr( $quality, $terminalStart );
+		$terminal_start = strpos( $quality, "  terminal-quality:\n" );
+		self::assertIsInt( $terminal_start );
+		$terminal = substr( $quality, $terminal_start );
 		self::assertStringContainsString( "    name: quality\n", $terminal );
 		self::assertStringContainsString( "github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'", $terminal );
 		self::assertStringContainsString( "      - baseline\n", $terminal );
@@ -99,7 +99,7 @@ final class ReleaseWorkflowTest extends TestCase {
 		self::assertStringContainsString( 'test "$RAN_REPOSITORY_QUALITY_RESULT" = success', $terminal );
 	}
 
-	public function testCertifiedCoreCheckoutUsesTheExactLocalCertification(): void {
+	public function test_certified_core_checkout_uses_the_exact_local_certification(): void {
 		$quality = file_get_contents( dirname( __DIR__ ) . '/.github/workflows/quality.yml' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local workflow contract.
 		self::assertIsString( $quality );
 
@@ -114,7 +114,7 @@ final class ReleaseWorkflowTest extends TestCase {
 		self::assertStringContainsString( 'php migrator/scripts/core-certification.php verify migrator/composer.json core', $quality );
 	}
 
-	public function testSourceQualityCannotPublishWithoutReleasedCoreAnalysis(): void {
+	public function test_source_quality_cannot_publish_without_released_core_analysis(): void {
 		$root    = dirname( __DIR__ );
 		$release = file_get_contents( $root . '/.github/workflows/release-please.yml' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local release guard contract.
 		$quality = file_get_contents( $root . '/.github/workflows/quality.yml' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local release guard contract.
@@ -131,7 +131,7 @@ final class ReleaseWorkflowTest extends TestCase {
 		self::assertStringContainsString( 'run: composer analyze:certified', $quality );
 	}
 
-	public function testReleaseWorkflowIsAThinPinnedProfileBCaller(): void {
+	public function test_release_workflow_is_athin_pinned_profile_bcaller(): void {
 		$release = file_get_contents( dirname( __DIR__ ) . '/.github/workflows/release-please.yml' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local workflow contract.
 		self::assertIsString( $release );
 
@@ -148,7 +148,7 @@ final class ReleaseWorkflowTest extends TestCase {
 		self::assertStringNotContainsString( 'merge_commit_sha', $release );
 	}
 
-	public function testReleasePullRequestGateRequiresFreshInstalledSiteEvidence(): void {
+	public function test_release_pull_request_gate_requires_fresh_installed_site_evidence(): void {
 		$release = file_get_contents( dirname( __DIR__ ) . '/RELEASE.md' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local release contract.
 		self::assertIsString( $release );
 
@@ -159,32 +159,32 @@ final class ReleaseWorkflowTest extends TestCase {
 		self::assertStringContainsString( 'does not by itself satisfy items 3–5 for a new candidate', $release );
 	}
 
-	public function testReleasePleaseConfigurationProvidesProfileBDraftSemantics(): void {
+	public function test_release_please_configuration_provides_profile_bdraft_semantics(): void {
 		$config = json_decode( (string) file_get_contents( dirname( __DIR__ ) . '/release-please-config.json' ), true, 512, JSON_THROW_ON_ERROR ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local release contract.
 		self::assertTrue( $config['draft'] ?? false );
 		self::assertTrue( $config['force-tag-creation'] ?? false );
 		self::assertNotSame( true, $config['skip-github-release'] ?? false );
 	}
 
-	public function testRepositoryWorkflowsPinEveryExternalActionOrReusableWorkflowToAnExactCommit(): void {
-		foreach ( array( 'quality.yml', 'release-please.yml' ) as $workflowName ) {
-			$workflow = file_get_contents( dirname( __DIR__ ) . '/.github/workflows/' . $workflowName ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local workflow contract.
+	public function test_repository_workflows_pin_every_external_action_or_reusable_workflow_to_an_exact_commit(): void {
+		foreach ( array( 'quality.yml', 'release-please.yml' ) as $workflow_name ) {
+			$workflow = file_get_contents( dirname( __DIR__ ) . '/.github/workflows/' . $workflow_name ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local workflow contract.
 			self::assertIsString( $workflow );
 
-			$matchCount = preg_match_all( '/^[[:space:]]+(?:- )?uses: ([^[:space:]#]+)/m', $workflow, $matches );
-			self::assertIsInt( $matchCount );
-			self::assertGreaterThan( 0, $matchCount );
+			$match_count = preg_match_all( '/^[[:space:]]+(?:- )?uses: ([^[:space:]#]+)/m', $workflow, $matches );
+			self::assertIsInt( $match_count );
+			self::assertGreaterThan( 0, $match_count );
 			foreach ( $matches[1] as $action ) {
 				self::assertMatchesRegularExpression(
 					'/\A[^@]+@[0-9a-f]{40}\z/',
 					$action,
-					$workflowName . ' must not use mutable action reference ' . $action
+					$workflow_name . ' must not use mutable action reference ' . $action
 				);
 			}
 		}
 	}
 
-	public function testPublicDocumentationKeepsAcquisitionSupportAndSecurityTruthful(): void {
+	public function test_public_documentation_keeps_acquisition_support_and_security_truthful(): void {
 		$root         = dirname( __DIR__ );
 		$composer     = json_decode( (string) file_get_contents( $root . '/composer.json' ), true, 512, JSON_THROW_ON_ERROR ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local public-metadata contract.
 		$entrypoint   = file_get_contents( $root . '/ran-booster-wp-pusher-migrator.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local public-metadata contract.

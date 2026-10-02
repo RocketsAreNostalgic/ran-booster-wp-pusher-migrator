@@ -22,6 +22,7 @@ use RuntimeException;
 use stdClass;
 
 final class PluginLifecycleTest extends TestCase {
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Exact PHPUnit lifecycle override.
 	protected function setUp(): void {
 		parent::setUp();
 		$GLOBALS['ran_booster_wp_pusher_test_hooks']        = array();
@@ -31,6 +32,7 @@ final class PluginLifecycleTest extends TestCase {
 		$GLOBALS['wpdb'] = new stdClass();
 	}
 
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Exact PHPUnit lifecycle override.
 	protected function tearDown(): void {
 		$_POST                                        = array();
 		$GLOBALS['ran_booster_wp_pusher_test_hooks']  = array();
@@ -41,8 +43,8 @@ final class PluginLifecycleTest extends TestCase {
 		parent::tearDown();
 	}
 
-	public function testInitialRegistrationContainsOnlyCompatibilityBoundaries(): void {
-		$this->defineCompatibleApis();
+	public function test_initial_registration_contains_only_compatibility_boundaries(): void {
+		$this->define_compatible_apis();
 		( new Plugin() )->register();
 
 		self::assertSame(
@@ -55,8 +57,8 @@ final class PluginLifecycleTest extends TestCase {
 		);
 	}
 
-	public function testWrongFacadeDeliveriesAreInertAndLeaveFeatureHooksAbsent(): void {
-		$this->defineCompatibleApis();
+	public function test_wrong_facade_deliveries_are_inert_and_leave_feature_hooks_absent(): void {
+		$this->define_compatible_apis();
 		( new Plugin() )->register();
 		$hooks = $GLOBALS['ran_booster_wp_pusher_test_hooks'];
 
@@ -71,15 +73,15 @@ final class PluginLifecycleTest extends TestCase {
 	}
 
 	/** @return iterable<string,array{list<string>}> */
-	public static function facadeDeliveryOrders(): iterable {
+	public static function facade_delivery_orders(): iterable {
 		yield 'portability then interaction' => array( array( 'portability', 'interaction' ) );
 		yield 'interaction then portability' => array( array( 'interaction', 'portability' ) );
 	}
 
 	/** @param list<string> $order */
-	#[DataProvider( 'facadeDeliveryOrders' )]
-	public function testSecondExactFacadeRegistersEveryFeatureHookExactlyOnce( array $order ): void {
-		$this->defineCompatibleApis();
+	#[DataProvider( 'facade_delivery_orders' )]
+	public function test_second_exact_facade_registers_every_feature_hook_exactly_once( array $order ): void {
+		$this->define_compatible_apis();
 		( new Plugin() )->register();
 		$initial     = $GLOBALS['ran_booster_wp_pusher_test_hooks'];
 		$portability = new LifecyclePortabilityFacade();
@@ -114,8 +116,8 @@ final class PluginLifecycleTest extends TestCase {
 		}
 	}
 
-	public function testFirstExactFacadeInstancesWinAgainstDuplicateAndConflictingDeliveries(): void {
-		$this->defineCompatibleApis();
+	public function test_first_exact_facade_instances_win_against_duplicate_and_conflicting_deliveries(): void {
+		$this->define_compatible_apis();
 		( new Plugin() )->register();
 		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Isolated registered-flow fixture.
 		$GLOBALS['wpdb']                               = new LifecycleDatabase();
@@ -145,7 +147,7 @@ final class PluginLifecycleTest extends TestCase {
 			$GLOBALS['ran_booster_wp_pusher_test_hooks']['ran_booster_portability_render_migration_flows'][0]['callback'][0]
 		);
 
-		$source = WpPusherPackage::from_row( LifecycleDatabase::fixtureRow() );
+		$source = WpPusherPackage::from_row( LifecycleDatabase::fixture_row() );
 		$_POST  = array(
 			'action'                                => 'ran_booster_wp_pusher_migrator_package',
 			'ran_booster_wp_pusher_migrator_action' => 'review',
@@ -154,7 +156,7 @@ final class PluginLifecycleTest extends TestCase {
 			'_wpnonce'                              => 'ran-booster-wp-pusher-migrator-review-v1',
 		);
 		ob_start();
-		$this->runHook( 'ran_booster_portability_render_migration_flows' );
+		$this->run_hook( 'ran_booster_portability_render_migration_flows' );
 		$output = (string) ob_get_clean();
 
 		self::assertSame( 1, $first_portability->review_calls );
@@ -164,8 +166,8 @@ final class PluginLifecycleTest extends TestCase {
 		self::assertStringContainsString( '>Adopt</button>', $output );
 	}
 
-	public function testMissingEitherFacadeLeavesEveryFeatureHookAbsent(): void {
-		$this->defineCompatibleApis();
+	public function test_missing_either_facade_leaves_every_feature_hook_absent(): void {
+		$this->define_compatible_apis();
 		( new Plugin() )->register();
 		$initial = $GLOBALS['ran_booster_wp_pusher_test_hooks'];
 		$this->deliver( 'ran_booster_portability_ready', new LifecyclePortabilityFacade() );
@@ -179,29 +181,29 @@ final class PluginLifecycleTest extends TestCase {
 		self::assertSame( $initial, $GLOBALS['ran_booster_wp_pusher_test_hooks'] );
 	}
 
-	public function testCompatibilityNoticeIsCapabilityGatedAndSilentAfterComposition(): void {
-		$this->defineCompatibleApis();
+	public function test_compatibility_notice_is_capability_gated_and_silent_after_composition(): void {
+		$this->define_compatible_apis();
 		( new Plugin() )->register();
 		$GLOBALS['ran_booster_wp_pusher_test_capabilities']['activate_plugins'] = false;
 		ob_start();
-		$this->runHook( 'admin_notices' );
+		$this->run_hook( 'admin_notices' );
 		self::assertSame( '', (string) ob_get_clean() );
 
 		$GLOBALS['ran_booster_wp_pusher_test_capabilities']['activate_plugins'] = true;
 		ob_start();
-		$this->runHook( 'admin_notices' );
+		$this->run_hook( 'admin_notices' );
 		$notice = (string) ob_get_clean();
 		self::assertStringContainsString( 'needs a compatible RAN Booster release', $notice );
 
 		$this->deliver( 'ran_booster_portability_ready', new LifecyclePortabilityFacade() );
 		$this->deliver( 'ran_booster_admin_interaction_ready', new LifecycleInteractionFacade() );
 		ob_start();
-		$this->runHook( 'admin_notices' );
+		$this->run_hook( 'admin_notices' );
 		self::assertSame( '', (string) ob_get_clean() );
 	}
 
 	/** @return iterable<string, array{?int, ?int, list<string>, bool}> */
-	public static function incompatibleApiMarkers(): iterable {
+	public static function incompatible_api_markers(): iterable {
 		$markers = array(
 			'old portability'     => array( 2, 3 ),
 			'future portability'  => array( 4, 3 ),
@@ -211,7 +213,7 @@ final class PluginLifecycleTest extends TestCase {
 			'missing interaction' => array( 3, null ),
 		);
 		foreach ( $markers as $label => $versions ) {
-			foreach ( self::facadeDeliveryOrders() as $order_label => [ $order ] ) {
+			foreach ( self::facade_delivery_orders() as $order_label => [ $order ] ) {
 				foreach ( array( true, false ) as $before_registration ) {
 					yield $label . ', ' . $order_label . ( $before_registration ? ', Core first' : ', Migrator first' ) => array( $versions[0], $versions[1], $order, $before_registration );
 				}
@@ -220,10 +222,10 @@ final class PluginLifecycleTest extends TestCase {
 	}
 
 	/** @param list<string> $order */
-	#[DataProvider( 'incompatibleApiMarkers' )]
+	#[DataProvider( 'incompatible_api_markers' )]
 	#[RunInSeparateProcess]
 	#[PreserveGlobalState( false )]
-	public function testIncompatibleMarkersNeverAdmitFacadesOrFeatureHooks( ?int $portability_version, ?int $interaction_version, array $order, bool $before_registration ): void {
+	public function test_incompatible_markers_never_admit_facades_or_feature_hooks( ?int $portability_version, ?int $interaction_version, array $order, bool $before_registration ): void {
 		$publish_markers = static function () use ( $portability_version, $interaction_version ): void {
 			if ( null !== $portability_version ) {
 				define( 'RAN_BOOSTER_PORTABILITY_API_VERSION', $portability_version );
@@ -254,7 +256,7 @@ final class PluginLifecycleTest extends TestCase {
 		self::assertArrayNotHasKey( 'admin_post_ran_booster_wp_pusher_migrator_package', $GLOBALS['ran_booster_wp_pusher_test_hooks'] );
 	}
 
-	private function defineCompatibleApis(): void {
+	private function define_compatible_apis(): void {
 		if ( ! defined( 'RAN_BOOSTER_PORTABILITY_API_VERSION' ) ) {
 			define( 'RAN_BOOSTER_PORTABILITY_API_VERSION', 3 );
 		}
@@ -269,7 +271,7 @@ final class PluginLifecycleTest extends TestCase {
 		}
 	}
 
-	private function runHook( string $hook ): void {
+	private function run_hook( string $hook ): void {
 		foreach ( $GLOBALS['ran_booster_wp_pusher_test_hooks'][ $hook ] ?? array() as $registered ) {
 			( $registered['callback'] )();
 		}
@@ -335,7 +337,7 @@ final class LifecycleDatabase {
 	public string $options = 'wp_options';
 
 	/** @return array<string, mixed> */
-	public static function fixtureRow(): array {
+	public static function fixture_row(): array {
 		return array(
 			'id'           => '1',
 			'package'      => 'fixture/fixture.php',
@@ -376,7 +378,7 @@ final class LifecycleDatabase {
 			);
 		}
 
-		return array( self::fixtureRow() );
+		return array( self::fixture_row() );
 	}
 
 	/** @return list<string> */

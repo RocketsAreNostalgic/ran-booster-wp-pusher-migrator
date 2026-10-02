@@ -14,7 +14,7 @@ Preserve the PHP 8.2 baseline, the `RAN\BoosterWpPusherMigrator` namespace,
 the small custom runtime autoloader, and the absence of activation,
 deactivation, or uninstall hooks. Keep PSR-4 class filenames. Owned runtime methods, properties, parameters and
 local variables use snake_case. Use the matching Admin Interaction API 3 snake_case
-signatures; test doubles and CLI helpers retain separately scoped naming debt. Keep the exact runtime API and facade checks even though the
+signatures; owned test doubles and CLI helpers also use snake_case. PHPUnit lifecycle overrides and native ZipArchive properties retain exact explained exceptions. Keep the exact runtime API and facade checks even though the
 plugin header declares `Requires Plugins: ran-booster`: the header cannot
 guarantee that the loaded Booster generation is compatible.
 
@@ -27,9 +27,10 @@ the runtime assets genuinely outgrow that model.
 `ran/coding-standards` owns the shared PHP/WordPress coding ancestry only. This
 repository continues to own its WordPress 7.0 and PHP 8.2 support floors,
 `RAN\BoosterWpPusherMigrator` prefix/identity policy, source paths, receiver-specific foreign signatures,
-test/helper exceptions, and every Core/release-specific contract.
-The remaining naming exceptions still require contract-level review; they do
-not establish full WordPress naming compliance.
+narrow test/helper foreign exceptions, and every Core/release-specific contract.
+The opt-in `RANOwnedMethods` rule checks owned methods even in inherited classes.
+Blanket test/helper suppressions are prohibited by a token-aware regression;
+CLI filesystem/hostile-fixture exceptions name specific diagnostics.
 
 `@rocketsarenostalgic/quality-config` owns the upstream WordPress Stylelint and
 Prettier ancestry. This repository continues to own the `assets/**/*.css` scope,

@@ -12,7 +12,7 @@ use RuntimeException;
 
 final class WpPusherSourceTest extends TestCase {
 
-	public function testReadsOnlyExactInactiveSource(): void {
+	public function test_reads_only_exact_inactive_source(): void {
 		$database = new FakeDatabase();
 		$source   = $this->source( $database );
 
@@ -24,7 +24,7 @@ final class WpPusherSourceTest extends TestCase {
 		self::assertStringContainsString( 'LIMIT 129', implode( ' ', $database->queries ) );
 	}
 
-	public function testReportsOptionNamesWithoutReadingValues(): void {
+	public function test_reports_option_names_without_reading_values(): void {
 		$database               = new FakeDatabase();
 		$database->option_names = array( 'gh_token', 'wppusher_license_key', 'unknown_secret' );
 
@@ -37,8 +37,8 @@ final class WpPusherSourceTest extends TestCase {
 		self::assertStringNotContainsString( 'SECRET-CANARY', implode( ' ', $database->queries ) );
 	}
 
-	#[DataProvider( 'unsupportedEnvironmentProvider' )]
-	public function testRejectsUnsupportedEnvironment(
+	#[DataProvider( 'unsupported_environment_provider' )]
+	public function test_rejects_unsupported_environment(
 		string $version,
 		array $active,
 		array $network_active,
@@ -49,7 +49,7 @@ final class WpPusherSourceTest extends TestCase {
 	}
 
 	/** @return iterable<string, array{string, array<int, string>, array<string, int>, bool}> */
-	public static function unsupportedEnvironmentProvider(): iterable {
+	public static function unsupported_environment_provider(): iterable {
 		yield 'older version' => array( '3.0.12', array(), array(), false );
 		yield 'newer version' => array( '3.0.14', array(), array(), false );
 		yield 'site active' => array( '3.0.13', array( WpPusherSource::PLUGIN ), array(), false );
@@ -57,7 +57,7 @@ final class WpPusherSourceTest extends TestCase {
 		yield 'multisite' => array( '3.0.13', array(), array(), true );
 	}
 
-	public function testRejectsSchemaDriftAndDuplicateIdentities(): void {
+	public function test_rejects_schema_drift_and_duplicate_identities(): void {
 		$schema_drift = new FakeDatabase();
 		array_pop( $schema_drift->schema );
 		try {
@@ -73,14 +73,14 @@ final class WpPusherSourceTest extends TestCase {
 		$this->source( $duplicates )->packages();
 	}
 
-	public function testAcceptsMySqlEightWithoutIntegerDisplayWidth(): void {
+	public function test_accepts_my_sql_eight_without_integer_display_width(): void {
 		$database                    = new FakeDatabase();
 		$database->schema[0]['Type'] = 'mediumint';
 
 		self::assertCount( 1, $this->source( $database )->packages() );
 	}
 
-	public function testReportsOnlyAnExactSupportedRetainedPackageTable(): void {
+	public function test_reports_only_an_exact_supported_retained_package_table(): void {
 		$database = new FakeDatabase();
 		self::assertTrue( $this->source( $database )->supported_package_table_present() );
 
@@ -93,7 +93,7 @@ final class WpPusherSourceTest extends TestCase {
 		$this->source( $database )->supported_package_table_present();
 	}
 
-	public function testRejectsMalformedRowsAndInventoryOverBound(): void {
+	public function test_rejects_malformed_rows_and_inventory_over_bound(): void {
 		$malformed                          = new FakeDatabase();
 		$malformed->rows[0]['subdirectory'] = '../secret';
 		try {
@@ -109,7 +109,7 @@ final class WpPusherSourceTest extends TestCase {
 		$this->source( $over_bound )->packages();
 	}
 
-	public function testDeletesOnlyExactUnchangedRowAndPreservesNullDistinction(): void {
+	public function test_deletes_only_exact_unchanged_row_and_preserves_null_distinction(): void {
 		$database = new FakeDatabase();
 		$source   = $this->source( $database );
 		$package  = $source->packages()[0];
@@ -119,7 +119,7 @@ final class WpPusherSourceTest extends TestCase {
 		self::assertSame( array(), $source->packages() );
 	}
 
-	public function testChangedOrUnmatchedDeleteLeavesSourceRow(): void {
+	public function test_changed_or_unmatched_delete_leaves_source_row(): void {
 		$database                    = new FakeDatabase();
 		$source                      = $this->source( $database );
 		$package                     = $source->packages()[0];

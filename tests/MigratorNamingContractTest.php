@@ -27,6 +27,24 @@ final class MigratorNamingContractTest extends TestCase {
 		}
 	}
 
+	public function test_helper_naming_cannot_be_hidden_by_blanket_suppressions(): void {
+		foreach ( array( 'tests', 'scripts' ) as $directory ) {
+			$files = new \RecursiveIteratorIterator( new \RecursiveDirectoryIterator( dirname( __DIR__ ) . '/' . $directory ) );
+			foreach ( $files as $file ) {
+				if ( ! $file->isFile() || 'php' !== $file->getExtension() ) {
+					continue;
+				}
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Inspect comments in owned development source without executing it.
+				$tokens = token_get_all( file_get_contents( $file->getPathname() ) );
+				foreach ( $tokens as $token ) {
+					if ( is_array( $token ) && in_array( $token[0], array( T_COMMENT, T_DOC_COMMENT ), true ) ) {
+						self::assertDoesNotMatchRegularExpression( '/\bphpcs:(?:disable|ignore)(?:[ \t]*(?:--|$|\*\/))/', $token[1], $file->getPathname() . ':' . $token[2] );
+					}
+				}
+			}
+		}
+	}
+
 	public function test_named_arguments_preserve_candidate_wire_fields(): void {
 		$source    = new WpPusherPackage(
 			id: 1,

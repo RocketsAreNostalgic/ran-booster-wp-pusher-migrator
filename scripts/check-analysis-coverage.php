@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-// phpcs:disable -- Standalone development guard uses PHPStan internals and CLI filesystem APIs.
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound,WordPress.Security.EscapeOutput.OutputNotEscaped,WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents,WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Standalone development guard uses PHPStan internals and CLI filesystem APIs. Naming checks remain enabled.
 
 use PHPStan\Command\CommandHelper;
 
@@ -27,24 +27,36 @@ try {
 		throw new RuntimeException( 'Review coverage discovery for the installed PHPStan version.' );
 	}
 	// Resolve the PHAR-scoped Symfony namespace without baking its build hash into this script.
-	$parameters = ( new ReflectionMethod( CommandHelper::class, 'begin' ) )->getParameters();
-	$input_class = str_replace( 'InputInterface', 'ArrayInput', $parameters[0]->getType()->getName() );
+	$parameters   = ( new ReflectionMethod( CommandHelper::class, 'begin' ) )->getParameters();
+	$input_class  = str_replace( 'InputInterface', 'ArrayInput', $parameters[0]->getType()->getName() );
 	$output_class = str_replace( 'OutputInterface', 'ConsoleOutput', $parameters[1]->getType()->getName() );
-	$inception = CommandHelper::begin(
-		new $input_class( array() ), new $output_class(), array(), '512M', null,
-		array( $root ), $root . '/phpstan.neon.dist', null, null,
-		false, false, null, null, false
+	$inception    = CommandHelper::begin(
+		new $input_class( array() ),
+		new $output_class(),
+		array(),
+		'512M',
+		null,
+		array( $root ),
+		$root . '/phpstan.neon.dist',
+		null,
+		null,
+		false,
+		false,
+		null,
+		null,
+		false
 	);
 	// getFiles includes imported/merged paths, extension filters, analyse/scan exclusions
 	// and configured stub exclusions. scanDirectories alone never establishes coverage.
 	$selected = array_fill_keys( $inception->getFiles()[0], true );
-	$zip = new ZipArchive();
+	$zip      = new ZipArchive();
 	if ( true !== $zip->open( $argv[1], ZipArchive::RDONLY ) ) {
 		throw new RuntimeException( 'Cannot open the finished runtime ZIP.' );
 	}
-	$prefix = 'ran-booster-wp-pusher-migrator/';
-	$count = 0;
+	$prefix  = 'ran-booster-wp-pusher-migrator/';
+	$count   = 0;
 	$missing = array();
+// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Native ZipArchive::$numFiles property.
 	for ( $index = 0; $index < $zip->numFiles; ++$index ) {
 		$name = $zip->getNameIndex( $index );
 		if ( ! is_string( $name ) || ! str_starts_with( $name, $prefix )
@@ -56,9 +68,9 @@ try {
 			continue;
 		}
 		$relative = substr( $name, strlen( $prefix ) );
-		$source = $root . '/' . $relative;
+		$source   = $root . '/' . $relative;
 		++$count;
-		if ( ! isset( $selected[$source] ) ) {
+		if ( ! isset( $selected[ $source ] ) ) {
 			$missing[] = $relative;
 			continue;
 		}

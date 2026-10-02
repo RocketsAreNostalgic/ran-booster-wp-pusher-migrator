@@ -78,4 +78,23 @@ grep -q 'NotSnakeCase' "$work_root/output" || fail 'property control failed for 
 cp "$work_root/clean-package.php" "$fixture/src/WpPusherPackage.php"
 run_command standards || fail 'restored naming controls do not pass standards'
 
+# Exercise actual naming rules where WPCS skips inherited methods and narrowed CLI style annotations.
+cp "$fixture/tests/CandidateFactoryTest.php" "$work_root/clean-test.php"
+sed 's/function static_package(/function staticPackageProbe(/' "$work_root/clean-test.php" > "$fixture/tests/CandidateFactoryTest.php"
+if run_command standards; then
+	fail 'owned inherited helper method escaped naming enforcement'
+fi
+"$repo_root/vendor/bin/phpcs" --standard="$fixture/.phpcs.xml.dist" --report=full -s "$fixture/tests/CandidateFactoryTest.php" >> "$work_root/output" 2>&1 || true
+grep -q 'RANOwnedMethods' "$work_root/output" || fail 'helper method failed for an unrelated reason'
+cp "$work_root/clean-test.php" "$fixture/tests/CandidateFactoryTest.php"
+cp "$fixture/scripts/verify-release.php" "$work_root/clean-verifier.php"
+sed 's/$archive_name/$archiveNameProbe/g' "$work_root/clean-verifier.php" > "$fixture/scripts/verify-release.php"
+if run_command standards; then
+	fail 'owned CLI variable escaped naming enforcement through a style suppression'
+fi
+"$repo_root/vendor/bin/phpcs" --standard="$fixture/.phpcs.xml.dist" --report=full -s "$fixture/scripts/verify-release.php" >> "$work_root/output" 2>&1 || true
+grep -q 'VariableNotSnakeCase' "$work_root/output" || fail 'CLI variable failed for an unrelated reason'
+cp "$work_root/clean-verifier.php" "$fixture/scripts/verify-release.php"
+run_command standards || fail 'restored helper naming controls do not pass'
+
 printf 'PASS actual standards/check-fix commands reject and restore the fixture; repeated fixes preserve tracked bytes\n'

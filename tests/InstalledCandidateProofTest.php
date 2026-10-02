@@ -18,8 +18,9 @@ final class InstalledCandidateProofTest extends TestCase {
 	private string $recorder;
 
 	/** @var list<string> */
-	private array $temporaryDirectories = array();
+	private array $temporary_directories = array();
 
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Exact PHPUnit lifecycle override.
 	protected function setUp(): void {
 		$root           = __DIR__ . '/installed-candidate/';
 		$this->driver   = $this->read( $root . 'migrator-installed-proof.sh' );
@@ -27,7 +28,7 @@ final class InstalledCandidateProofTest extends TestCase {
 		$this->recorder = $this->read( $root . 'migrator-installed-recorder.php' );
 	}
 
-	public function testDriverPinsEveryPublishedInputAndCallerSelectedCandidateIdentity(): void {
+	public function test_driver_pins_every_published_input_and_caller_selected_candidate_identity(): void {
 		self::assertStringContainsString( "expected_migrator_version='0.1.0-beta.7'", $this->driver );
 		self::assertStringContainsString( "expected_core_version='1.0.0-beta.22'", $this->driver );
 		self::assertStringContainsString( self::CORE_SHA, $this->driver );
@@ -38,7 +39,7 @@ final class InstalledCandidateProofTest extends TestCase {
 		self::assertStringContainsString( 'diff -qr "$recovery/extracted-migrator/ran-booster-wp-pusher-migrator"', $this->driver );
 	}
 
-	public function testDriverOwnsARecoverableDatabasePhysicalAndSparseOptionBoundary(): void {
+	public function test_driver_owns_arecoverable_database_physical_and_sparse_option_boundary(): void {
 		self::assertStringContainsString( 'mysqldump_binary', $this->driver );
 		self::assertStringContainsString( '--single-transaction', $this->driver );
 		self::assertStringContainsString( 'DROP DATABASE', $this->driver );
@@ -62,7 +63,7 @@ final class InstalledCandidateProofTest extends TestCase {
 		self::assertStringContainsString( 'proof failed; retained diagnostic data', $this->driver );
 	}
 
-	public function testNoNetworkBoundaryIsFailClosedAndCredentialsRemainAbsent(): void {
+	public function test_no_network_boundary_is_fail_closed_and_credentials_remain_absent(): void {
 		self::assertStringContainsString( 'advanced-cache.php db.php', $this->driver );
 		self::assertStringContainsString( 'no existing top-level must-use plugin', $this->driver );
 		self::assertStringContainsString( 'GITHUB_TOKEN', $this->driver );
@@ -74,7 +75,7 @@ final class InstalledCandidateProofTest extends TestCase {
 		self::assertStringNotContainsString( 'provider_repository_id', $this->probe );
 	}
 
-	public function testInstalledCasesCoverBothOrdersAndExactSourceRefusals(): void {
+	public function test_installed_cases_cover_both_orders_and_exact_source_refusals(): void {
 		self::assertStringContainsString( 'for load_order in core-first addon-first', $this->driver );
 		self::assertStringContainsString( "'wppusher/wppusher.php'", $this->probe );
 		self::assertStringContainsString( "'Version' => '3.0.12'", $this->probe );
@@ -86,8 +87,8 @@ final class InstalledCandidateProofTest extends TestCase {
 		self::assertStringContainsString( 'admin_enqueue_scripts|20|enqueueAssets|1', $this->probe );
 	}
 
-	public function testDatabaseCanonicalizationOnlyRemovesRedundantColumnCharsetSpelling(): void {
-		$directory = $this->temporaryDirectory();
+	public function test_database_canonicalization_only_removes_redundant_column_charset_spelling(): void {
+		$directory = $this->temporary_directory();
 		$cases     = array(
 			'redundant'                   => array(
 				"CREATE TABLE `t` (\n  `c` text COLLATE utf8mb4_unicode_520_ci\n) DEFAULT CHARSET=latin1;\n",
@@ -122,7 +123,7 @@ final class InstalledCandidateProofTest extends TestCase {
 			$right                               = $directory . '/' . $name . '-right.sql';
 			file_put_contents( $left, $baseline ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Private behavioral fixture.
 			file_put_contents( $right, $restored ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Private behavioral fixture.
-			$status = $this->runReadback(
+			$status = $this->run_readback(
 				sprintf(
 					'canonicalize_database_export %s %s; canonicalize_database_export %s %s; cmp -s %s %s',
 					escapeshellarg( $left ),
@@ -137,7 +138,7 @@ final class InstalledCandidateProofTest extends TestCase {
 		}
 	}
 
-	private function runReadback( string $command ): int {
+	private function run_readback( string $command ): int {
 		$helper = __DIR__ . '/installed-candidate/migrator-installed-readback.sh';
 		$output = array();
 		$status = 0;
@@ -146,24 +147,25 @@ final class InstalledCandidateProofTest extends TestCase {
 		return $status;
 	}
 
-	private function temporaryDirectory(): string {
+	private function temporary_directory(): string {
 		$directory = sys_get_temp_dir() . '/migrator-proof-' . bin2hex( random_bytes( 8 ) );
 		mkdir( $directory, 0700 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- Private behavioral fixture.
 		$this->assertDirectoryExists( $directory );
-		$this->temporaryDirectories[] = $directory;
+		$this->temporary_directories[] = $directory;
 
 		return $directory;
 	}
 
+	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Exact PHPUnit lifecycle override.
 	protected function tearDown(): void {
-		foreach ( $this->temporaryDirectories as $directory ) {
+		foreach ( $this->temporary_directories as $directory ) {
 			$paths = glob( $directory . '/*' );
 			foreach ( false === $paths ? array() : $paths as $path ) {
 				unlink( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Private behavioral fixture.
 			}
 			rmdir( $directory ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Private behavioral fixture.
 		}
-		$this->temporaryDirectories = array();
+		$this->temporary_directories = array();
 		parent::tearDown();
 	}
 

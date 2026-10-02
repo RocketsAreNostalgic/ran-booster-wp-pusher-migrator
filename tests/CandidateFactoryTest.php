@@ -12,7 +12,7 @@ use RuntimeException;
 
 final class CandidateFactoryTest extends TestCase {
 
-	public function testMapsInstalledPluginWithoutInventingStableIdentity(): void {
+	public function test_maps_installed_plugin_without_inventing_stable_identity(): void {
 		$candidate = $this->factory()->candidate( $this->package() );
 
 		self::assertSame(
@@ -31,7 +31,7 @@ final class CandidateFactoryTest extends TestCase {
 		self::assertArrayNotHasKey( 'provider_repository_id', $candidate );
 	}
 
-	public function testMapsThemeAndLegacyEmptyBranch(): void {
+	public function test_maps_theme_and_legacy_empty_branch(): void {
 		$candidate = $this->factory()->candidate(
 			$this->package(
 				array(
@@ -54,7 +54,7 @@ final class CandidateFactoryTest extends TestCase {
 		self::assertSame( 'profile_123', $candidate['credential_id'] );
 	}
 
-	public function testMapsPublicBitbucketPluginWithoutCredential(): void {
+	public function test_maps_public_bitbucket_plugin_without_credential(): void {
 		$candidate = $this->factory()->candidate(
 			$this->package(
 				array(
@@ -80,7 +80,7 @@ final class CandidateFactoryTest extends TestCase {
 		);
 	}
 
-	public function testMapsPrivateBitbucketPluginWithReplacementCredential(): void {
+	public function test_maps_private_bitbucket_plugin_with_replacement_credential(): void {
 		$candidate = $this->factory()->candidate(
 			$this->package(
 				array(
@@ -99,15 +99,15 @@ final class CandidateFactoryTest extends TestCase {
 		self::assertSame( 'bitbucket_profile', $candidate['credential_id'] );
 	}
 
-	public function testRejectsGitLabWithUserVisibleMessage(): void {
+	public function test_rejects_git_lab_with_user_visible_message(): void {
 		$this->expectException( RuntimeException::class );
 		$this->expectExceptionMessage( 'GitLab WP Pusher packages are not supported.' );
 
 		$this->factory()->candidate( $this->package( array( 'host' => 'gl' ) ) );
 	}
 
-	#[DataProvider( 'unsupportedCandidateProvider' )]
-	public function testRejectsUnsupportedOrMissingCandidate(
+	#[DataProvider( 'unsupported_candidate_provider' )]
+	public function test_rejects_unsupported_or_missing_candidate(
 		WpPusherPackage $package,
 		array $plugins,
 		bool $theme_exists,
@@ -118,10 +118,10 @@ final class CandidateFactoryTest extends TestCase {
 	}
 
 	/** @return iterable<string, array{WpPusherPackage, array<string, array<string, string>>, bool, string|null}> */
-	public static function unsupportedCandidateProvider(): iterable {
-		yield 'missing plugin' => array( self::staticPackage(), array(), true, null );
+	public static function unsupported_candidate_provider(): iterable {
+		yield 'missing plugin' => array( self::static_package(), array(), true, null );
 		yield 'missing theme' => array(
-			self::staticPackage(
+			self::static_package(
 				array(
 					'type'    => '2',
 					'package' => 'missing',
@@ -132,12 +132,12 @@ final class CandidateFactoryTest extends TestCase {
 			null,
 		);
 		yield 'private without replacement credential' => array(
-			self::staticPackage( array( 'private' => '1' ) ),
+			self::static_package( array( 'private' => '1' ) ),
 			array( 'fixture/fixture.php' => array( 'Name' => 'Fixture' ) ),
 			true,
 			null,
 		);
-		yield 'invalid credential id' => array( self::staticPackage(), array( 'fixture/fixture.php' => array( 'Name' => 'Fixture' ) ), true, '../secret' );
+		yield 'invalid credential id' => array( self::static_package(), array( 'fixture/fixture.php' => array( 'Name' => 'Fixture' ) ), true, '../secret' );
 	}
 
 	/** @param array<string, array<string, string>>|null $plugins */
@@ -152,11 +152,11 @@ final class CandidateFactoryTest extends TestCase {
 
 	/** @param array<string, mixed> $overrides */
 	private function package( array $overrides = array() ): WpPusherPackage {
-		return self::staticPackage( $overrides );
+		return self::static_package( $overrides );
 	}
 
 	/** @param array<string, mixed> $overrides */
-	private static function staticPackage( array $overrides = array() ): WpPusherPackage {
+	private static function static_package( array $overrides = array() ): WpPusherPackage {
 		return WpPusherPackage::from_row(
 			array_merge(
 				array(
