@@ -118,18 +118,23 @@ not make internal methods a supported external API.
 
 `composer.json` is the sole machine-readable owner of the exact
 `extra.ran-booster-core-certification` tag/full-commit tuple. The current
-selected immutable release is RAN Booster `v1.0.0-beta.22`, whose source exposes
-both required API 2 constants and ready actions without the removed Logging
-facade.
+selected immutable release is RAN Booster `v1.0.0-beta.31`, whose source exposes
+Portability API 3 and Admin Interaction API 3 without a Logging facade.
 
-The current compatible Core release evidence is:
+The current automated released-host evidence (3 October 2026) is:
 
-- GitHub release ID `372365460`;
-- plugin ZIP asset ID `519515911`;
-- asset `ran-booster-1.0.0-beta.22.zip`;
-- asset size `2,945,429` bytes; and
-- asset digest
-  `sha256:e373d0127d676eb70f2dcd5e96eb016df3af07fbb61e5d2d481e2efb47660faa`.
+- GitHub release ID `402608343`, published and immutable;
+- plugin ZIP asset ID `608190187`;
+- asset `ran-booster-1.0.0-beta.31.zip`;
+- asset size `4,036,850` bytes;
+- downloaded asset digest
+  `sha256:cf0ebbd306fa9086a9f885974f490b0cacb4a172c20f6b290dde13d2f3a7b2c5`;
+- release/tag target and archive source identity: the exact certification commit
+  owned by `composer.json`;
+- source tree `3ca9f410de65a1c513494dded1793fcf9b05d01a`.
+
+This replaces the historical beta.22/API2 automated baseline. It does not
+relabel the earlier installed evidence or complete the manual release gate.
 
 The historical Phase 0 installed proof used the then-current beta.14 Core
 artifact at source commit
@@ -149,12 +154,12 @@ and a checked-out Core whose HEAD or tag resolution contradicts the tuple.
 Quality checks out the certified commit and proves that its exact tag resolves
 to that commit before checking the two real facade constants and ready actions.
 
-The current beta.22 tuple records source/CI certification only. The earlier disposable
+The current beta.31 tuple records automated released-host certification only. The earlier disposable
 [installed candidate and load-order proof](installed-candidate-load-order-proof.md)
 retained the exact Phase 0 Migrator candidate ZIP and installed it beside the
 historical beta.14 Core artifact and an inactive WP Pusher 3.0.13 fixture. It is
-not installed-runtime evidence for the current beta.22 certification or the
-future beta.7 Migrator candidate.
+not installed-runtime evidence for the current beta.31 certification or the
+next Migrator release candidate.
 
 ## Pre-M1 lifecycle characterization
 

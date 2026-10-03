@@ -151,7 +151,7 @@ jobs:
           retention-days: 7
 
   core-contract:
-    name: Historical certified Core provenance
+    name: Certified Core provenance
     needs: runtime-archive
     runs-on: blacksmith-2vcpu-ubuntu-2404
     timeout-minutes: 10
@@ -178,17 +178,17 @@ jobs:
           php-version: '8.2'
           coverage: none
 
-      - name: Verify historical Core tag, commit and API 2 provenance
+      - name: Verify certified Core tag, commit and API 3 provenance
         shell: bash
         run: |
           set -euo pipefail
           php migrator/scripts/core-certification.php verify migrator/composer.json core
           grep -Eq "define\\([[:space:]]*'RAN_BOOSTER_PORTABILITY_API_VERSION'[[:space:]]*,[[:space:]]*PortabilityFacade::API_VERSION[[:space:]]*\\)" core/ran-booster.php
-          grep -Eq "define\\([[:space:]]*'RAN_BOOSTER_ADMIN_INTERACTION_API_VERSION'[[:space:]]*,[[:space:]]*2[[:space:]]*\\)" core/ran-booster.php
+          grep -Eq "define\\([[:space:]]*'RAN_BOOSTER_ADMIN_INTERACTION_API_VERSION'[[:space:]]*,[[:space:]]*3[[:space:]]*\\)" core/ran-booster.php
           grep -Fq "do_action( 'ran_booster_portability_ready', \$portability )" core/ran-booster.php
-          grep -Fq "do_action( 'ran_booster_admin_interaction_ready', \$adminInteraction )" core/ran-booster.php
-          grep -Eq 'public const API_VERSION[[:space:]]*=[[:space:]]*2;' core/RAN/AddOn/Portability/PortabilityFacade.php
-          grep -Eq 'public const API_VERSION[[:space:]]*=[[:space:]]*2;' core/RAN/Admin/Interaction/AdminInteractionFacade.php
+          grep -Fq "do_action( 'ran_booster_admin_interaction_ready', \$admin_interaction )" core/ran-booster.php
+          grep -Eq 'public const API_VERSION[[:space:]]*=[[:space:]]*3;' core/RAN/AddOn/Portability/PortabilityFacade.php
+          grep -Eq 'public const API_VERSION[[:space:]]*=[[:space:]]*3;' core/RAN/Admin/Interaction/AdminInteractionFacade.php
           if grep -R -Fq 'RAN_BOOSTER_LOGGING_API_VERSION' core/ran-booster.php core/RAN; then
             exit 1
           fi
