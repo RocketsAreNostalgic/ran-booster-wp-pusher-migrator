@@ -25,10 +25,10 @@ The repository-local contract remains:
 - retain the repository-specific installed/manual migration evidence required
   by the product.
 
-The historical released-host certification uses immutable Booster
-`v1.0.0-beta.22` with Portability API 2 and Admin Interaction API 2 only.
+The automated released-host certification selects immutable Booster
+`v1.0.0-beta.31` with Portability API 3 and Admin Interaction API 3.
 The sole machine-readable tag/full-commit tuple is
-`extra.ran-booster-core-certification` in `composer.json`. This historical
+`extra.ran-booster-core-certification` in `composer.json`. This automated
 certification is not a runtime Core pin and does not replace the installed-site
 release gate.
 
@@ -49,9 +49,10 @@ ZIP SHA-256, certified Booster tag, date, disposable-site identity, and the
 result of each item on the release pull request before merge.
 
 1. Run `composer analyze:certified` against the matching immutable Core. The
-   historical beta.22/API2 tuple cannot qualify this Portability3 / Admin
-   Interaction3 source. Update certification only after the matching real Core
-   release and installed evidence exist. Both release-candidate Quality and the
+   selected beta.31 tuple supplies Portability3 / Admin Interaction3. Changing
+   this tuple requires a genuine immutable release and fresh automated proof;
+   items 3–5 remain the separate owner-verified installed acceptance gate.
+   Both release-candidate Quality and the
    Release Please caller enforce real released-Core analysis; source-only Quality
    cannot authorize publication. Then run `composer validate --strict --no-check-publish`, `pnpm install
    --frozen-lockfile`, `pnpm check`, and `composer check` against the exact
@@ -112,7 +113,7 @@ For pull requests, pushes to `main`, and trusted exact-head
 1. checks out the exact event SHA with persisted credentials disabled;
 2. builds and verifies the runtime archive once from that exact SHA;
 3. records the ZIP SHA-256 and product metadata;
-4. verifies the historical certified Core tag/commit provenance and, for a
+4. verifies the certified Core tag/commit provenance and, for a
    release candidate, requires compatibility against that immutable Core;
 5. uploads the run-bound artifact
    `ran-booster-wp-pusher-migrator-runtime-<run-id>-<attempt>`.

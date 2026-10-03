@@ -35,10 +35,10 @@ provider webhooks.
   repository, including private Bitbucket repositories. The bridge never copies
   WP Pusher credentials.
 
-The historical source baseline was certified against RAN Booster `v1.0.0-beta.22`.
-This naming candidate requires Portability API 3 and is not certified against
-that API 2 release. It must not be released until a matching published Core
-has passed the existing certification and installed acceptance gates.
+The automated released-host baseline is RAN Booster `v1.0.0-beta.31`,
+which supplies Portability API 3 and Admin Interaction API 3. Real-declaration
+analysis is separate from the installed migration acceptance gate: publication
+remains held until the exact candidate completes the checklist in `RELEASE.md`.
 `extra.ran-booster-core-certification` in `composer.json` records the exact tag
 and commit. Runtime compatibility still depends on the loaded API markers and
 facade types; `Requires Plugins` and matching version strings are not sufficient.

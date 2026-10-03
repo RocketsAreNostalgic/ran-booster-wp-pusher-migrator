@@ -46,7 +46,7 @@ analyse them. There is no blanket baseline or production exclusion.
 
 Analysis discovers real Core declarations at the exact commit/tree in
 `extra.ran-booster-core-source`, without executing Core or loading unit-test
-doubles. This reviewed source tuple is separate from the unchanged historical
+doubles. This reviewed source tuple is separate from the released-host
 `ran-booster-core-certification` tag/commit. `composer analysis:setup` fetches
 only the pinned commit into `vendor/ran-source-core/source`; cached HEAD, tree,
 tracked bytes and clean worktree must match, including ignored/index-hidden
@@ -59,8 +59,8 @@ cleanup. Source Quality and exact ZIP coverage do not certify an immutable host.
 analyzes the same production selection against its real declarations. Release
 candidate Quality and the existing shared Release Please caller require it;
 the caller binds that proof to the successful same-repository push/main Quality
-head. The historical API2 tuple fails this gate until matching released API3
-certification is truthfully adopted. Installed acceptance remains required.
+head. The selected immutable beta.31 tuple supplies both required API3 surfaces.
+Installed acceptance remains required.
 
 Core API constants are dynamic for the runtime compatibility guards;
 two precisely matched, counted POST-guard diagnostics remain excepted under
@@ -111,8 +111,8 @@ suppressions are replaced by named CLI/hostile-fixture exceptions; a token-aware
 regression prohibits blanket suppressions. Actual-command negative controls
 reject a camelCase inherited helper and a CLI variable. See `docs/migrator-owned-naming-inventory.md`.
 
-The retained Core beta.22 tuple is historical API 2 provenance. Canonical
-`composer check` qualifies the pinned API3 source, while `composer
-analyze:certified` remains a failing released-host gate until matching immutable
-Core certification is selected. Neither source CI nor that automated host gate
-replaces release #43's installed-site acceptance.
+The Core `v1.0.0-beta.31` tuple records the automated released-host baseline.
+Canonical `composer check` still qualifies the independently pinned API3 source;
+`composer analyze:certified` uses the actual immutable released Core declarations.
+Neither source CI nor that automated host gate replaces release #43's exact
+candidate installed-site acceptance.
