@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.1.0-beta.10](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/compare/v0.1.0-beta.9...v0.1.0-beta.10) (2026-10-03)
+
+
+### ⚠ BREAKING CHANGES
+
+* complete recovered beta.31 naming consumers ([#54](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/54))
+
+### Bug Fixes
+
+* complete recovered beta.31 naming consumers ([#54](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/54)) ([024d8d5](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/024d8d5cbf35c46b196df06e053d08dbc542513b))
+* **quality:** enforce WordPress comparison checks ([#44](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/44)) ([e0bfcf2](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/e0bfcf2040e3d9159230d18ec24d30d21a40d160))
+* **quality:** propagate PHP syntax lint failures ([3b67097](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/3b67097ce1fb08acf3e2336d945a4f5d6fb7870c))
+* **quality:** propagate PHP syntax lint failures ([#46](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/46)) ([79a0b74](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/79a0b742a4236fbb556262f0bb2f574cbc1965bb))
+* **release:** adopt shared Profile B lifecycle ([#41](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/41)) ([23ac6e3](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/23ac6e35e8a521bfc5c4b2bc7a53698ec7df36c2))
+* **release:** certify Migrator against immutable Core beta.31 ([#57](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/57)) ([2897e64](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/2897e647c607b87e0514d260555b4e628623cd08))
+* **release:** validate candidate content against canonical PR base ([#51](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/51)) ([83ab555](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/83ab555135f624b26f1069f29084acb49bf83104))
+
+
+### Miscellaneous Chores
+
+* **deps:** refresh compatible frontend tooling dependencies ([#52](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/52)) ([4e707dc](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/4e707dc3f05233fbde4b06b933f1ac85ee03a494))
+* **main:** release 0.1.0-beta.9 ([#37](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/37)) ([696ee7e](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/696ee7ed73a3782875205dc3b86419389dbab31a))
+* **quality:** add canonical PHP fixer and stability proof ([#47](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/47)) ([471afcb](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/471afcbdcdaa02d1a156fa4945078111d5480651))
+* **quality:** enforce owned test and helper naming ([#55](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/55)) ([a0350f6](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/a0350f6b6056d1a52a37431a8ed1e9a2a08ac401))
+* **quality:** enforce production PHPStan level 6 ([#48](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/48)) ([e343b53](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/e343b536587ba860043e0dad827834b6b4f77966))
+* **quality:** guard shipped PHP analysis coverage ([#50](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/50)) ([c5f1b7a](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/c5f1b7a9b6f6ed38f017d43a209cd9c0e921e010))
+* **release:** repin shared Profile B workflow ([#45](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/45)) ([829d823](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/829d823afd87923a20f8170671d2f456465424d9))
+
 ## [0.1.0-beta.9](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/compare/v0.1.0-beta.8...v0.1.0-beta.9) (2026-09-16)
 
 
