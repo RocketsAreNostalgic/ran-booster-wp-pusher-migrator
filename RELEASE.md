@@ -21,7 +21,7 @@ The repository-local contract remains:
 - require the plugin header, package manifest, and Release Please manifest to
   agree on the version;
 - verify the exact certified RAN Booster Core tag/commit and its Portability API
-  2 and Admin Interaction API 2 surfaces;
+  3 and Admin Interaction API 3 surfaces;
 - retain the repository-specific installed/manual migration evidence required
   by the product.
 
@@ -112,7 +112,8 @@ For pull requests, pushes to `main`, and trusted exact-head
 1. checks out the exact event SHA with persisted credentials disabled;
 2. builds and verifies the runtime archive once from that exact SHA;
 3. records the ZIP SHA-256 and product metadata;
-4. verifies the exact certified Core contract;
+4. verifies the historical certified Core tag/commit provenance and, for a
+   release candidate, requires compatibility against that immutable Core;
 5. uploads the run-bound artifact
    `ran-booster-wp-pusher-migrator-runtime-<run-id>-<attempt>`.
 
