@@ -20,17 +20,8 @@
 	<arg value="sp"/>
 
 	<rule ref="RANWordPressPlugin"/>
+	<rule ref="RANOwnedMethods"/>
 
-	<!-- #42: enforce the complete owned runtime cohort; test doubles and CLI
-	     helpers retain separately audited foreign/deferred signatures. -->
-	<rule ref="WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid">
-		<exclude-pattern>/tests/</exclude-pattern>
-		<exclude-pattern>/scripts/</exclude-pattern>
-	</rule>
-	<rule ref="WordPress.NamingConventions.ValidVariableName">
-		<exclude-pattern>/tests/</exclude-pattern>
-		<exclude-pattern>/scripts/</exclude-pattern>
-	</rule>
 
 	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
 		<!-- Included templates receive request-local variables from Plugin; they do not define public globals. -->

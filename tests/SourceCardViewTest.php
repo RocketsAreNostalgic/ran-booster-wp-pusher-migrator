@@ -19,7 +19,7 @@ use RuntimeException;
 final class SourceCardViewTest extends TestCase {
 	private ?SourceCardInteractionSpy $interaction = null;
 
-	public function testRendersEscapedAccessibleNoJavascriptReview(): void {
+	public function test_renders_escaped_accessible_no_javascript_review(): void {
 		$source              = WpPusherPackage::from_row(
 			array(
 				'id'           => '1',
@@ -87,7 +87,7 @@ final class SourceCardViewTest extends TestCase {
 		self::assertStringNotContainsString( 'SECRET-CANARY', $output );
 	}
 
-	public function testRendersModeAndEvidencePromptAsSeparateControls(): void {
+	public function test_renders_mode_and_evidence_prompt_as_separate_controls(): void {
 		ob_start();
 		require dirname( __DIR__ ) . '/views/migration-mode.php';
 		$mode = (string) ob_get_clean();
@@ -105,15 +105,15 @@ final class SourceCardViewTest extends TestCase {
 		self::assertStringContainsString( '#ran-booster-portability-wp-pusher', $prompt );
 	}
 
-	public function testPublicPackageDoesNotAskForCredentials(): void {
-		$output = $this->renderPublicPackage();
+	public function test_public_package_does_not_ask_for_credentials(): void {
+		$output = $this->render_public_package();
 
 		self::assertStringContainsString( '>Check</button>', $output );
 		self::assertStringNotContainsString( 'name="credential_id"', $output );
 	}
 
-	public function testActionableCheckedPackageReplacesCheckWithAdopt(): void {
-		$output = $this->renderPublicPackage( 'adopt' );
+	public function test_actionable_checked_package_replaces_check_with_adopt(): void {
+		$output = $this->render_public_package( 'adopt' );
 
 		self::assertStringContainsString( '<strong>Ready to adopt</strong>', $output );
 		self::assertStringContainsString( 'value="apply"', $output );
@@ -122,8 +122,8 @@ final class SourceCardViewTest extends TestCase {
 		self::assertStringNotContainsString( 'Move to Booster (deployments off)', $output );
 	}
 
-	public function testManagedReviewExplainsTheRemainingCleanupAction(): void {
-		$output = $this->renderPublicPackage( 'managed' );
+	public function test_managed_review_explains_the_remaining_cleanup_action(): void {
+		$output = $this->render_public_package( 'managed' );
 
 		self::assertStringContainsString( '<strong>Adoption incomplete</strong>', $output );
 		self::assertStringContainsString( '<span>Booster manages this package; a WP Pusher record remains.</span>', $output );
@@ -132,15 +132,15 @@ final class SourceCardViewTest extends TestCase {
 		self::assertStringNotContainsString( '>Adopt</button>', $output );
 	}
 
-	public function testBlockedReviewKeepsItsReasonBelowAConciseHeading(): void {
-		$output = $this->renderPublicPackage( 'blocked' );
+	public function test_blocked_review_keeps_its_reason_below_a_concise_heading(): void {
+		$output = $this->render_public_package( 'blocked' );
 
 		self::assertStringContainsString( '<strong>Cannot adopt</strong>', $output );
 		self::assertStringContainsString( '<span>Repository access could not be verified.</span>', $output );
 		self::assertStringContainsString( '>Check</button>', $output );
 	}
 
-	public function testGitLabPackageRendersUserVisibleUnsupportedRowWithoutActions(): void {
+	public function test_git_lab_package_renders_user_visible_unsupported_row_without_actions(): void {
 		$source = WpPusherPackage::from_row(
 			array(
 				'id'           => '1',
@@ -156,7 +156,7 @@ final class SourceCardViewTest extends TestCase {
 			)
 		);
 		$row    = $this->row( $source, null, null );
-		$output = $this->renderRows( array( $row ) );
+		$output = $this->render_rows( array( $row ) );
 
 		self::assertStringContainsString( '<strong>Cannot adopt</strong>', $output );
 		self::assertStringContainsString( 'GitLab WP Pusher packages are not supported.', $output );
@@ -166,9 +166,9 @@ final class SourceCardViewTest extends TestCase {
 		self::assertSame( array(), $this->interaction?->rendered_operations );
 	}
 
-	public function testEnhancedCheckAndAdoptUseCoreRowFacade(): void {
+	public function test_enhanced_check_and_adopt_use_core_row_facade(): void {
 		$interaction = new SourceCardInteractionSpy();
-		$check       = $this->renderPublicPackage( null, $interaction );
+		$check       = $this->render_public_package( null, $interaction );
 
 		self::assertStringContainsString( 'id="ran-booster-transporter-migration-source-', $check );
 		self::assertStringContainsString( 'data-test-operation="wp-pusher:check-package"', $check );
@@ -178,7 +178,7 @@ final class SourceCardViewTest extends TestCase {
 			$check
 		);
 
-		$import = $this->renderPublicPackage( 'adopt', $interaction );
+		$import = $this->render_public_package( 'adopt', $interaction );
 
 		self::assertStringContainsString( 'data-test-operation="wp-pusher:import-package"', $import );
 		self::assertStringContainsString( '>Adopt</button>', $import );
@@ -188,8 +188,8 @@ final class SourceCardViewTest extends TestCase {
 		);
 	}
 
-	public function testImportedPackageReplacesActionsWithManageSettingsLink(): void {
-		$output = $this->renderPublicPackage( null, null, true );
+	public function test_imported_package_replaces_actions_with_manage_settings_link(): void {
+		$output = $this->render_public_package( null, null, true );
 
 		self::assertStringContainsString( '<strong>Adopted</strong>', $output );
 		self::assertStringContainsString( '<td class="ran-booster-wp-pusher-migrator__action-cell">', $output );
@@ -203,8 +203,8 @@ final class SourceCardViewTest extends TestCase {
 		self::assertSame( array(), $this->interaction?->rendered_operations );
 	}
 
-	public function testFinalImportedRowRevealsThePendingCompletionPanel(): void {
-		$output = $this->renderPublicPackage( null, null, true, true );
+	public function test_final_imported_row_reveals_the_pending_completion_panel(): void {
+		$output = $this->render_public_package( null, null, true, true );
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local test fixture, not a remote request.
 		$styles = (string) file_get_contents( dirname( __DIR__ ) . '/assets/wp-pusher-migrator.css' );
 
@@ -222,8 +222,8 @@ final class SourceCardViewTest extends TestCase {
 		);
 	}
 
-	public function testEmptyInventoryRendersTheCompletionPanelVisibleWithoutATable(): void {
-		$output = $this->renderEmptyInventory();
+	public function test_empty_inventory_renders_the_completion_panel_visible_without_a_table(): void {
+		$output = $this->render_empty_inventory();
 
 		self::assertStringContainsString(
 			'class="ran-booster-wp-pusher-migrator__completion-panel ran-booster-wp-pusher-migrator__completion-panel--visible"',
@@ -250,7 +250,7 @@ final class SourceCardViewTest extends TestCase {
 		);
 	}
 
-	private function renderPublicPackage(
+	private function render_public_package(
 		?string $review_action = null,
 		?SourceCardInteractionSpy $interaction = null,
 		bool $imported = false,
@@ -297,18 +297,18 @@ final class SourceCardViewTest extends TestCase {
 			$row['manage_label']       = 'Settings';
 		}
 
-		return $this->renderRows( array( $row ) );
+		return $this->render_rows( array( $row ) );
 	}
 
-	private function renderEmptyInventory(): string {
-		return $this->renderRows( array(), array( 'gh_token' => true ) );
+	private function render_empty_inventory(): string {
+		return $this->render_rows( array(), array( 'gh_token' => true ) );
 	}
 
 	/**
 	 * @param list<array<string, mixed>> $rows
 	 * @param array<string, bool>        $option_presence
 	 */
-	private function renderRows( array $rows, array $option_presence = array() ): string {
+	private function render_rows( array $rows, array $option_presence = array() ): string {
 		$error               = '';
 		$has_error           = false;
 		$legacy_data_present = in_array( true, $option_presence, true );

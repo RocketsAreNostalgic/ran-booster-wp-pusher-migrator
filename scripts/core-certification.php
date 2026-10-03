@@ -11,9 +11,9 @@ use stdClass;
 use Throwable;
 
 /** @return array{tag:string,commit:string} */
-function read_core_certification( string $manifestPath ): array {
+function read_core_certification( string $manifest_path ): array {
 	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- CLI reads one reviewed local manifest.
-	$contents = file_get_contents( $manifestPath );
+	$contents = file_get_contents( $manifest_path );
 	if ( false === $contents ) {
 		throw new InvalidArgumentException( 'Core certification manifest is unreadable.' );
 	}
@@ -56,11 +56,11 @@ function read_core_certification( string $manifestPath ): array {
 }
 
 /** @param array{tag:string,commit:string} $certification */
-function assert_core_certification_checkout( array $certification, string $headCommit, string $tagCommit ): void {
-	if ( ! hash_equals( $certification['commit'], trim( $headCommit ) ) ) {
+function assert_core_certification_checkout( array $certification, string $head_commit, string $tag_commit ): void {
+	if ( ! hash_equals( $certification['commit'], trim( $head_commit ) ) ) {
 		throw new RuntimeException( 'Checked-out Core HEAD does not match the certified commit.' );
 	}
-	if ( ! hash_equals( $certification['commit'], trim( $tagCommit ) ) ) {
+	if ( ! hash_equals( $certification['commit'], trim( $tag_commit ) ) ) {
 		throw new RuntimeException( 'Certified Core tag does not resolve to the certified commit.' );
 	}
 }
@@ -94,12 +94,12 @@ function command_output( array $command ): string {
 
 /** @param list<string> $arguments */
 function run_cli( array $arguments ): int {
-	$command      = $arguments[1] ?? '';
-	$manifestPath = $arguments[2] ?? '';
-	if ( '' === $manifestPath ) {
+	$command       = $arguments[1] ?? '';
+	$manifest_path = $arguments[2] ?? '';
+	if ( '' === $manifest_path ) {
 		throw new InvalidArgumentException( 'A Composer manifest path is required.' );
 	}
-	$certification = read_core_certification( $manifestPath );
+	$certification = read_core_certification( $manifest_path );
 	if ( 'read' === $command ) {
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode,WordPress.Security.EscapeOutput.OutputNotEscaped -- Validated CLI JSON output.
 		echo json_encode( $certification, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES ) . PHP_EOL;
@@ -107,13 +107,13 @@ function run_cli( array $arguments ): int {
 		return 0;
 	}
 	if ( 'github-output' === $command ) {
-		$outputPath = $arguments[3] ?? '';
-		if ( '' === $outputPath ) {
+		$output_path = $arguments[3] ?? '';
+		if ( '' === $output_path ) {
 			throw new InvalidArgumentException( 'A GitHub output path is required.' );
 		}
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- GitHub output file is the CLI contract.
 		$result = file_put_contents(
-			$outputPath,
+			$output_path,
 			'tag=' . $certification['tag'] . PHP_EOL . 'commit=' . $certification['commit'] . PHP_EOL,
 			FILE_APPEND | LOCK_EX
 		);
@@ -124,13 +124,13 @@ function run_cli( array $arguments ): int {
 		return 0;
 	}
 	if ( 'verify' === $command ) {
-		$corePath = $arguments[3] ?? '';
-		if ( '' === $corePath ) {
+		$core_path = $arguments[3] ?? '';
+		if ( '' === $core_path ) {
 			throw new InvalidArgumentException( 'A checked-out Core path is required.' );
 		}
-		$headCommit = command_output( array( 'git', '-C', $corePath, 'rev-parse', 'HEAD' ) );
-		$tagCommit  = command_output( array( 'git', '-C', $corePath, 'rev-parse', '--verify', 'refs/tags/' . $certification['tag'] . '^{commit}' ) );
-		assert_core_certification_checkout( $certification, $headCommit, $tagCommit );
+		$head_commit = command_output( array( 'git', '-C', $core_path, 'rev-parse', 'HEAD' ) );
+		$tag_commit  = command_output( array( 'git', '-C', $core_path, 'rev-parse', '--verify', 'refs/tags/' . $certification['tag'] . '^{commit}' ) );
+		assert_core_certification_checkout( $certification, $head_commit, $tag_commit );
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Values were strictly validated for CLI confirmation.
 		echo 'Certified Booster Core ' . $certification['tag'] . ' at ' . $certification['commit'] . PHP_EOL;
 

@@ -6,10 +6,10 @@ final class WpDieException extends RuntimeException {
 
 	/** @param array<string, mixed> $args */
 	public function __construct(
-		public readonly string $dieMessage,
-		public readonly string $dieTitle,
+		public readonly string $die_message,
+		public readonly string $die_title,
 		public readonly array $args
 	) {
-		parent::__construct( $dieMessage );
+		parent::__construct( $die_message );
 	}
 }

@@ -39,7 +39,8 @@ Connected unit consumers are `CandidateFactoryTest`, `MigrationServiceTest`,
 `SourceCardViewTest`, `PluginAdminPostTest`, `WpPusherSourceTest` and
 `PluginLifecycleTest`. WordPress callback method strings are renamed with their
 receivers; action names, priorities and accepted argument counts stay unchanged.
-Test helper method names outside the completed runtime scope remain excluded debt.
+The original runtime cohort excluded test/helper naming; the follow-up below
+completes that separately tracked scope.
 
 ## Core boundary
 
@@ -80,8 +81,9 @@ their existing behavior.
 
 The historical installed proof remains pinned to its original beta.22/API 2
 composition, including its original callback expectations. It must not be run
-against this candidate and described as new certification. Its files are retained
-unchanged for held #43 acceptance; candidate source and installed qualification
+against this candidate and described as new certification. Its identities and expectations are retained
+for held #43 acceptance; development-local identifiers may be renamed without
+representing a new installed proof; candidate source and installed qualification
 need separately identified evidence. No existing certified-host tuple is widened.
 
 The coordinator owns certification/version decisions, shared rules/guidance,
@@ -90,3 +92,32 @@ archive coverage, canonical formatting, release archives and immutable-host
 checks remain required. New source-candidate evidence must name exact matching
 Core and Migrator commits/trees; published-host certification and owner interactive
 acceptance remain distinct subsequent gates.
+
+## Test/helper follow-up — organisation #121 and narrow #122 adoption
+
+Base `024d8d5cbf35c46b196df06e053d08dbc542513b` already contains the runtime
+migration. This follow-up renames owned PHPUnit tests/providers/helpers, local
+variables, helper properties and callers, including callback/data-provider strings.
+Test discovery retains the `test_` prefix. No production PHP or Core API changes.
+CLI certification/archive helpers and the installed probe's local variables use
+snake_case; installed release identities and legacy callback expectations remain
+historical and unchanged.
+
+The released `ran/coding-standards` v1.0.0 at
+`6af816a02b7d1108ad5c990e9d0fda0af0a13de7` supplies `RANOwnedMethods` to close
+WPCS's inherited-class method exemption. The manifest uses `^1.0`; the lock pins
+that exact release. No other locked package changes. Test/script naming directory
+exclusions are removed. Seven exact PHPUnit `setUp`/`tearDown` overrides preserve
+the framework contract; native `ZipArchive::$numFiles` reads remain unchanged.
+
+Four blanket PHPCS annotations (archive verifier, analysis-coverage CLI, archive
+test and installed hostile probe) become specific diagnostic exceptions for CLI
+filesystem/process APIs, proof-owned globals/SQL and hostile serialized input.
+Formatting is normalized; naming rules stay active. A token-aware PHPUnit guard
+rejects blanket disable/ignore comments. Actual canonical-command negatives prove
+an inherited helper method and a CLI variable cannot escape naming enforcement.
+
+Source qualification still uses the unchanged exact Core source tuple. PHPStan
+remains level 6. Released-host certification, installed/manual acceptance and
+release PR43 remain separate held work; this naming follow-up establishes none
+of those acceptances.

@@ -104,8 +104,12 @@ project's GPL-2.0-or-later license.
 
 The owned runtime naming cohort uses snake_case, including promoted properties
 and named parameters. Keep shared Admin Interaction API 3 snake_case identifiers and all
-serialized/database/UI keys unchanged. Tests and CLI helper naming debt remain
-excluded from this cohort; see `docs/migrator-owned-naming-inventory.md`.
+serialized/database/UI keys unchanged. Owned tests and CLI helpers now join the enforced cohort, including inherited
+test methods through `RANOwnedMethods`. PHPUnit lifecycle overrides and native
+ZipArchive properties retain precise explained exceptions. Four broad helper
+suppressions are replaced by named CLI/hostile-fixture exceptions; a token-aware
+regression prohibits blanket suppressions. Actual-command negative controls
+reject a camelCase inherited helper and a CLI variable. See `docs/migrator-owned-naming-inventory.md`.
 
 The retained Core beta.22 tuple is historical API 2 provenance. Canonical
 `composer check` qualifies the pinned API3 source, while `composer
