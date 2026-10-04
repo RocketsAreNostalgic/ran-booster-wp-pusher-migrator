@@ -150,7 +150,7 @@ final class WpPusherSource {
 			$expected->status,
 			$expected->ptd,
 			$expected->host,
-			$expected->private,
+			$expected->is_private,
 		);
 		if ( null === $expected->subdirectory ) {
 			$query .= ' AND `subdirectory` IS NULL';

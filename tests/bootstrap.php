@@ -93,16 +93,16 @@ function admin_url( string $path = '' ): string {
 	return 'https://example.test/wp-admin/' . ltrim( $path, '/' );
 }
 
-function get_option( string $option, mixed $default = false ): mixed {
+function get_option( string $option, mixed $default_value = false ): mixed {
 	unset( $option );
 
-	return $default;
+	return $default_value;
 }
 
-function get_site_option( string $option, mixed $default = false ): mixed {
+function get_site_option( string $option, mixed $default_value = false ): mixed {
 	unset( $option );
 
-	return $default;
+	return $default_value;
 }
 
 function is_multisite(): bool {

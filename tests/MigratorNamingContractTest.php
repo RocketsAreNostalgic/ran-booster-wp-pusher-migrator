@@ -61,7 +61,7 @@ final class MigratorNamingContractTest extends TestCase {
 			status: 0,
 			ptd: 0,
 			host: 'gh',
-			private: 1,
+			is_private: 1,
 			subdirectory: null
 		);
 		$factory   = new CandidateFactory( plugins: static fn (): array => array( 'fixture/fixture.php' => array( 'Name' => 'Fixture' ) ) );
@@ -80,6 +80,8 @@ final class MigratorNamingContractTest extends TestCase {
 		self::assertSame( 'gh', $candidate->provider_code );
 		self::assertSame( 'profile_123', $candidate->credential_id );
 		self::assertSame( array( 'id', 'package', 'repository', 'branch', 'type', 'status', 'ptd', 'host', 'private', 'subdirectory' ), array_keys( $source->to_array() ) );
+		self::assertSame( 1, $source->to_array()['private'] );
+		self::assertSame( $source->fingerprint(), WpPusherPackage::from_row( $source->to_array() )->fingerprint() );
 		$result = new PortabilityApplyResult( status: 'adopted', reason: 'none', message: 'Adopted.', target_verified: true );
 		self::assertTrue( $result->target_verified );
 		self::assertFalse( property_exists( $candidate, 'credentialId' ) );
