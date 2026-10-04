@@ -116,3 +116,19 @@ Canonical `composer check` still qualifies the independently pinned API3 source;
 `composer analyze:certified` uses the actual immutable released Core declarations.
 Neither source CI nor that automated host gate replaces release #43's exact
 candidate installed-site acceptance.
+
+## Next-beta shared-standard adoption
+
+Development tooling now requires `ran/coding-standards` `^1.0.1`, locked to
+published v1.0.1 at `0248066be3f4f9476ef7095d888657001488a3de`. Only that
+locked package changes. The shared profile deliberately disables
+`WordPress.Security.EscapeOutput.ExceptionNotEscaped`: throwing an exception
+is not rendering output. Three redundant fixture directives are removed or
+narrowed without changing fixture behavior or output-escaping checks.
+
+Whole-tree checking, PHPStan level 6, the source Core tuple and immutable
+beta.31 certification are preserved. This package adoption does not establish
+full organisation #128 acceptance: the reserved-parameter waiver, retained
+helper exceptions, SQL receiver-recognition limitation and suppression-guard
+coverage still require their bounded dispositions. Release #43 continues to
+require exact-candidate manual acceptance; source checks do not discharge it.

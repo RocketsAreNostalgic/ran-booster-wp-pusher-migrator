@@ -111,7 +111,6 @@ function is_multisite(): bool {
 
 /** @param array<string, mixed> $args */
 function wp_die( string $message, string $title = '', array $args = array() ): never {
-	// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Test stub captures arguments and never emits them.
 	throw new WpDieException( $message, $title, $args );
 }
 

@@ -17,7 +17,6 @@ require_once __DIR__ . '/source-candidate-bootstrap.php';
 
 function expect( bool $condition, string $message ): void {
 	if ( ! $condition ) {
-		// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- CLI assertion message, never rendered.
 		throw new RuntimeException( $message );
 	}
 }
