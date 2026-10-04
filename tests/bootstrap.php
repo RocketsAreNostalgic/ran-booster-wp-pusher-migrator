@@ -93,12 +93,14 @@ function admin_url( string $path = '' ): string {
 	return 'https://example.test/wp-admin/' . ltrim( $path, '/' );
 }
 
+// phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.defaultFound -- Preserve the WordPress get_option named-parameter signature.
 function get_option( string $option, mixed $default = false ): mixed {
 	unset( $option );
 
 	return $default;
 }
 
+// phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.defaultFound -- Preserve the WordPress get_site_option named-parameter signature.
 function get_site_option( string $option, mixed $default = false ): mixed {
 	unset( $option );
 

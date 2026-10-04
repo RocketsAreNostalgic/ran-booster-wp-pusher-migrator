@@ -128,7 +128,22 @@ narrowed without changing fixture behavior or output-escaping checks.
 
 Whole-tree checking, PHPStan level 6, the source Core tuple and immutable
 beta.31 certification are preserved. This package adoption does not establish
-full organisation #128 acceptance: the reserved-parameter waiver, retained
+full organisation #128 acceptance: retained
 helper exceptions, SQL receiver-recognition limitation and suppression-guard
 coverage still require their bounded dispositions. Release #43 continues to
 require exact-candidate manual acceptance; source checks do not discharge it.
+
+### Reserved parameter names
+
+The reserved-keyword parameter rule applies across the entire PHP tree. Owned
+Autoloader parameters use `$class_name`; the owned `WpPusherPackage` constructor
+and property use `$is_private`. The named test caller and all known in-repository
+readers move together. Inspection of maintained Core, Provider and Bitbucket
+found no consumers of this Migrator DTO; this is a known-consumer inventory,
+not a guarantee about unknown third-party code.
+
+The retained WP Pusher row key remains `private`, including `to_array()`, source
+comparisons, SQL arguments and fingerprint bytes. WordPress `get_option()` and
+`get_site_option()` test stand-ins retain `$default` through two diagnostic-specific
+inline exceptions to preserve their foreign named-argument signatures. The
+actual-command standards contract proves an owned reserved parameter is rejected.

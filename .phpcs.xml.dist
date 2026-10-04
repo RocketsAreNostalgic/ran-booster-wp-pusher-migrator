@@ -35,9 +35,6 @@
 		</properties>
 	</rule>
 
-	<rule ref="Universal.NamingConventions.NoReservedKeywordParameterNames">
-		<severity>0</severity>
-	</rule>
 
 	<!-- PHPUnit fixtures intentionally colocate small test doubles with their tests. -->
 	<rule ref="Generic.Files.OneObjectStructurePerFile">

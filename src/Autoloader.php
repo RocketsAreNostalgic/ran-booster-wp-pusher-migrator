@@ -9,13 +9,13 @@ final class Autoloader {
 
 	public static function register(): void {
 		spl_autoload_register(
-			static function ( string $class ): void {
+			static function ( string $class_name ): void {
 				$prefix = __NAMESPACE__ . '\\';
-				if ( ! str_starts_with( $class, $prefix ) ) {
+				if ( ! str_starts_with( $class_name, $prefix ) ) {
 					return;
 				}
 
-				$relative = substr( $class, strlen( $prefix ) );
+				$relative = substr( $class_name, strlen( $prefix ) );
 				if ( 1 !== preg_match( '/\A[A-Za-z][A-Za-z0-9\\\\]*\z/D', $relative ) ) {
 					return;
 				}

@@ -79,7 +79,7 @@ final readonly class MigrationPresenter {
 		$candidate = null;
 		$error     = '';
 		try {
-			$candidate = $this->candidates->candidate( $source, 1 === $source->private ? 'credential_required' : null );
+			$candidate = $this->candidates->candidate( $source, 1 === $source->is_private ? 'credential_required' : null );
 		} catch ( Throwable $failure ) {
 			$error = $this->failure_message( $failure ) ?? __( 'This retained package is unsupported.', 'ran-booster-wp-pusher-migrator' );
 		}
@@ -117,7 +117,7 @@ final readonly class MigrationPresenter {
 			'admin_post_action'  => self::ADMIN_POST_ACTION,
 			'source_id'          => $source->id,
 			'source_fingerprint' => $source->fingerprint(),
-			'private'            => 1 === $source->private,
+			'private'            => 1 === $source->is_private,
 			'review_fingerprint' => $review->fingerprint ?? '',
 			'credential_id'      => $review->candidate->credential_id ?? '',
 			'migration_complete' => false,

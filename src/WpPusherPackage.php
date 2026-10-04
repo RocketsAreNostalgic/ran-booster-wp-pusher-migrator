@@ -51,7 +51,7 @@ final readonly class WpPusherPackage {
 		public int $status,
 		public int $ptd,
 		public string $host,
-		public int $private,
+		public int $is_private,
 		public ?string $subdirectory
 	) {
 	}
@@ -78,7 +78,7 @@ final readonly class WpPusherPackage {
 			'status'       => $this->status,
 			'ptd'          => $this->ptd,
 			'host'         => $this->host,
-			'private'      => $this->private,
+			'private'      => $this->is_private,
 			'subdirectory' => $this->subdirectory,
 		);
 	}

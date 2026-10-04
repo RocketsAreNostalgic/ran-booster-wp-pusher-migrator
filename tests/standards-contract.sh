@@ -78,6 +78,16 @@ grep -q 'NotSnakeCase' "$work_root/output" || fail 'property control failed for 
 cp "$work_root/clean-package.php" "$fixture/src/WpPusherPackage.php"
 run_command standards || fail 'restored naming controls do not pass standards'
 
+# Reserved parameter checking must remain active after removing the global waiver.
+sed 's/public int $is_private/public int $private/' "$work_root/clean-package.php" > "$fixture/src/WpPusherPackage.php"
+if run_command standards; then
+	fail 'reserved owned parameter escaped standards enforcement'
+fi
+"$repo_root/vendor/bin/phpcs" --standard="$fixture/.phpcs.xml.dist" --report=full -s "$fixture/src/WpPusherPackage.php" >> "$work_root/output" 2>&1 || true
+grep -q 'NoReservedKeywordParameterNames.privateFound' "$work_root/output" || fail 'reserved parameter failed for an unrelated reason'
+cp "$work_root/clean-package.php" "$fixture/src/WpPusherPackage.php"
+run_command standards || fail 'restored reserved parameter control does not pass'
+
 # Exercise actual naming rules where WPCS skips inherited methods and narrowed CLI style annotations.
 cp "$fixture/tests/CandidateFactoryTest.php" "$work_root/clean-test.php"
 sed 's/function static_package(/function staticPackageProbe(/' "$work_root/clean-test.php" > "$fixture/tests/CandidateFactoryTest.php"
