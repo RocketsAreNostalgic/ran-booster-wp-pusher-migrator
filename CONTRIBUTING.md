@@ -144,6 +144,7 @@ not a guarantee about unknown third-party code.
 
 The retained WP Pusher row key remains `private`, including `to_array()`, source
 comparisons, SQL arguments and fingerprint bytes. WordPress `get_option()` and
-`get_site_option()` test stand-ins retain `$default` through two diagnostic-specific
-inline exceptions to preserve their foreign named-argument signatures. The
-actual-command standards contract proves an owned reserved parameter is rejected.
+`get_site_option()` test stand-ins use `$default_value`, matching the genuine
+WordPress declarations in locked `php-stubs/wordpress-stubs`. No reserved-name
+exception remains. The actual-command standards contract proves an owned
+reserved parameter is rejected.
