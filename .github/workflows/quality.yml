@@ -25,7 +25,7 @@ jobs:
 
   runtime-archive:
     name: Runtime archive
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: read
@@ -153,7 +153,7 @@ jobs:
   core-contract:
     name: Certified Core provenance
     needs: runtime-archive
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - name: Check out the exact Migrator source
@@ -201,7 +201,7 @@ jobs:
     needs:
       - runtime-archive
       - core-contract
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
