@@ -1,7 +1,10 @@
 <?php
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Test fixture variables model isolated CLI or WordPress state; declaration prefixes remain checked.
+
 
 declare(strict_types=1);
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedNamespaceFound -- The Composer test autoloader owns this existing fixture namespace; keep its test discovery identity.
 namespace Tests;
 
 use PHPUnit\Framework\TestCase;
@@ -56,7 +59,7 @@ final class PluginAdminPostTest extends TestCase {
 		try {
 			$this->controller->handle_admin_post();
 			self::fail( 'Invalid operation did not stop.' );
-		} catch ( \WpDieException $failure ) {
+		} catch ( \Ran_Booster_Wp_Pusher_Migrator_Wp_Die_Exception $failure ) {
 			self::assertSame( 400, $failure->args['response'] );
 		}
 		self::assertSame( array(), $GLOBALS['ran_booster_wp_pusher_test_events'] );
@@ -65,7 +68,7 @@ final class PluginAdminPostTest extends TestCase {
 		try {
 			$this->controller->handle_admin_post();
 			self::fail( 'Unauthorized request did not stop.' );
-		} catch ( \WpDieException $failure ) {
+		} catch ( \Ran_Booster_Wp_Pusher_Migrator_Wp_Die_Exception $failure ) {
 			self::assertSame( 403, $failure->args['response'] );
 		}
 		self::assertSame( array( 'capability:manage_options' ), $GLOBALS['ran_booster_wp_pusher_test_events'] );
@@ -76,7 +79,7 @@ final class PluginAdminPostTest extends TestCase {
 		try {
 			$this->controller->handle_admin_post();
 			self::fail( 'Invalid nonce did not stop.' );
-		} catch ( \WpDieException $failure ) {
+		} catch ( \Ran_Booster_Wp_Pusher_Migrator_Wp_Die_Exception $failure ) {
 			self::assertSame( 403, $failure->args['response'] );
 		}
 		self::assertSame(
@@ -93,7 +96,7 @@ final class PluginAdminPostTest extends TestCase {
 		try {
 			$this->controller->handle_admin_post();
 			self::fail( 'Invalid Apply nonce did not stop.' );
-		} catch ( \WpDieException $failure ) {
+		} catch ( \Ran_Booster_Wp_Pusher_Migrator_Wp_Die_Exception $failure ) {
 			self::assertSame( 403, $failure->args['response'] );
 		}
 		self::assertSame(
@@ -120,7 +123,7 @@ final class PluginAdminPostTest extends TestCase {
 		try {
 			$this->controller->render_panel();
 			self::fail( 'Malformed native submission did not stop.' );
-		} catch ( \WpDieException $failure ) {
+		} catch ( \Ran_Booster_Wp_Pusher_Migrator_Wp_Die_Exception $failure ) {
 			self::assertSame( 400, $failure->args['response'] );
 		}
 
@@ -155,7 +158,7 @@ final class PluginAdminPostTest extends TestCase {
 			try {
 				$this->controller->render_panel();
 				self::fail( 'Invalid native nonce did not stop.' );
-			} catch ( \WpDieException $failure ) {
+			} catch ( \Ran_Booster_Wp_Pusher_Migrator_Wp_Die_Exception $failure ) {
 				self::assertSame( 403, $failure->args['response'] );
 			}
 			self::assertSame(
@@ -452,7 +455,7 @@ final class PluginAdminPostTest extends TestCase {
 		try {
 			$this->controller->handle_admin_post();
 			self::fail( 'Missing source did not stop.' );
-		} catch ( \WpDieException $failure ) {
+		} catch ( \Ran_Booster_Wp_Pusher_Migrator_Wp_Die_Exception $failure ) {
 			self::assertSame( 409, $failure->args['response'] );
 		}
 

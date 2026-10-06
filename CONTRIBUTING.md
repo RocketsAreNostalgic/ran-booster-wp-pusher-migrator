@@ -148,3 +148,24 @@ comparisons, SQL arguments and fingerprint bytes. WordPress `get_option()` and
 WordPress declarations in locked `php-stubs/wordpress-stubs`. No reserved-name
 exception remains. The actual-command standards contract proves an owned
 reserved parameter is rejected.
+
+### Global declaration prefix boundary
+
+Seven existing test/view files locally except only `PrefixAllGlobals.NonPrefixedVariableFound`
+for request-local variables. New functions, classes, constants and namespaces
+remain checked at those paths. Forty occurrence-local diagnostic annotations
+preserve 13 fixture/Core namespaces, 19 genuine WordPress function stand-ins and
+eight WordPress/Core capability constants. The seven owned installed-proof
+helpers and owned wp_die exception now use the package prefix, with their
+callers and fixture references updated together. Wire keys, environment names,
+WordPress entrypoints, production API and executable runtime tokens remain unchanged.
+
+The existing actual-command standards contract rejects unprefixed functions,
+classes and constants in future test/view/source/root files. The comment guard
+rejects the whole PrefixAllGlobals category while retaining exact diagnostic
+exceptions; other accepted named ranges are not prohibited. Separate retained
+exception families and exact-candidate manual acceptance remain open boundaries.
+
+Variable exceptions are confined to existing source files with a reasoned
+`NonPrefixedVariableFound` annotation. No path-wide prefix exception remains;
+new test/view files and nested production `tests`/`views` paths are checked.

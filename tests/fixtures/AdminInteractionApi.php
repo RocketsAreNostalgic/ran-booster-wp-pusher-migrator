@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedNamespaceFound -- This fixture must occupy the exact Core namespace to intercept the existing host contract.
 namespace RAN\Admin\Interaction;
 
 final readonly class AdminInteractionRequest {

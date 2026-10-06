@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedNamespaceFound -- The Composer test autoloader owns this existing fixture namespace; keep its test discovery identity.
 namespace Tests;
 
 use PHPUnit\Framework\TestCase;
@@ -58,7 +59,7 @@ final class InstalledCandidateProofTest extends TestCase {
 			self::assertStringContainsString( $snapshot, $this->driver );
 		}
 		self::assertStringContainsString( 'serialized_base64', $this->probe );
-		self::assertStringContainsString( 'serialize( ran_migrator_active_snapshot() )', $this->probe );
+		self::assertStringContainsString( 'serialize( ran_booster_wp_pusher_migrator_active_snapshot() )', $this->probe );
 		self::assertStringContainsString( 'cleanup is uncertain; retained recovery data', $this->driver );
 		self::assertStringContainsString( 'proof failed; retained diagnostic data', $this->driver );
 	}

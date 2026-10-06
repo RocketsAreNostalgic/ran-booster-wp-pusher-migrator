@@ -120,4 +120,19 @@ done
 rm "$fixture/tests/NamingGuardProbe.php"
 run_command standards || fail 'restored annotation controls do not pass'
 
+# Test/template local variables must not exempt new global declarations.
+for relative in tests/PrefixProbe.php views/prefix-probe.php src/PrefixProbe.php src/tests/PrefixProbe.php src/views/PrefixProbe.php prefix-probe.php; do
+	mkdir -p "$(dirname "$fixture/$relative")"
+	printf '<?php\nfunction unowned_probe() {} class UnownedProbe {} const UNOWNED_PROBE = 1; $local_value = 1;\n' > "$fixture/$relative"
+	if run_command standards; then
+		fail "unprefixed declaration escaped scope: $relative"
+	fi
+	"$repo_root/vendor/bin/phpcs" --standard="$fixture/.phpcs.xml.dist" --sniffs=WordPress.NamingConventions.PrefixAllGlobals --report=full -s "$fixture/$relative" > "$work_root/prefix-output" 2>&1 || true
+	for kind in Function Class Constant Variable; do
+		grep -q "NonPrefixed${kind}Found" "$work_root/prefix-output" || fail "missing prefix diagnostic for $kind in $relative"
+	done
+	rm "$fixture/$relative"
+done
+run_command standards || fail 'restored prefix controls do not pass'
+
 printf 'PASS actual standards/check-fix commands reject and restore the fixture; repeated fixes preserve tracked bytes\n'

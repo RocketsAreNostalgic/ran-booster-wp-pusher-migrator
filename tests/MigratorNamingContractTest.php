@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedNamespaceFound -- The Composer test autoloader owns this existing fixture namespace; keep its test discovery identity.
 namespace Tests;
 
 use PHPUnit\Framework\TestCase;
@@ -48,7 +49,13 @@ final class MigratorNamingContractTest extends TestCase {
 	private static function is_blanket_suppression( string $comment ): bool {
 		// PHPCS annotations are case-insensitive; doc comments can split the directive over lines.
 		$normalized = preg_replace( '/[\s*\/]+/', ' ', $comment );
-		return 1 === preg_match( '/(?:@?phpcs:ignorefile\b|@codingStandardsIgnore(?:File|Start|Line)\b|@?phpcs:(?:disable|ignore)(?=\s*(?:--|$)))/i', trim( $normalized ) );
+		return 1 === preg_match( '/phpcs:(?:disable|ignore)\b.*\bWordPress\.NamingConventions\.PrefixAllGlobals(?![A-Za-z0-9_.])/i', $normalized ) || 1 === preg_match( '/(?:@?phpcs:ignorefile\b|@codingStandardsIgnore(?:File|Start|Line)\b|@?phpcs:(?:disable|ignore)(?=\s*(?:--|$)))/i', trim( $normalized ) );
+	}
+
+	public function test_prefix_category_guard_keeps_precise_fixture_exceptions(): void {
+		self::assertTrue( self::is_blanket_suppression( '// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals' ) );
+		self::assertTrue( self::is_blanket_suppression( '/* phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals */' ) );
+		self::assertFalse( self::is_blanket_suppression( '// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- WordPress stand-in.' ) );
 	}
 
 	public function test_named_arguments_preserve_candidate_wire_fields(): void {

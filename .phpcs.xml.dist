@@ -24,9 +24,6 @@
 
 
 	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
-		<!-- Included templates receive request-local variables from Plugin; they do not define public globals. -->
-		<exclude-pattern>/views/</exclude-pattern>
-		<exclude-pattern>/tests/</exclude-pattern>
 		<properties>
 			<property name="prefixes" type="array">
 				<element value="ran_booster_wp_pusher_migrator"/>

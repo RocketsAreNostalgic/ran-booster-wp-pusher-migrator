@@ -1,4 +1,6 @@
 <?php
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Test fixture variables model isolated CLI or WordPress state; declaration prefixes remain checked.
+
 
 // Executed only through WP-CLI by migrator-installed-proof.sh.
 // Do not add strict_types: WP-CLI eval-file wraps the file before evaluation.
@@ -9,7 +11,7 @@ if ( ! defined( 'WP_CLI' ) || ! WP_CLI || '1' !== getenv( 'RAN_MIGRATOR_PROOF_DI
 }
 
 /** @return string */
-function ran_migrator_required_env( string $name ) {
+function ran_booster_wp_pusher_migrator_required_env( string $name ) {
 	$value = getenv( $name );
 	if ( false === $value || '' === $value ) {
 		throw new RuntimeException( 'Missing proof input: ' . $name );
@@ -18,24 +20,24 @@ function ran_migrator_required_env( string $name ) {
 	return $value;
 }
 
-function ran_migrator_assert_boundary(): void {
+function ran_booster_wp_pusher_migrator_assert_boundary(): void {
 	$root    = realpath( ABSPATH );
 	$content = realpath( WP_CONTENT_DIR );
 	if ( false === $root || false === $content
-		|| ! hash_equals( rtrim( ran_migrator_required_env( 'RAN_MIGRATOR_EXPECTED_ABSPATH' ), '/\\' ), rtrim( $root, '/\\' ) )
-		|| ! hash_equals( rtrim( ran_migrator_required_env( 'RAN_MIGRATOR_EXPECTED_WP_CONTENT_DIR' ), '/\\' ), rtrim( $content, '/\\' ) ) ) {
+		|| ! hash_equals( rtrim( ran_booster_wp_pusher_migrator_required_env( 'RAN_MIGRATOR_EXPECTED_ABSPATH' ), '/\\' ), rtrim( $root, '/\\' ) )
+		|| ! hash_equals( rtrim( ran_booster_wp_pusher_migrator_required_env( 'RAN_MIGRATOR_EXPECTED_WP_CONTENT_DIR' ), '/\\' ), rtrim( $content, '/\\' ) ) ) {
 		throw new RuntimeException( 'ABSPATH or WP_CONTENT_DIR escaped the authorized disposable site.' );
 	}
 	$marker = $root . DIRECTORY_SEPARATOR . '.ran-booster-disposable-test-site';
 	if ( is_link( $marker ) || 'RAN Booster disposable test site' !== trim( (string) @file_get_contents( $marker ) )
-		|| ! hash_equals( ran_migrator_required_env( 'RAN_MIGRATOR_EXPECTED_SITE_URL' ), (string) get_option( 'siteurl' ) ) ) {
+		|| ! hash_equals( ran_booster_wp_pusher_migrator_required_env( 'RAN_MIGRATOR_EXPECTED_SITE_URL' ), (string) get_option( 'siteurl' ) ) ) {
 		throw new RuntimeException( 'The marker or site URL does not match the caller-authorized fixture.' );
 	}
 }
 
 /** @return array<mixed> */
-function ran_migrator_active_snapshot() {
-	$path    = ran_migrator_required_env( 'RAN_MIGRATOR_ACTIVE_SNAPSHOT' );
+function ran_booster_wp_pusher_migrator_active_snapshot() {
+	$path    = ran_booster_wp_pusher_migrator_required_env( 'RAN_MIGRATOR_ACTIVE_SNAPSHOT' );
 	$parent  = realpath( dirname( $path ) );
 	$payload = is_file( $path ) ? file_get_contents( $path ) : false;
 	if ( false === $parent || 1 !== preg_match( '#\A/private/tmp/ran-migrator-proof-recovery\.[A-Za-z0-9]+\z#D', $parent ) || false === $payload ) {
@@ -56,7 +58,7 @@ function ran_migrator_active_snapshot() {
 	return $value;
 }
 
-function ran_migrator_load_source(): void {
+function ran_booster_wp_pusher_migrator_load_source(): void {
 	$autoload = WP_PLUGIN_DIR . '/ran-booster-wp-pusher-migrator/src/Autoloader.php';
 	if ( ! is_file( $autoload ) ) {
 		throw new RuntimeException( 'The installed Migrator autoloader is unavailable.' );
@@ -65,7 +67,7 @@ function ran_migrator_load_source(): void {
 	\RAN\BoosterWpPusherMigrator\Autoloader::register();
 }
 
-function ran_migrator_assert_http_blocker(): void {
+function ran_booster_wp_pusher_migrator_assert_http_blocker(): void {
 	$blocker   = $GLOBALS['ran_migrator_proof_http_blocker'] ?? null;
 	$hook      = $GLOBALS['wp_filter']['pre_http_request'] ?? null;
 	$callbacks = is_object( $hook ) && is_array( $hook->callbacks ?? null ) ? $hook->callbacks : array();
@@ -77,7 +79,7 @@ function ran_migrator_assert_http_blocker(): void {
 	}
 }
 
-function ran_migrator_expect_runtime_message( Closure $operation, string $expected ): void {
+function ran_booster_wp_pusher_migrator_expect_runtime_message( Closure $operation, string $expected ): void {
 	try {
 		$operation();
 	} catch ( RuntimeException $error ) {
@@ -92,7 +94,7 @@ function ran_migrator_expect_runtime_message( Closure $operation, string $expect
 }
 
 /** @return list<string> */
-function ran_migrator_owned_callbacks(): array {
+function ran_booster_wp_pusher_migrator_owned_callbacks(): array {
 	$callbacks = array();
 	foreach ( $GLOBALS['wp_filter'] as $hook_name => $hook ) {
 		foreach ( is_object( $hook ) && is_array( $hook->callbacks ?? null ) ? $hook->callbacks : array() as $priority => $entries ) {
@@ -111,8 +113,8 @@ function ran_migrator_owned_callbacks(): array {
 	return $callbacks;
 }
 
-ran_migrator_assert_boundary();
-$mode = ran_migrator_required_env( 'RAN_MIGRATOR_PROOF_MODE' );
+ran_booster_wp_pusher_migrator_assert_boundary();
+$mode = ran_booster_wp_pusher_migrator_required_env( 'RAN_MIGRATOR_PROOF_MODE' );
 
 if ( 'db-identity' === $mode ) {
 	global $wpdb;
@@ -140,7 +142,7 @@ if ( 'snapshot-active' === $mode ) {
 		),
 		JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
 	);
-	$path    = ran_migrator_required_env( 'RAN_MIGRATOR_ACTIVE_SNAPSHOT' );
+	$path    = ran_booster_wp_pusher_migrator_required_env( 'RAN_MIGRATOR_ACTIVE_SNAPSHOT' );
 	if ( strlen( $payload ) !== file_put_contents( $path, $payload, LOCK_EX ) || ! chmod( $path, 0600 ) ) {
 		throw new RuntimeException( 'The active_plugins recovery snapshot could not be retained.' );
 	}
@@ -150,7 +152,7 @@ if ( 'snapshot-active' === $mode ) {
 
 if ( 'compare-active' === $mode ) {
 	$actual = get_option( 'active_plugins', null );
-	if ( ! is_array( $actual ) || ! hash_equals( serialize( ran_migrator_active_snapshot() ), serialize( $actual ) ) ) {
+	if ( ! is_array( $actual ) || ! hash_equals( serialize( ran_booster_wp_pusher_migrator_active_snapshot() ), serialize( $actual ) ) ) {
 		throw new RuntimeException( 'The exact sparse active_plugins baseline was not restored.' );
 	}
 	WP_CLI::success( 'Exact active_plugins baseline matches.' );
@@ -158,7 +160,7 @@ if ( 'compare-active' === $mode ) {
 }
 
 if ( 'set-order' === $mode ) {
-	$order = ran_migrator_required_env( 'RAN_MIGRATOR_LOAD_ORDER' );
+	$order = ran_booster_wp_pusher_migrator_required_env( 'RAN_MIGRATOR_LOAD_ORDER' );
 	if ( 'core-first' === $order ) {
 		$active = array(
 			2 => 'ran-booster/ran-booster.php',
@@ -209,11 +211,11 @@ if ( 'seed-fixture' === $mode ) {
 }
 
 if ( 'source-cases' === $mode ) {
-	ran_migrator_assert_http_blocker();
+	ran_booster_wp_pusher_migrator_assert_http_blocker();
 	if ( array() !== ( $GLOBALS['ran_migrator_proof_http_requests'] ?? null ) ) {
 		throw new RuntimeException( 'A request occurred before the source-case proof began.' );
 	}
-	ran_migrator_load_source();
+	ran_booster_wp_pusher_migrator_load_source();
 	$source   = new \RAN\BoosterWpPusherMigrator\WpPusherSource();
 	$packages = $source->packages();
 	if ( 5 !== count( $packages ) || array( 'gh', 'bb', 'bb', 'gh', 'gl' ) !== array_map( static fn ( $package ): string => $package->host, $packages ) ) {
@@ -267,19 +269,19 @@ if ( 'source-cases' === $mode ) {
 			}
 		}
 	}
-	ran_migrator_expect_runtime_message(
+	ran_booster_wp_pusher_migrator_expect_runtime_message(
 		static fn (): array => $factory->candidate( $packages[2] ),
 		'Choose an existing Booster credential profile for this private repository.'
 	);
-	ran_migrator_expect_runtime_message(
+	ran_booster_wp_pusher_migrator_expect_runtime_message(
 		static fn (): array => $factory->candidate( $packages[4] ),
 		'GitLab WP Pusher packages are not supported.'
 	);
 	$plugins       = static fn (): array => array( 'wppusher/wppusher.php' => array( 'Version' => '3.0.13' ) );
 	$active_source = new \RAN\BoosterWpPusherMigrator\WpPusherSource( null, $plugins, static fn (): array => array( 'wppusher/wppusher.php' ) );
-	ran_migrator_expect_runtime_message( static fn (): array => $active_source->packages(), 'Deactivate WP Pusher before assessing retained packages.' );
+	ran_booster_wp_pusher_migrator_expect_runtime_message( static fn (): array => $active_source->packages(), 'Deactivate WP Pusher before assessing retained packages.' );
 	$wrong_version_source = new \RAN\BoosterWpPusherMigrator\WpPusherSource( null, static fn (): array => array( 'wppusher/wppusher.php' => array( 'Version' => '3.0.12' ) ) );
-	ran_migrator_expect_runtime_message( static fn (): array => $wrong_version_source->packages(), 'Only retained WP Pusher 3.0.13 data is supported.' );
+	ran_booster_wp_pusher_migrator_expect_runtime_message( static fn (): array => $wrong_version_source->packages(), 'Only retained WP Pusher 3.0.13 data is supported.' );
 	global $wpdb;
 	$old = $packages[0];
 	$wpdb->update( $wpdb->prefix . 'wppusher_packages', array( 'branch' => 'changed-after-review' ), array( 'id' => $old->id ) );
@@ -289,8 +291,8 @@ if ( 'source-cases' === $mode ) {
 	$wpdb->update( $wpdb->prefix . 'wppusher_packages', array( 'branch' => $old->branch ), array( 'id' => $old->id ) );
 	// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Disposable proof schema drift.
 	$wpdb->query( "ALTER TABLE `{$wpdb->prefix}wppusher_packages` ADD `proof_extra` varchar(10) NULL" );
-	ran_migrator_expect_runtime_message( static fn (): array => $source->packages(), 'The retained WP Pusher package schema is unsupported.' );
-	ran_migrator_assert_http_blocker();
+	ran_booster_wp_pusher_migrator_expect_runtime_message( static fn (): array => $source->packages(), 'The retained WP Pusher package schema is unsupported.' );
+	ran_booster_wp_pusher_migrator_assert_http_blocker();
 	if ( array() !== ( $GLOBALS['ran_migrator_proof_http_requests'] ?? null ) ) {
 		throw new RuntimeException( 'A source/refusal case attempted provider or network contact.' );
 	}
@@ -313,7 +315,7 @@ if ( 'compatible' === $mode ) {
 		|| ! defined( 'RAN_BOOSTER_ADMIN_INTERACTION_API_VERSION' ) || 2 !== RAN_BOOSTER_ADMIN_INTERACTION_API_VERSION ) {
 		throw new RuntimeException( 'Core did not expose the exact required API 2 generations.' );
 	}
-	$expected = 'core-first' === ran_migrator_required_env( 'RAN_MIGRATOR_LOAD_ORDER' )
+	$expected = 'core-first' === ran_booster_wp_pusher_migrator_required_env( 'RAN_MIGRATOR_LOAD_ORDER' )
 		? array( 'ran-booster/ran-booster.php', 'ran-booster-wp-pusher-migrator/ran-booster-wp-pusher-migrator.php' )
 		: array( 'ran-booster-wp-pusher-migrator/ran-booster-wp-pusher-migrator.php', 'ran-booster/ran-booster.php' );
 	$loaded   = array_values( array_filter( (array) ( $GLOBALS['ran_migrator_proof_loaded_plugins'] ?? array() ), static fn ( $plugin ): bool => in_array( $plugin, $expected, true ) ) );
@@ -331,10 +333,10 @@ if ( 'compatible' === $mode ) {
 		'ran_booster_portability_render_migration_modes|20|renderMode|1',
 	);
 	sort( $expected_callbacks, SORT_STRING );
-	if ( $expected_callbacks !== ran_migrator_owned_callbacks() ) {
+	if ( $expected_callbacks !== ran_booster_wp_pusher_migrator_owned_callbacks() ) {
 		throw new RuntimeException( 'The exact installed Migrator callback set was not composed.' );
 	}
-	ran_migrator_assert_http_blocker();
+	ran_booster_wp_pusher_migrator_assert_http_blocker();
 	if ( array() !== ( $GLOBALS['ran_migrator_proof_http_requests'] ?? null ) ) {
 		throw new RuntimeException( 'The compatible installed proof attempted provider/network contact.' );
 	}

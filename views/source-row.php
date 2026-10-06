@@ -5,6 +5,8 @@
  * @var array<string, mixed> $row
  * @var object               $admin_interaction Exact Core form-attribute presentation seam.
  */
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template-local values are supplied by the rendering scope.
+
 
 defined( 'ABSPATH' ) || exit;
 

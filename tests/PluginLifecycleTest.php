@@ -1,7 +1,10 @@
 <?php
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Test fixture variables model isolated CLI or WordPress state; declaration prefixes remain checked.
+
 
 declare(strict_types=1);
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedNamespaceFound -- The Composer test autoloader owns this existing fixture namespace; keep its test discovery identity.
 namespace Tests;
 
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -228,9 +231,11 @@ final class PluginLifecycleTest extends TestCase {
 	public function test_incompatible_markers_never_admit_facades_or_feature_hooks( ?int $portability_version, ?int $interaction_version, array $order, bool $before_registration ): void {
 		$publish_markers = static function () use ( $portability_version, $interaction_version ): void {
 			if ( null !== $portability_version ) {
+				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- Supply the exact WordPress or Core capability constant consumed by the host-contract fixture.
 				define( 'RAN_BOOSTER_PORTABILITY_API_VERSION', $portability_version );
 			}
 			if ( null !== $interaction_version ) {
+				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- Supply the exact WordPress or Core capability constant consumed by the host-contract fixture.
 				define( 'RAN_BOOSTER_ADMIN_INTERACTION_API_VERSION', $interaction_version );
 			}
 		};
@@ -258,9 +263,11 @@ final class PluginLifecycleTest extends TestCase {
 
 	private function define_compatible_apis(): void {
 		if ( ! defined( 'RAN_BOOSTER_PORTABILITY_API_VERSION' ) ) {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- Supply the exact WordPress or Core capability constant consumed by the host-contract fixture.
 			define( 'RAN_BOOSTER_PORTABILITY_API_VERSION', 3 );
 		}
 		if ( ! defined( 'RAN_BOOSTER_ADMIN_INTERACTION_API_VERSION' ) ) {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- Supply the exact WordPress or Core capability constant consumed by the host-contract fixture.
 			define( 'RAN_BOOSTER_ADMIN_INTERACTION_API_VERSION', 3 );
 		}
 	}

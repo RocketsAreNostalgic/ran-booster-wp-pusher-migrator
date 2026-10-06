@@ -13,6 +13,8 @@
  * @var bool                $completion_visible
  * @var string              $plugins_url
  */
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template-local values are supplied by the rendering scope.
+
 
 defined( 'ABSPATH' ) || exit;
 
