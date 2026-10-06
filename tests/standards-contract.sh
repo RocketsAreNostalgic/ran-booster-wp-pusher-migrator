@@ -198,6 +198,28 @@ for weakening in '<rule ref="WordPress.NamingConventions.PrefixAllGlobals"><seve
 	grep -q 'FAILURES!' "$work_root/output" || fail 'XML weakening control failed for an unrelated reason'
 done
 cp "$work_root/clean-profile.xml" "$fixture/.phpcs.xml.dist"
+# PHPCS accepts conditional attributes on rules/properties/elements. Neither phase
+# may silently lose a mandatory rule while the XML still names it.
+cat > "$fixture/src/ConditionalGuardProbe.php" <<'PHP'
+<?php
+namespace RAN\BoosterWpPusherMigrator;
+
+class ConditionalGuardProbe extends \stdClass {
+	public function camelCase(): void {}
+}
+PHP
+"$repo_root/vendor/bin/phpcs" --standard="$fixture/.phpcs.xml.dist" --report=full -s "$fixture/src/ConditionalGuardProbe.php" > "$work_root/output" 2>&1 || true
+grep -q 'RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase' "$work_root/output" || fail 'conditional control did not start with the actual owned-method diagnostic'
+for attribute in 'phpcbf-only="true"' 'phpcs-only="false"'; do
+	CONDITIONAL_ATTRIBUTE="$attribute" php -r '$path=$argv[1]; file_put_contents($path,str_replace("<rule ref=\"RANOwnedMethods\"/>","<rule ref=\"RANOwnedMethods\" ".getenv("CONDITIONAL_ATTRIBUTE")."/>",file_get_contents($argv[2])));' "$fixture/.phpcs.xml.dist" "$work_root/clean-profile.xml"
+	"$repo_root/vendor/bin/phpcs" --standard="$fixture/.phpcs.xml.dist" --report=full -s "$fixture/src/ConditionalGuardProbe.php" > "$work_root/output" 2>&1 || fail 'conditional control did not pass the actual checker'
+	if grep -q 'RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase' "$work_root/output"; then fail 'conditional control no longer hides the real checker diagnostic'; fi
+	if composer --no-interaction --no-plugins --working-dir="$fixture" test -- --filter test_standards_profile_cannot_silently_weaken_coverage > "$work_root/output" 2>&1; then fail 'conditional rule escaped the independent profile guard'; fi
+	grep -q 'No command-conditional rules' "$work_root/output" || fail 'conditional rule failed for another reason'
+done
+cp "$work_root/clean-profile.xml" "$fixture/.phpcs.xml.dist"
+rm "$fixture/src/ConditionalGuardProbe.php"
+
 run_command standards || fail 'restored exception controls do not pass'
 
 printf 'PASS actual standards/check-fix commands reject and restore the fixture; repeated fixes preserve tracked bytes\n'

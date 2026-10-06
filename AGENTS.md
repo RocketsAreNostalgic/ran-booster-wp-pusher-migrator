@@ -97,7 +97,8 @@ All disable/enable spans, standard/category/sniff-wide ignores and inline
 `phpcs:set` changes are rejected by the maintained-source token guard, including
 comma-list and case variants. Retained exceptions name an exact diagnostic at
 the smallest practical occurrence with a reason; they require independent review
-of the exact candidate. The profile guard rejects scope/rule/severity weakening.
+of the exact candidate. The profile guard rejects scope/rule/severity weakening and PHPCS/PHPCBF-only
+attributes on any element; the checker and fixer must enforce the same rules.
 Green checks and an author-written rationale do not establish exception acceptance.
 See the current disposition and preserved contracts in CONTRIBUTING.md and
 docs/migrator-owned-naming-inventory.md.

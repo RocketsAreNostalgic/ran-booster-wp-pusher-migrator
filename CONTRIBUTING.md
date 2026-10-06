@@ -195,7 +195,8 @@ global-override waivers are removed; three pure-value comparisons use Yoda opera
 legacy ignore directives, case variants and ignores without an exact diagnostic and
 reason. The profile guard pins recursive PHP scope, mandatory standards, prefixes,
 canonical commands and configuration; excludes, severity/type weakening and narrowed
-CLI sniff selection fail. `tests/standards-contract.sh` checks real adjacent file
+CLI sniff selection fail. PHPCS/PHPCBF-only attributes are rejected on every
+element, including rules, properties and array elements. `tests/standards-contract.sh` checks real adjacent file
 operations, declarations, fixture classes and template variables, plus actual checker
 suppression followed by independent guard rejection. Repeated fixes must preserve bytes.
 

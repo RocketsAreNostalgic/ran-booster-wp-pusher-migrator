@@ -73,6 +73,7 @@ final class MigratorNamingContractTest extends TestCase {
 		self::assertSame( array( '/vendor/', '/node_modules/', '/.git/', '/.phpunit.cache/', '/.phpcs-cache' ), array_map( static fn( \SimpleXMLElement $node ): string => (string) $node, $xml->xpath( './exclude-pattern' ) ) );
 		self::assertSame( array( 'RANWordPressPlugin', 'RANOwnedMethods', 'WordPress.NamingConventions.PrefixAllGlobals' ), array_map( static fn( \SimpleXMLElement $node ): string => (string) $node['ref'], $xml->xpath( './rule' ) ) );
 		self::assertSame( array(), $xml->xpath( '//exclude|//severity|//type|//rule//exclude-pattern|//rule//include-pattern' ), 'No rule disabling, recategorization, or path-specific bypasses.' );
+		self::assertSame( array(), $xml->xpath( '//@phpcs-only|//@phpcbf-only' ), 'No command-conditional rules, properties, or array elements.' );
 		self::assertSame( array( 'ran_booster_wp_pusher_migrator', 'RAN\\BoosterWpPusherMigrator' ), array_map( static fn( \SimpleXMLElement $node ): string => (string) $node['value'], $xml->xpath( './rule/properties/property/element' ) ) );
 		self::assertCount( 1, $xml->xpath( '//property' ) );
 		self::assertSame( 'prefixes', (string) $xml->rule[2]->properties->property['name'] );
