@@ -10,12 +10,15 @@ $root = dirname( __DIR__ );
 chdir( $root );
 
 try {
-	if ( 2 !== $argc || ! is_file( $argv[1] ) ) {
-		throw new RuntimeException( 'Usage: php scripts/check-analysis-coverage.php <finished-runtime.zip>' );
+	// Composer forwards analyzer flags to every aggregate step; source mode consumes none.
+	$source_only = '--source' === ( $argv[1] ?? null );
+	if ( ! $source_only && ( $argc > 2 || ( 2 === $argc && ! is_file( $argv[1] ) ) ) ) {
+		throw new RuntimeException( 'Usage: php scripts/check-analysis-coverage.php [finished-runtime.zip]' );
 	}
 	$manifest = json_decode( file_get_contents( $root . '/composer.json' ), true, 512, JSON_THROW_ON_ERROR );
 	if ( ( $manifest['scripts']['analyze'] ?? null ) !== array(
 		'@analysis:setup',
+		'@php scripts/check-analysis-coverage.php --source',
 		'phpstan analyze --configuration=phpstan.neon.dist --memory-limit=512M',
 	) ) {
 		throw new RuntimeException( 'Review coverage discovery when the canonical analyze command changes.' );
@@ -49,7 +52,45 @@ try {
 	// getFiles includes imported/merged paths, extension filters, analyse/scan exclusions
 	// and configured stub exclusions. scanDirectories alone never establishes coverage.
 	$selected = array_fill_keys( $inception->getFiles()[0], true );
-	$zip      = new ZipArchive();
+	// Independently maintain the production population, including sources not in the ZIP.
+	$exemptions = array( 'tests', 'scripts', 'vendor', 'node_modules', 'dist', '.git', '.workspaces' );
+	$config     = ( new PHPStan\DependencyInjection\NeonAdapter( array() ) )->load( $root . '/phpstan.neon.dist' );
+	if ( array( 'analyseAndScan' => array_map( static fn( string $path ): string => $path . '/*', array_values( array_diff( $exemptions, array( 'vendor' ) ) ) ) ) !== ( $config['parameters']['excludePaths'] ?? null )
+		|| array( 'vendor/ran-source-core/source/RAN' ) !== ( $config['parameters']['scanDirectories'] ?? null )
+		|| array( 'tests/phpstan-bootstrap.php' ) !== ( $config['parameters']['bootstrapFiles'] ?? null ) ) {
+		throw new RuntimeException( 'Review maintained analysis scope and its root-only development exemptions.' );
+	}
+	$iterator = new RecursiveCallbackFilterIterator(
+		new RecursiveDirectoryIterator( $root, FilesystemIterator::SKIP_DOTS ),
+		static function ( SplFileInfo $entry ) use ( $root, $exemptions ): bool {
+			return ! $entry->isDir() || ! in_array( substr( $entry->getPathname(), strlen( $root ) + 1 ), $exemptions, true );
+		}
+	);
+	$expected = array();
+	foreach ( new RecursiveIteratorIterator( $iterator ) as $entry ) {
+		if ( ! $entry->isFile() ) {
+			continue;
+		}
+		if ( 0 === strcasecmp( $entry->getExtension(), 'php' ) ) {
+			if ( 'php' !== $entry->getExtension() ) {
+				throw new RuntimeException( 'Unsupported PHP extension must not evade analysis.' );
+			}
+			$expected[] = $entry->getPathname();
+		} else {
+			$header = file_get_contents( $entry->getPathname(), false, null, 0, 512 );
+			if ( preg_match( '/^(?:#![^\n]*\n)?\s*<\?(?:php\b|=)/i', $header ) ) {
+				throw new RuntimeException( 'Nonstandard-extension PHP needs an explicit reviewed analysis decision.' );
+			}
+		}
+	}
+	if ( array() === $expected || array() !== array_diff( $expected, array_keys( $selected ) ) || array() !== array_diff( array_keys( $selected ), $expected ) ) {
+		throw new RuntimeException( 'Effective PHPStan selection differs from independently discovered production PHP.' );
+	}
+	if ( $source_only || 1 === $argc ) {
+		exit( 0 );
+	}
+	printf( "Analysis coverage: all %d maintained production PHP files directly selected.\n", count( $expected ) );
+	$zip = new ZipArchive();
 	if ( true !== $zip->open( $argv[1], ZipArchive::RDONLY ) ) {
 		throw new RuntimeException( 'Cannot open the finished runtime ZIP.' );
 	}

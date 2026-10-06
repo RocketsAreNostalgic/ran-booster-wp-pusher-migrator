@@ -65,7 +65,7 @@
   },
   "autoload-dev": {
     "psr-4": {
-      "Tests\\": "tests/"
+      "RAN\\BoosterWpPusherMigrator\\Tests\\": "tests/"
     }
   },
   "scripts": {
@@ -95,6 +95,7 @@
     "analysis:setup": "bash scripts/prepare-analysis-core.sh",
     "analyze": [
       "@analysis:setup",
+      "@php scripts/check-analysis-coverage.php --source",
       "phpstan analyze --configuration=phpstan.neon.dist --memory-limit=512M"
     ],
     "test:analysis-contract": "bash tests/analysis-contract.sh",

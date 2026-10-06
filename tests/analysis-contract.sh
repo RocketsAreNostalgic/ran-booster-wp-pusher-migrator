@@ -6,10 +6,10 @@ cd "$project_root"
 fixture="$(mktemp -d)"
 trap 'rm -rf "$fixture"' EXIT
 
-mkdir -p "$fixture/scripts" "$fixture/tests"
+mkdir -p "$fixture/scripts" "$fixture/tests" "$fixture/new-product/contracts" "$fixture/src/tests"
 cp -R src views "$fixture/"
 cp composer.json phpstan.neon.dist index.php ran-booster-wp-pusher-migrator.php "$fixture/"
-cp scripts/core-certification.php scripts/core-source.php scripts/prepare-analysis-core.sh "$fixture/scripts/"
+cp scripts/core-certification.php scripts/core-source.php scripts/prepare-analysis-core.sh scripts/check-analysis-coverage.php "$fixture/scripts/"
 cp tests/phpstan-bootstrap.php "$fixture/tests/"
 ln -s "$project_root/vendor" "$fixture/vendor"
 
@@ -20,9 +20,9 @@ analyze() {
 analyze > "$fixture/result.json"
 
 # Prove recursive src/view selection, both root files, return checks and real Core symbols.
-for path in src/AnalysisNegative.php views/analysis-negative.php index.php ran-booster-wp-pusher-migrator.php; do
+for path in src/AnalysisNegative.php views/analysis-negative.php index.php ran-booster-wp-pusher-migrator.php src/tests/runtime.php; do
 	if [[ -f "$fixture/$path" ]]; then
-		cp "$fixture/$path" "$fixture/original.php"
+		cp "$fixture/$path" "$fixture/scripts/original.php"
 	else
 		printf '<?php\n' > "$fixture/$path"
 	fi
@@ -48,14 +48,47 @@ PHP
 			exit(1);
 		}
 	' "$fixture/result.json" "$fixture/$path"
-	if [[ -f "$fixture/original.php" ]]; then
-		mv "$fixture/original.php" "$fixture/$path"
+	if [[ -f "$fixture/scripts/original.php" ]]; then
+		mv "$fixture/scripts/original.php" "$fixture/$path"
 	else
 		rm "$fixture/$path"
 	fi
 done
 
 analyze > "$fixture/result.json"
+
+# New roots/split classes fail the canonical command until explicitly admitted.
+for path in root-contract.php new-product/contracts/split.php; do
+	printf '<?php\nran_migrator_missing_contract();\n' > "$fixture/$path"
+	if analyze > "$fixture/new-root.log" 2>&1; then exit 1; fi
+	grep -q 'Effective PHPStan selection differs' "$fixture/new-root.log"
+	sed -i "/^\tpaths:/a\\\t\t- $path" "$fixture/phpstan.neon.dist"
+	if analyze > "$fixture/negative.json" 2> "$fixture/negative.log"; then exit 1; fi
+	grep -q 'function.notFound' "$fixture/negative.json"
+	grep -q 'ran_migrator_missing_contract' "$fixture/negative.json"
+	rm "$fixture/$path"
+	cp phpstan.neon.dist "$fixture/phpstan.neon.dist"
+done
+mv "$fixture/src/Autoloader.php" "$fixture/new-product/Autoloader.php"
+if analyze > "$fixture/moved.log" 2>&1; then exit 1; fi
+grep -q 'Effective PHPStan selection differs' "$fixture/moved.log"
+sed -i '/^\tpaths:/a\\		- new-product' "$fixture/phpstan.neon.dist"
+analyze > "$fixture/moved.json"
+mv "$fixture/new-product/Autoloader.php" "$fixture/src/Autoloader.php"
+cp phpstan.neon.dist "$fixture/phpstan.neon.dist"
+
+# Real symbol-scanning controls: a development-only constant cannot satisfy a
+# production reference, even if a configuration tries to scan fixture declarations.
+printf '<?php\nconst RAN_MIGRATOR_FIXTURE_ONLY = 1;\n' > "$fixture/tests/development.php"
+printf '<?php\necho RAN_MIGRATOR_FIXTURE_ONLY;\n' > "$fixture/src/scan-isolation.php"
+sed -i '/^\tscanDirectories:/a\\		- tests' "$fixture/phpstan.neon.dist"
+direct_analyze() { ( cd "$fixture" && php vendor/bin/phpstan analyze --configuration=phpstan.neon.dist --no-progress --error-format=json ); }
+if direct_analyze > "$fixture/isolation.json" 2> "$fixture/isolation.log"; then exit 1; fi
+php -r '$r=json_decode(file_get_contents($argv[1]),true,512,JSON_THROW_ON_ERROR);foreach($r["files"][$argv[2]]["messages"]??[] as $m){if(($m["identifier"]??"")==="constant.notFound"&&str_contains($m["message"],"RAN_MIGRATOR_FIXTURE_ONLY")){exit(0);}}exit(1);' "$fixture/isolation.json" "$fixture/src/scan-isolation.php"
+sed -i 's/analyseAndScan:/analyse:/' "$fixture/phpstan.neon.dist"
+direct_analyze > "$fixture/leaked.json"
+cp phpstan.neon.dist "$fixture/phpstan.neon.dist"
+rm "$fixture/src/scan-isolation.php" "$fixture/tests/development.php"
 
 # Verify a disposable Core cache fails closed on altered bytes or certification.
 guard="$fixture/core-guard"
@@ -138,6 +171,6 @@ if php "$guard/tests/phpstan-bootstrap.php" > "$fixture/guard.log" 2>&1; then
 	exit 1
 fi
 grep -Fq 'Checked-out Core does not match the pinned source commit and tree.' "$fixture/guard.log"
-printf 'Analysis contract passed: clean source, four selected-path negatives, certified Core method/return checks, altered/ignored/index-hidden/replacement-tree/mismatched Core refusals.\n'
+printf 'Analysis contract passed: clean source, five selected-path negatives, new/split/moved include-or-fail and fixture isolation, certified Core method/return checks, altered/ignored/index-hidden/replacement-tree/mismatched Core refusals.\n'
 
 bash tests/source-behaviour-manifest-contract.sh

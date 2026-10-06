@@ -6,6 +6,7 @@ fixture="$(mktemp -d)"
 trap 'rm -rf "$fixture"' EXIT
 git -C "$project_root" archive HEAD | tar -x -C "$fixture"
 cp "$project_root/scripts/check-analysis-coverage.php" "$fixture/scripts/"
+cp "$project_root/phpstan.neon.dist" "$project_root/composer.json" "$fixture/"
 ln -s "$project_root/vendor" "$fixture/vendor"
 cd "$fixture"
 git init -q
@@ -29,33 +30,71 @@ reject() {
 bash scripts/build-release.sh "$(git rev-parse HEAD)" >/dev/null
 check
 
+# Maintained sources cannot silently escape before packaging admits them.
+cp phpstan.neon.dist coverage-baseline.neon
+mkdir -p new-product/contracts src/tests
+for path in root-contract.php new-product/contracts/split.php; do
+	printf '<?php\n// Unpackaged production fixture.\n' > "$path"
+	reject 'unpackaged production path' 'Effective PHPStan selection differs'
+	printf 'parameters:\n\tpaths:\n\t\t- %s\n' "$path" > coverage-import.neon
+	sed -i '/^includes:/a\	- coverage-import.neon' phpstan.neon.dist
+	check
+	cp coverage-baseline.neon phpstan.neon.dist
+	rm "$path" coverage-import.neon
+done
+printf '<?php\n' > src/tests/runtime-contract.php
+check
+rm src/tests/runtime-contract.php
+for path in NewContract.PHP contract-tool contract.inc; do
+	printf '#!/usr/bin/env php\n<?PHP\n' > "$path"
+	if [[ "$path" == *.PHP ]]; then
+		reject 'uppercase extension' 'Unsupported PHP extension'
+	else
+		reject 'unsupported PHP spelling' 'Nonstandard-extension PHP'
+	fi
+	rm "$path"
+done
+for header in '<?PHP' '<?='; do
+	for path in contract-tool contract.inc; do
+		printf '%s\n' "$header" > "$path"
+		reject 'nonstandard extension' 'Nonstandard-extension PHP'
+		rm "$path"
+	done
+done
+sed -i '/- views$/d' phpstan.neon.dist
+reject 'shrunken selection' 'Effective PHPStan selection differs'
+cp coverage-baseline.neon phpstan.neon.dist
+sed -i 's/analyseAndScan:/analyse:/' phpstan.neon.dist
+reject 'development scan leakage policy' 'Review maintained analysis scope'
+cp coverage-baseline.neon phpstan.neon.dist
+
 # Build a real allowlisted ZIP with a new shipped PHP file outside analysis roots.
 printf '<?php\n// Coverage fixture.\n' > assets/uncovered.php
 git add assets/uncovered.php
 git commit -qm 'test: newly shipped uncovered PHP'
 bash scripts/build-release.sh "$(git rev-parse HEAD)" >/dev/null
-reject 'new shipped PHP' 'outside direct PHPStan selection: assets/uncovered.php'
+reject 'new shipped PHP' 'Effective PHPStan selection differs'
 
 # scanDirectories supplies symbols but must not count as direct analysis.
 printf 'parameters:\n\tscanDirectories:\n\t\t- assets\n' > coverage-import.neon
 sed -i '/^includes:/a\	- coverage-import.neon' phpstan.neon.dist
-reject 'scan-only PHP' 'outside direct PHPStan selection: assets/uncovered.php'
+reject 'scan-only PHP' 'Effective PHPStan selection differs'
 
 # Imported paths are supported; exclusions use the locked engine's semantics.
 printf 'parameters:\n\tpaths:\n\t\t- assets\n' > coverage-import.neon
 check
 for exclusion in analyse analyseAndScan; do
 	printf 'parameters:\n\tpaths:\n\t\t- assets\n\texcludePaths:\n\t\t%s:\n\t\t\t- assets/*.php\n' "$exclusion" > coverage-import.neon
-	reject "imported $exclusion exclusion" 'outside direct PHPStan selection: assets/uncovered.php'
+	reject "imported $exclusion exclusion" 'Effective PHPStan selection differs'
 done
 printf 'parameters:\n\tpaths:\n\t\t- assets\n\texcludePaths:\n\t\t- assets/*.php\n' > coverage-import.neon
-reject 'legacy exclusion form' 'outside direct PHPStan selection: assets/uncovered.php'
+reject 'legacy exclusion form' 'Effective PHPStan selection differs'
 
 printf 'parameters:\n\tpaths:\n\t\t- assets\n\tstubFiles:\n\t\t- assets/uncovered.php\n' > coverage-import.neon
-reject 'stub-only PHP' 'outside direct PHPStan selection: assets/uncovered.php'
+reject 'stub-only PHP' 'Effective PHPStan selection differs'
 
 printf 'parameters:\n\tpaths:\n\t\t- assets\n\tfileExtensions!:\n\t\t- inc\n' > coverage-import.neon
-reject 'extension filter' 'outside direct PHPStan selection:'
+reject 'extension filter' 'Effective PHPStan selection differs'
 printf 'parameters:\n\tpaths:\n\t\t- assets\n' > coverage-import.neon
 check
 printf '// Different local bytes.\n' >> assets/uncovered.php

@@ -66,7 +66,7 @@ $ran_booster_wp_pusher_migrator_facade                  = new class() extends Po
 	}
 };
 $ran_booster_wp_pusher_migrator_facade->resolved_method = $ran_booster_wp_pusher_migrator_resolved;
-$ran_booster_wp_pusher_migrator_database                = new \Tests\FakeDatabase();
+$ran_booster_wp_pusher_migrator_database                = new \RAN\BoosterWpPusherMigrator\Tests\FakeDatabase();
 $ran_booster_wp_pusher_migrator_source                  = new WpPusherSource(
 	$ran_booster_wp_pusher_migrator_database,
 	static fn (): array => array( WpPusherSource::PLUGIN => array( 'Version' => '3.0.13' ) ),

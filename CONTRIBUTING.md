@@ -39,10 +39,21 @@ negative fixture that must fail checking and be restored by the fixer. It runs
 in `composer check` and requires Git and the installed development dependencies.
 
 `composer analyze` runs blocking PHPStan level 6 with PHP 8.2 and WordPress 7.0
-signatures. It directly selects all current production PHP: recursive `src/`
-and `views/`, `index.php`, and the plugin entry point (15 files). Tests, fixtures
-and release scripts retain their other checks; this gate does not claim to
-analyse them. There is no blanket baseline or production exclusion.
+signatures. An independent repository-root population gate runs before PHPStan:
+new production files, split/moved classes and new directories must be directly
+selected or the canonical command fails. Existing recursive `src`, `views` and
+the two root entrypoints retain their inference scope (currently 15 PHP files).
+Root `tests`, `scripts`, `vendor`, `node_modules`, `dist`, `.git` and `.workspaces`
+are explicit development/dependency/output roles; nested production directories
+with those names remain maintained. Root development fixtures are excluded from
+analysis and symbol scanning; dependency bodies are not directly analyzed.
+
+A raw `paths: .` expansion also scanned pinned Core entrypoints and test doubles,
+changing API-constant inference and WordPress signatures. Preserve the reviewed
+production roots plus the exact Core RAN scan instead. The independent population
+gate makes this include-or-fail: an unadmitted root file cannot silently pass,
+and explicit new selection is verified against actual PHPStan CLI discovery.
+No production exclusion, baseline, gate-level or dependency change is introduced.
 
 Analysis discovers real Core declarations at the exact commit/tree in
 `extra.ran-booster-core-source`, without executing Core or loading unit-test
@@ -74,7 +85,10 @@ main; runtime archive and certified-Core checks remain separate required jobs.
 
 `composer analysis:coverage -- <finished-runtime.zip>` compares every shipped
 PHP file (including PHP added beneath `assets/`) with the locked PHPStan CLI's
-actual direct file selection and exact local source bytes. Run `composer
+actual direct file selection and exact local source bytes. An independent recursive
+inventory first checks every maintained production PHP file, even if packaging
+has not yet admitted it. Nonstandard PHP extensions, case variants and PHP header
+files cannot silently disappear from that population. Run `composer
 analysis:setup` first. Imported configuration, exclusion globs, extension filters
 and stub exclusions use PHPStan's own semantics; scan-only declarations do not
 count. The internal discovery API is explicitly qualified for locked PHPStan
@@ -85,8 +99,11 @@ Required Quality downloads the existing single-build archive, checks its recorde
 digest and source metadata, and runs the guard after `composer check`; it does
 not rebuild release bytes. `composer test:analysis-coverage-contract` runs in
 `composer check` using a disposable Git repository and the real release builder.
-It proves clean-package acceptance, rejection of newly shipped uncovered PHP,
-imported selection/exclusions, scan-only/stub/extension behavior and byte binding.
+It proves include-or-fail before packaging, new root/nested/role-collision
+coverage, root development scan isolation, imported selection/exclusions,
+scan-only/stub/extension behavior and finished-archive byte binding. The analysis
+contract independently proves real diagnostics in new and moved production paths.
+The coverage guard also protects the existing pinned Core scan/bootstrap tuple.
 
 Level 7 remains a later boundary-typing slice: its measured findings concern
 candidate provider narrowing, the injected database seam and template facade
@@ -153,9 +170,11 @@ reserved parameter is rejected.
 
 Seven existing test/view files locally except only `PrefixAllGlobals.NonPrefixedVariableFound`
 for request-local variables. New functions, classes, constants and namespaces
-remain checked at those paths. Forty occurrence-local diagnostic annotations
-preserve 13 fixture/Core namespaces, 19 genuine WordPress function stand-ins and
-eight WordPress/Core capability constants. The seven owned installed-proof
+remain checked at those paths. Twenty-nine occurrence-local diagnostic annotations
+preserve two genuine Core interception namespaces, 19 WordPress function stand-ins
+and eight WordPress/Core capability constants. Eleven owned test namespaces now
+use `RAN\BoosterWpPusherMigrator\Tests`, with Composer dev-autoload and the source
+behavior fixture reference updated together. The seven owned installed-proof
 helpers and owned wp_die exception now use the package prefix, with their
 callers and fixture references updated together. Wire keys, environment names,
 WordPress entrypoints, production API and executable runtime tokens remain unchanged.

@@ -9,6 +9,16 @@ parameters:
 		- views
 		- index.php
 		- ran-booster-wp-pusher-migrator.php
+	# The independent repository population gate rejects unadmitted production paths.
+	# Root development fixtures must not contribute symbols.
+	excludePaths:
+		analyseAndScan:
+			- tests/*
+			- scripts/*
+			- node_modules/*
+			- dist/*
+			- .git/*
+			- .workspaces/*
 	scanDirectories:
 		- vendor/ran-source-core/source/RAN
 	bootstrapFiles:

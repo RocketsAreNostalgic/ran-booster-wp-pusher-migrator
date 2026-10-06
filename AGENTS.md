@@ -43,8 +43,14 @@ absence of JavaScript or a compiled frontend pipeline.
 canonical PHP check/fix pair is `composer standards` / `composer standards:fix`,
 using the same `.phpcs.xml.dist` rules and scope. `composer check` includes the
 disposable actual-command standards regression and repeated-fix stability proof.
-`composer analyze` blocks at PHPStan level 6 on `src/`, `views/`, `index.php`
-and the plugin entry point, targeting PHP 8.2 with WordPress 7.0 declarations.
+`composer analyze` blocks at PHPStan level 6 with an independent repository-root
+production population gate before analysis. Existing `src`, `views` and root
+entrypoint inference is preserved; a new production path must be selected or
+fail the canonical command before analysis. Root tests/scripts, dependencies,
+build output and workspaces have explicit roles; same-named nested production
+directories do not inherit those exemptions. Tests/scripts are excluded from
+symbol scanning too. Preserve the exact Core RAN scan instead of scanning its
+entrypoint and test doubles through a broader vendor discovery root.
 Its first run prepares the exact reviewed Core source commit/tree under `vendor/`;
 later runs verify the same clean bytes offline. Use `composer analysis:setup`
 for explicit preparation. Never substitute PHPUnit doubles or a floating Core
