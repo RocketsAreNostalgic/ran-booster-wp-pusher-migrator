@@ -233,7 +233,7 @@ final class PluginAdminPostTest extends TestCase {
 
 		self::assertStringContainsString( 'The WP Pusher package changed. Review it again.', $native );
 		self::assertSame( 'validation_failure', $interaction->outcome?->kind() );
-		self::assertSame( 'The WP Pusher package changed. Review it again.', $interaction->outcome?->message() );
+		self::assertSame( 'The WP Pusher package changed. Review it again.', $interaction->outcome->message() );
 		self::assertSame( 0, $portability->review_calls );
 	}
 
@@ -289,8 +289,8 @@ final class PluginAdminPostTest extends TestCase {
 		$target_id     = 'ran-booster-transporter-migration-source-'
 			. substr( hash( 'sha256', 'wp-pusher:package-' . $identity_hash ), 0, 32 );
 		self::assertSame( 'success', $interaction->outcome?->kind() );
-		self::assertSame( 'wp-pusher:check-package', $interaction->outcome?->request()->operation() );
-		self::assertSame( $target_id, $interaction->outcome?->request()->target_element_id() );
+		self::assertSame( 'wp-pusher:check-package', $interaction->outcome->request()->operation() );
+		self::assertSame( $target_id, $interaction->outcome->request()->target_element_id() );
 		self::assertStringStartsWith( '<tr id="' . $target_id . '">', trim( $interaction->fragment ) );
 		self::assertStringContainsString( '<strong>Ready to adopt</strong>', $interaction->fragment );
 		self::assertStringContainsString( '>Adopt</button>', $interaction->fragment );
@@ -314,8 +314,8 @@ final class PluginAdminPostTest extends TestCase {
 		$this->run_handler();
 
 		self::assertSame( 'bb', $portability->candidate?->provider_code );
-		self::assertSame( 'fixture-workspace/private-plugin', $portability->candidate?->repository );
-		self::assertSame( 'bitbucket_profile', $portability->candidate?->credential_id );
+		self::assertSame( 'fixture-workspace/private-plugin', $portability->candidate->repository );
+		self::assertSame( 'bitbucket_profile', $portability->candidate->credential_id );
 		self::assertStringContainsString( 'name="credential_id" value="bitbucket_profile"', $interaction->fragment );
 
 		$_POST = $this->apply_request(
@@ -326,8 +326,8 @@ final class PluginAdminPostTest extends TestCase {
 
 		$this->run_handler();
 
-		self::assertSame( 'bb', $portability->candidate?->provider_code );
-		self::assertSame( 'bitbucket_profile', $portability->candidate?->credential_id );
+		self::assertSame( 'bb', $portability->candidate->provider_code );
+		self::assertSame( 'bitbucket_profile', $portability->candidate->credential_id );
 	}
 
 	public function test_stale_source_fingerprint_fails_locally_without_applying(): void {
@@ -342,7 +342,7 @@ final class PluginAdminPostTest extends TestCase {
 		$this->run_handler();
 
 		self::assertSame( 'validation_failure', $interaction->outcome?->kind() );
-		self::assertSame( 'The WP Pusher package changed. Review it again.', $interaction->outcome?->message() );
+		self::assertSame( 'The WP Pusher package changed. Review it again.', $interaction->outcome->message() );
 		self::assertSame( 0, $portability->review_calls );
 		self::assertCount( 1, $database->rows );
 	}
@@ -359,7 +359,7 @@ final class PluginAdminPostTest extends TestCase {
 		$this->run_handler();
 
 		self::assertSame( 'success', $interaction->outcome?->kind() );
-		self::assertSame( 'wp-pusher:import-package', $interaction->outcome?->request()->operation() );
+		self::assertSame( 'wp-pusher:import-package', $interaction->outcome->request()->operation() );
 		self::assertSame( $review_fingerprint, $portability->expected_review_fingerprint );
 		self::assertSame( array(), $database->rows );
 		self::assertStringContainsString( 'data-ran-booster-wp-pusher-migration-complete="true"', $interaction->fragment );
@@ -436,9 +436,9 @@ final class PluginAdminPostTest extends TestCase {
 		self::assertSame( 'validation_failure', $interaction->outcome?->kind() );
 		self::assertSame(
 			'Booster verified the adopted package, but its exact WP Pusher source record could not be removed. Keep WP Pusher inactive and try again.',
-			$interaction->outcome?->message()
+			$interaction->outcome->message()
 		);
-		self::assertLessThanOrEqual( 255, strlen( (string) $interaction->outcome?->message() ) );
+		self::assertLessThanOrEqual( 255, strlen( (string) $interaction->outcome->message() ) );
 		self::assertCount( 1, $database->rows );
 	}
 
@@ -475,8 +475,8 @@ final class PluginAdminPostTest extends TestCase {
 		$this->run_handler();
 
 		self::assertSame( 'unexpected_failure', $interaction->outcome?->kind() );
-		self::assertSame( 'We could not complete that request. Please try again.', $interaction->outcome?->message() );
-		self::assertStringNotContainsString( 'SECRET-CANARY', (string) $interaction->outcome?->message() );
+		self::assertSame( 'We could not complete that request. Please try again.', $interaction->outcome->message() );
+		self::assertStringNotContainsString( 'SECRET-CANARY', (string) $interaction->outcome->message() );
 	}
 
 	private function run_handler(): void {
@@ -665,7 +665,7 @@ final class AdminPostDatabase {
 		);
 	}
 
-	public function get_var( string $query ): string|int|null {
+	public function get_var( string $query ): string|int {
 		$GLOBALS['ran_booster_wp_pusher_test_events'][] = 'database';
 		if ( str_starts_with( $query, 'SHOW TABLES' ) ) {
 			return 'wp_wppusher_packages';
@@ -745,7 +745,7 @@ final class AdminPostDatabase {
 		return array();
 	}
 
-	public function query( string $query ): int|false {
+	public function query( string $query ): int {
 		$GLOBALS['ran_booster_wp_pusher_test_events'][] = 'database';
 		if ( str_starts_with( $query, 'DELETE FROM `wp_wppusher_packages`' )
 			&& 1 === $this->delete_result ) {

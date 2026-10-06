@@ -1,0 +1,23 @@
+# Default recursive development coverage; the real-Core proof role is analyzed separately.
+includes:
+	- vendor/szepeviktor/phpstan-wordpress/extension.neon
+
+parameters:
+	level: 5
+	phpVersion: 80200
+	scanDirectories:
+		- src
+	bootstrapFiles:
+		- tests/phpstan-bootstrap.php
+	tmpDir: vendor/ran-phpstan-development-cache
+	# Runtime guards must also reject an incompatible loaded Core generation.
+	dynamicConstantNames:
+		- RAN\AddOn\Portability\PortabilityFacade::API_VERSION
+		- RAN\Admin\Interaction\AdminInteractionFacade::API_VERSION
+	paths:
+		- tests
+		- scripts
+	excludePaths:
+		analyseAndScan:
+			- tests/installed-candidate/*
+			- tests/source-candidate-behaviour.php

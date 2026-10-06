@@ -98,3 +98,22 @@ by the maintained-source token guard, including comma-list and case variants.
 Existing sniff-specific exemptions remain unchanged and require separate reviewed
 disposition; this guard tightening does not establish full exception acceptance
 or PHPStan coverage of development files.
+
+
+## Maintained development analysis
+
+`composer analyze` now retains the production level-6 profile and requires two
+level-5 development worlds. Recursive tests/scripts discovery is the default;
+installed-candidate proofs and the paired source-candidate behavior entrypoint
+use real pinned Core declarations instead of PHPUnit Core doubles. The existing
+coverage guard compares their effective union with independently discovered
+maintained development PHP, verifies levels and role boundaries, and rejects
+missing/stub-only files. No maintained PHP file is exempt and no baseline is added.
+
+Keep the small analysis-only WP-CLI output declaration out of execution/autoload.
+Its two documented foreign signatures are checked as maintained PHP. Exact local
+PHPStan API annotations acknowledge locked CLI internals; four historical-member
+annotations preserve the existing immutable API-2/API-3 behavioral comparison.
+They are not permission for adjacent diagnostics or new exceptions. Retain the
+actual pinned-generation behavioral proof and the real-Core/fixture separation
+negative; do not load synthetic Core declarations into production inference.

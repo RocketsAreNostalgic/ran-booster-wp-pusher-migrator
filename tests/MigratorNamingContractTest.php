@@ -96,7 +96,7 @@ final class MigratorNamingContractTest extends TestCase {
 		self::assertSame( $source->fingerprint(), WpPusherPackage::from_row( $source->to_array() )->fingerprint() );
 		$result = new PortabilityApplyResult( status: 'adopted', reason: 'none', message: 'Adopted.', target_verified: true );
 		self::assertTrue( $result->target_verified );
-		self::assertFalse( property_exists( $candidate, 'credentialId' ) );
-		self::assertFalse( property_exists( $result, 'targetVerified' ) );
+		self::assertFalse( ( new \ReflectionClass( $candidate ) )->hasProperty( 'credentialId' ) );
+		self::assertFalse( ( new \ReflectionClass( $result ) )->hasProperty( 'targetVerified' ) );
 	}
 }

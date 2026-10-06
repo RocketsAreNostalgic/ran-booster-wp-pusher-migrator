@@ -285,7 +285,7 @@ if ( 'source-cases' === $mode ) {
 	global $wpdb;
 	$old = $packages[0];
 	$wpdb->update( $wpdb->prefix . 'wppusher_packages', array( 'branch' => 'changed-after-review' ), array( 'id' => $old->id ) );
-	if ( $source->deleteExact( $old ) ) {
+	if ( $source->delete_exact( $old ) ) {
 		throw new RuntimeException( 'Stale exact cleanup unexpectedly deleted the changed source row.' );
 	}
 	$wpdb->update( $wpdb->prefix . 'wppusher_packages', array( 'branch' => $old->branch ), array( 'id' => $old->id ) );

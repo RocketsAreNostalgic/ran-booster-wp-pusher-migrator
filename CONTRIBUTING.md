@@ -192,3 +192,35 @@ new test/view files and nested production `tests`/`views` paths are checked.
 The comment guard also rejects suffixed, case-insensitive `ignoreFile` directives
 that PHPCS treats as whole-file suppression; the actual-checker negative control
 proves that spelling cannot bypass the guard.
+
+
+## Maintained PHP analysis (#65 / #128)
+
+`composer analyze` runs `analyze:production` (unchanged level 6 and pinned-Core
+inference) and `analyze:development` (level 5). Recursive `tests` and `scripts`
+are included by default. The installed-candidate directory and the existing
+paired source-candidate entrypoint are analyzed in their separate real-Core
+world. Other development files use the PHPUnit fixture world. The union covers
+all 34 development PHP files, including the new minimal analysis-only WP-CLI
+output signature fixture. No maintained file exemption or baseline is introduced.
+The existing effective CLI discovery guard protects both populations, exact
+commands, required levels, fixture isolation and post-discovery stub removal.
+Future tests/scripts and installed proofs enter analysis automatically; existing
+production include-or-fail and finished-ZIP proofs remain required.
+
+Five precise internal-API notifications in the coverage helper acknowledge its
+existing deliberate dependency on locked PHPStan 2.2.16 CLI/NEON internals. Four
+local historical-member annotations in the paired behavior entrypoint preserve
+API 2 camelCase calls/properties alongside API 3 snake_case; the immutable
+baseline/current behavioral proof still executes both and compares evidence.
+No broad missing-method/property category or file exclusion is added. The new
+WP-CLI declaration models only documented `line`/`success` output signatures,
+is never loaded at runtime, and does not model application behavior.
+
+The analysis surfaced an installed-proof typo: `deleteExact` referenced a removed
+owned method. The proof now calls current `delete_exact`, preserving its stale-row
+refusal assertion. Remaining cleanup removes nullsafe accesses only after prior
+assertions have proven non-null, narrows test-double returns to their actual
+values, preserves absent legacy-property checks via Reflection, and records
+expected exception assertions without tautological `assertTrue(true)` calls.
+Runtime source, public API, credentials/security fences and dependencies are unchanged.

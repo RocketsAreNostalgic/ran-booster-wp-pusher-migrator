@@ -14,10 +14,14 @@ cp tests/phpstan-bootstrap.php "$fixture/tests/"
 ln -s "$project_root/vendor" "$fixture/vendor"
 
 analyze() {
-	composer --no-interaction --no-plugins --working-dir="$fixture" analyze -- --no-progress --error-format=json
+	composer --no-interaction --no-plugins --working-dir="$fixture" analyze:production -- --no-progress --error-format=json
 }
 
 analyze > "$fixture/result.json"
+sed -i 's/level: 6/level: 5/' "$fixture/phpstan.neon.dist"
+if analyze > "$fixture/level.log" 2>&1; then exit 1; fi
+grep -q 'Review maintained analysis scope' "$fixture/level.log"
+cp phpstan.neon.dist "$fixture/phpstan.neon.dist"
 
 # Prove recursive src/view selection, both root files, return checks and real Core symbols.
 for path in src/AnalysisNegative.php views/analysis-negative.php index.php ran-booster-wp-pusher-migrator.php src/tests/runtime.php; do
@@ -174,3 +178,47 @@ grep -Fq 'Checked-out Core does not match the pinned source commit and tree.' "$
 printf 'Analysis contract passed: clean source, five selected-path negatives, new/split/moved include-or-fail and fixture isolation, certified Core method/return checks, altered/ignored/index-hidden/replacement-tree/mismatched Core refusals.\n'
 
 bash tests/source-behaviour-manifest-contract.sh
+
+# All maintained development PHP is selected across its actual fixture worlds.
+development_fixture="$fixture/development"
+mkdir -p "$development_fixture"
+cp -R "$project_root/src" "$project_root/views" "$project_root/tests" "$project_root/scripts" "$development_fixture/"
+cp "$project_root/composer.json" "$project_root/phpstan-development.neon.dist" "$project_root/phpstan-real-proofs.neon.dist" "$development_fixture/"
+ln -s "$project_root/vendor" "$development_fixture/vendor"
+development() { composer --no-interaction --no-plugins --working-dir="$development_fixture" analyze:development -- --no-progress --error-format=json; }
+development > "$fixture/development-clean.log"
+for path in tests/future-contract.php scripts/future-helper.php tests/installed-candidate/future-proof.php; do
+    printf '<?php\nran_migrator_missing_development_contract();\n' > "$development_fixture/$path"
+    if development > "$fixture/development-negative.log" 2>&1; then exit 1; fi
+    grep -q 'ran_migrator_missing_development_contract' "$fixture/development-negative.log"
+    grep -q 'function.notFound' "$fixture/development-negative.log"
+    rm "$development_fixture/$path"
+done
+for configuration in phpstan-development.neon.dist phpstan-real-proofs.neon.dist; do
+    sed -i 's/level: 5/level: 4/' "$development_fixture/$configuration"
+    if development > "$fixture/development-negative.log" 2>&1; then exit 1; fi
+    grep -q 'Review development analysis level' "$fixture/development-negative.log"
+    cp "$project_root/$configuration" "$development_fixture/$configuration"
+done
+# A selected test registered as a stub is omitted by the actual CLI and rejected.
+printf '\tstubFiles:\n\t\t- tests/bootstrap.php\n' >> "$development_fixture/phpstan-development.neon.dist"
+if development > "$fixture/development-negative.log" 2>&1; then exit 1; fi
+grep -q 'Effective PHPStan selection differs' "$fixture/development-negative.log"
+cp "$project_root/phpstan-development.neon.dist" "$development_fixture/phpstan-development.neon.dist"
+# Exact existing internal-API exceptions must not suppress a new neighboring call.
+printf '<?php\nnew PHPStan\\DependencyInjection\\NeonAdapter([]);\n' > "$development_fixture/scripts/future-helper.php"
+if development > "$fixture/development-negative.log" 2>&1; then exit 1; fi
+grep -q 'phpstanApi.constructor' "$fixture/development-negative.log"
+rm "$development_fixture/scripts/future-helper.php"
+# The real CLI profile must see real Core's method, never the PHPUnit stand-in.
+printf '<?php\nfunction ran_booster_wp_pusher_migrator_real_world(\\RAN\\AddOn\\Portability\\PortabilityCandidate $candidate): array { return $candidate->to_array(); }\n' > "$development_fixture/tests/installed-candidate/world-proof.php"
+development > "$fixture/development-world.log"
+sed -i '/- tests\/fixtures\/PortabilityApi.php$/d' "$development_fixture/phpstan-real-proofs.neon.dist"
+printf 'parameters:\n\tpaths:\n\t\t- tests/installed-candidate\n\t\t- tests/source-candidate-behaviour.php\n\t\t- tests/fixtures/PortabilityApi.php\n' > "$development_fixture/world-import.neon"
+sed -i '/^includes:/a\\	- world-import.neon' "$development_fixture/phpstan-real-proofs.neon.dist"
+if (cd "$development_fixture" && php vendor/bin/phpstan analyze -c phpstan-real-proofs.neon.dist --no-progress --error-format=json) > "$fixture/development-world-negative.log" 2>&1; then exit 1; fi
+grep -q 'to_array' "$fixture/development-world-negative.log"
+grep -q 'method.notFound' "$fixture/development-world-negative.log"
+if development > "$fixture/development-negative.log" 2>&1; then exit 1; fi
+grep -q 'Review development analysis level' "$fixture/development-negative.log"
+printf 'Development analysis contract passed: future roots, minimum levels, effective stub omission and actual Core/fixture separation.\n'

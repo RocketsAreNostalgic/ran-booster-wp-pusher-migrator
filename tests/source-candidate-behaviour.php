@@ -79,13 +79,17 @@ $ran_booster_wp_pusher_migrator_service                 = new MigrationService( 
 $ran_booster_wp_pusher_migrator_package                 = $ran_booster_wp_pusher_migrator_service->packages()[0];
 $ran_booster_wp_pusher_migrator_review                  = $ran_booster_wp_pusher_migrator_service->review( 1, $ran_booster_wp_pusher_migrator_package->fingerprint(), null, 'nonce' );
 $ran_booster_wp_pusher_migrator_result                  = $ran_booster_wp_pusher_migrator_service->apply( 1, $ran_booster_wp_pusher_migrator_package->fingerprint(), null, $ran_booster_wp_pusher_migrator_review->fingerprint, 'nonce' );
+// @phpstan-ignore property.notFound (Paired immutable baseline API 2 uses targetVerified; the candidate API 3 uses target_verified. Both generations run in the existing behavior proof.)
 expect( $ran_booster_wp_pusher_migrator_result->{$ran_booster_wp_pusher_migrator_verified}, 'Real result property was not consumed.' );
 
 $ran_booster_wp_pusher_migrator_evidence = array(
+	// @phpstan-ignore method.notFound (Paired immutable API 2 baseline retains the legacy spelling; the API 3 candidate spelling is checked by the existing real-generation behavior proof.)
 	'candidate'          => $ran_booster_wp_pusher_migrator_review->candidate->{$ran_booster_wp_pusher_migrator_array_method}(),
 	'source_fingerprint' => $ran_booster_wp_pusher_migrator_package->fingerprint(),
 	'review_fingerprint' => $ran_booster_wp_pusher_migrator_review->fingerprint,
+	// @phpstan-ignore method.notFound (Paired immutable API 2 baseline retains the legacy spelling; the API 3 candidate spelling is checked by the existing real-generation behavior proof.)
 	'review_nonce'       => $ran_booster_wp_pusher_migrator_service->{$ran_booster_wp_pusher_migrator_nonce_method}( 'review', $ran_booster_wp_pusher_migrator_package ),
+	// @phpstan-ignore method.notFound (Paired immutable API 2 baseline retains the legacy spelling; the API 3 candidate spelling is checked by the existing real-generation behavior proof.)
 	'apply_nonce'        => $ran_booster_wp_pusher_migrator_service->{$ran_booster_wp_pusher_migrator_nonce_method}( 'apply', $ran_booster_wp_pusher_migrator_package, null, $ran_booster_wp_pusher_migrator_review->fingerprint ),
 	'apply'              => array( $ran_booster_wp_pusher_migrator_result->status, $ran_booster_wp_pusher_migrator_result->reason, $ran_booster_wp_pusher_migrator_result->message ),
 );
