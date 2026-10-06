@@ -10,6 +10,9 @@ $root = dirname( __DIR__ );
 chdir( $root );
 
 try {
+	if ( ! isset( $argc, $argv ) ) {
+		throw new RuntimeException( 'Analysis coverage requires CLI argument registration.' );
+	}
 	// Composer forwards analyzer flags to every aggregate step; source mode consumes none.
 	$source_only = '--source' === ( $argv[1] ?? null );
 	$development = '--development' === ( $argv[1] ?? null );

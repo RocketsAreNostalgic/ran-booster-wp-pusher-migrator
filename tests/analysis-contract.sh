@@ -18,6 +18,9 @@ analyze() {
 }
 
 analyze > "$fixture/result.json"
+if php -d register_argc_argv=0 "$fixture/scripts/check-analysis-coverage.php" --source > "$fixture/arguments.log" 2>&1; then exit 1; fi
+grep -q 'Analysis coverage requires CLI argument registration.' "$fixture/arguments.log"
+if grep -q 'PHP Warning' "$fixture/arguments.log"; then exit 1; fi
 sed -i 's/level: 6/level: 5/' "$fixture/phpstan.neon.dist"
 if analyze > "$fixture/level.log" 2>&1; then exit 1; fi
 grep -q 'Review maintained analysis scope' "$fixture/level.log"
@@ -210,6 +213,33 @@ printf '<?php\nnew PHPStan\\DependencyInjection\\NeonAdapter([]);\n' > "$develop
 if development > "$fixture/development-negative.log" 2>&1; then exit 1; fi
 grep -q 'phpstanApi.constructor' "$fixture/development-negative.log"
 rm "$development_fixture/scripts/future-helper.php"
+# Each historical-member waiver leaves its immediately preceding statement checked.
+for occurrence in 0 1 2 3; do
+    php -r '
+        $path = $argv[1];
+        $occurrence = (int) $argv[2];
+        $outside = array(
+            "expect( \$ran_booster_wp_pusher_migrator_result->ran_missing_outside_property, \"Outside historical waiver.\" );\n",
+            "\t\"outside_negative\" => \$ran_booster_wp_pusher_migrator_review->candidate->ran_missing_outside_method(),\n",
+            "\t\"outside_negative\" => \$ran_booster_wp_pusher_migrator_service->ran_missing_outside_method(),\n",
+            "\t\"outside_negative\" => \$ran_booster_wp_pusher_migrator_service->ran_missing_outside_method(),\n",
+        );
+        $index = 0;
+        $source = preg_replace_callback("/^[^\n]*@phpstan-ignore[^\n]*\n/m", function ($match) use (&$index, $occurrence, $outside) {
+            return ($index++ === $occurrence ? $outside[$occurrence] : "") . $match[0];
+        }, file_get_contents($path));
+        if (4 !== $index) { exit(1); }
+        file_put_contents($path, $source);
+    ' "$development_fixture/tests/source-candidate-behaviour.php" "$occurrence"
+    if development > "$fixture/development-historical-negative.log" 2>&1; then exit 1; fi
+    grep -q 'ran_missing_outside_' "$fixture/development-historical-negative.log"
+    if [[ "$occurrence" = 0 ]]; then
+        grep -q 'property.notFound' "$fixture/development-historical-negative.log"
+    else
+        grep -q 'method.notFound' "$fixture/development-historical-negative.log"
+    fi
+    cp "$project_root/tests/source-candidate-behaviour.php" "$development_fixture/tests/source-candidate-behaviour.php"
+done
 # The real CLI profile must see real Core's method, never the PHPUnit stand-in.
 printf '<?php\nfunction ran_booster_wp_pusher_migrator_real_world(\\RAN\\AddOn\\Portability\\PortabilityCandidate $candidate): array { return $candidate->to_array(); }\n' > "$development_fixture/tests/installed-candidate/world-proof.php"
 development > "$fixture/development-world.log"
@@ -221,4 +251,4 @@ grep -q 'to_array' "$fixture/development-world-negative.log"
 grep -q 'method.notFound' "$fixture/development-world-negative.log"
 if development > "$fixture/development-negative.log" 2>&1; then exit 1; fi
 grep -q 'Review development analysis level' "$fixture/development-negative.log"
-printf 'Development analysis contract passed: future roots, minimum levels, effective stub omission and actual Core/fixture separation.\n'
+printf 'Development analysis contract passed: future roots, minimum levels, effective stub omission, historical waiver neighbors and actual Core/fixture separation.\n'
