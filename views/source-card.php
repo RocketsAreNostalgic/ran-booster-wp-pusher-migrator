@@ -13,7 +13,6 @@
  * @var bool                $completion_visible
  * @var string              $plugins_url
  */
-// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template-local values are supplied by the rendering scope.
 
 
 defined( 'ABSPATH' ) || exit;
@@ -61,7 +60,7 @@ defined( 'ABSPATH' ) || exit;
 						</tr>
 						</thead>
 						<tbody>
-							<?php foreach ( $rows as $row ) { ?>
+							<?php foreach ( $rows as $row ) { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Renderer passes this exact row local into source-row.php. ?>
 								<?php
 								require __DIR__ . '/source-row.php';
 								?>

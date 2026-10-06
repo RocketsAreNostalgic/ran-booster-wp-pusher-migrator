@@ -33,8 +33,4 @@
 	</rule>
 
 
-	<!-- PHPUnit fixtures intentionally colocate small test doubles with their tests. -->
-	<rule ref="Generic.Files.OneObjectStructurePerFile">
-		<exclude-pattern>/tests/</exclude-pattern>
-	</rule>
 </ruleset>

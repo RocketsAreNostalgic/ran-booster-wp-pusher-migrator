@@ -2,157 +2,161 @@
 
 declare(strict_types=1);
 
-// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound,WordPress.Security.EscapeOutput.OutputNotEscaped,WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents,WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Standalone development guard uses PHPStan internals and CLI filesystem APIs. Naming checks remain enabled.
 
 use PHPStan\Command\CommandHelper;
 
-$root = dirname( __DIR__ );
-chdir( $root );
+$ran_booster_wp_pusher_migrator_root = dirname( __DIR__ );
+chdir( $ran_booster_wp_pusher_migrator_root );
 
 try {
 	if ( ! isset( $argc, $argv ) ) {
 		throw new RuntimeException( 'Analysis coverage requires CLI argument registration.' );
 	}
 	// Composer forwards analyzer flags to every aggregate step; source mode consumes none.
-	$source_only = '--source' === ( $argv[1] ?? null );
-	$development = '--development' === ( $argv[1] ?? null );
-	if ( ! $source_only && ! $development && ( $argc > 2 || ( 2 === $argc && ! is_file( $argv[1] ) ) ) ) {
+	$ran_booster_wp_pusher_migrator_source_only = '--source' === ( $argv[1] ?? null );
+	$ran_booster_wp_pusher_migrator_development = '--development' === ( $argv[1] ?? null );
+	if ( ! $ran_booster_wp_pusher_migrator_source_only && ! $ran_booster_wp_pusher_migrator_development && ( $argc > 2 || ( 2 === $argc && ! is_file( $argv[1] ) ) ) ) {
 		throw new RuntimeException( 'Usage: php scripts/check-analysis-coverage.php [--source|--development|finished-runtime.zip]' );
 	}
-	$manifest = json_decode( file_get_contents( $root . '/composer.json' ), true, 512, JSON_THROW_ON_ERROR );
-	if ( ( $manifest['scripts']['analyze'] ?? null ) !== array( '@analyze:production', '@analyze:development' )
-		|| ( $manifest['scripts']['analyze:development'] ?? null ) !== array(
+	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Standalone CLI guard reads local analysis metadata and emits terminal diagnostics, not HTML.
+	$ran_booster_wp_pusher_migrator_manifest = json_decode( file_get_contents( $ran_booster_wp_pusher_migrator_root . '/composer.json' ), true, 512, JSON_THROW_ON_ERROR );
+	if ( ( $ran_booster_wp_pusher_migrator_manifest['scripts']['analyze'] ?? null ) !== array( '@analyze:production', '@analyze:development' )
+		|| ( $ran_booster_wp_pusher_migrator_manifest['scripts']['analyze:development'] ?? null ) !== array(
 			'@analysis:setup',
 			'@php scripts/check-analysis-coverage.php --development',
 			'phpstan analyze --configuration=phpstan-development.neon.dist --memory-limit=512M',
 			'phpstan analyze --configuration=phpstan-real-proofs.neon.dist --memory-limit=512M',
 		)
-		|| ( $manifest['scripts']['analyze:production'] ?? null ) !== array(
+		|| ( $ran_booster_wp_pusher_migrator_manifest['scripts']['analyze:production'] ?? null ) !== array(
 			'@analysis:setup',
 			'@php scripts/check-analysis-coverage.php --source',
 			'phpstan analyze --configuration=phpstan.neon.dist --memory-limit=512M',
 		) ) {
 		throw new RuntimeException( 'Review coverage discovery when the canonical analyze command changes.' );
 	}
-	require $root . '/vendor/autoload.php';
+	require $ran_booster_wp_pusher_migrator_root . '/vendor/autoload.php';
 	// This is the actual CLI discovery entry point, not an independent NEON/path parser.
 	// Review this internal API when intentionally updating the locked PHPStan version.
 	if ( '2.2.16' !== Composer\InstalledVersions::getPrettyVersion( 'phpstan/phpstan' ) ) {
 		throw new RuntimeException( 'Review coverage discovery for the installed PHPStan version.' );
 	}
-	$configurations = $development ? array( 'phpstan-development.neon.dist', 'phpstan-real-proofs.neon.dist' ) : array( 'phpstan.neon.dist' );
-	$selected       = array();
-	$exemptions     = $development ? array( 'vendor', 'node_modules', 'dist', '.git', '.workspaces' ) : array( 'tests', 'scripts', 'vendor', 'node_modules', 'dist', '.git', '.workspaces' );
-	foreach ( $configurations as $configuration ) {
+	$ran_booster_wp_pusher_migrator_configurations = $ran_booster_wp_pusher_migrator_development ? array( 'phpstan-development.neon.dist', 'phpstan-real-proofs.neon.dist' ) : array( 'phpstan.neon.dist' );
+	$ran_booster_wp_pusher_migrator_selected       = array();
+	$ran_booster_wp_pusher_migrator_exemptions     = $ran_booster_wp_pusher_migrator_development ? array( 'vendor', 'node_modules', 'dist', '.git', '.workspaces' ) : array( 'tests', 'scripts', 'vendor', 'node_modules', 'dist', '.git', '.workspaces' );
+	foreach ( $ran_booster_wp_pusher_migrator_configurations as $ran_booster_wp_pusher_migrator_configuration ) {
 		// Resolve the PHAR-scoped Symfony namespace without baking its build hash into this script.
 		// @phpstan-ignore phpstanApi.classConstant (Locked CLI discovery contract deliberately inspects its exact internal entry point.)
-		$parameters  = ( new ReflectionMethod( CommandHelper::class, 'begin' ) )->getParameters();
-		$input_type  = $parameters[0]->getType();
-		$output_type = $parameters[1]->getType();
-		if ( ! $input_type instanceof ReflectionNamedType || ! $output_type instanceof ReflectionNamedType ) {
+		$ran_booster_wp_pusher_migrator_parameters  = ( new ReflectionMethod( CommandHelper::class, 'begin' ) )->getParameters();
+		$ran_booster_wp_pusher_migrator_input_type  = $ran_booster_wp_pusher_migrator_parameters[0]->getType();
+		$ran_booster_wp_pusher_migrator_output_type = $ran_booster_wp_pusher_migrator_parameters[1]->getType();
+		if ( ! $ran_booster_wp_pusher_migrator_input_type instanceof ReflectionNamedType || ! $ran_booster_wp_pusher_migrator_output_type instanceof ReflectionNamedType ) {
 			throw new RuntimeException( 'Review changed PHPStan discovery parameter types.' );
 		}
-		$input_class  = str_replace( 'InputInterface', 'ArrayInput', $input_type->getName() );
-		$output_class = str_replace( 'OutputInterface', 'ConsoleOutput', $output_type->getName() );
+		$ran_booster_wp_pusher_migrator_input_class  = str_replace( 'InputInterface', 'ArrayInput', $ran_booster_wp_pusher_migrator_input_type->getName() );
+		$ran_booster_wp_pusher_migrator_output_class = str_replace( 'OutputInterface', 'ConsoleOutput', $ran_booster_wp_pusher_migrator_output_type->getName() );
 		// @phpstan-ignore phpstanApi.method (Use the locked actual CLI file selection, including imports and stubs.)
-		$inception = CommandHelper::begin( new $input_class( array() ), new $output_class(), array(), '512M', null, array( $root ), $root . '/' . $configuration, null, null, false, false, null, null, false );
+		$ran_booster_wp_pusher_migrator_inception = CommandHelper::begin( new $ran_booster_wp_pusher_migrator_input_class( array() ), new $ran_booster_wp_pusher_migrator_output_class(), array(), '512M', null, array( $ran_booster_wp_pusher_migrator_root ), $ran_booster_wp_pusher_migrator_root . '/' . $ran_booster_wp_pusher_migrator_configuration, null, null, false, false, null, null, false );
 		// @phpstan-ignore phpstanApi.method (Obtain the locked CLI effective analyzed files rather than approximate discovery.)
-		$selected += array_fill_keys( $inception->getFiles()[0], true );
+		$ran_booster_wp_pusher_migrator_selected += array_fill_keys( $ran_booster_wp_pusher_migrator_inception->getFiles()[0], true );
 		// @phpstan-ignore phpstanApi.constructor, phpstanApi.method (Inspect locked NEON structure to fail closed on changed role boundaries.)
-		$config = ( new PHPStan\DependencyInjection\NeonAdapter( array() ) )->load( $root . '/' . $configuration );
-		if ( ! $development ) {
-			if ( 6 !== ( $config['parameters']['level'] ?? null )
-				|| array( 'analyseAndScan' => array_map( static fn( string $path ): string => $path . '/*', array_values( array_diff( $exemptions, array( 'vendor' ) ) ) ) ) !== ( $config['parameters']['excludePaths'] ?? null )
-				|| array( 'vendor/ran-source-core/source/RAN' ) !== ( $config['parameters']['scanDirectories'] ?? null )
-				|| array( 'tests/phpstan-bootstrap.php' ) !== ( $config['parameters']['bootstrapFiles'] ?? null ) ) {
+		$ran_booster_wp_pusher_migrator_config = ( new PHPStan\DependencyInjection\NeonAdapter( array() ) )->load( $ran_booster_wp_pusher_migrator_root . '/' . $ran_booster_wp_pusher_migrator_configuration );
+		if ( ! $ran_booster_wp_pusher_migrator_development ) {
+			if ( 6 !== ( $ran_booster_wp_pusher_migrator_config['parameters']['level'] ?? null )
+				|| array( 'analyseAndScan' => array_map( static fn( string $ran_booster_wp_pusher_migrator_path ): string => $ran_booster_wp_pusher_migrator_path . '/*', array_values( array_diff( $ran_booster_wp_pusher_migrator_exemptions, array( 'vendor' ) ) ) ) ) !== ( $ran_booster_wp_pusher_migrator_config['parameters']['excludePaths'] ?? null )
+				|| array( 'vendor/ran-source-core/source/RAN' ) !== ( $ran_booster_wp_pusher_migrator_config['parameters']['scanDirectories'] ?? null )
+				|| array( 'tests/phpstan-bootstrap.php' ) !== ( $ran_booster_wp_pusher_migrator_config['parameters']['bootstrapFiles'] ?? null ) ) {
 				throw new RuntimeException( 'Review maintained analysis scope and its root-only development exemptions.' );
 			}
 		} else {
-			$real     = 'phpstan-real-proofs.neon.dist' === $configuration;
-			$paths    = $real ? array( 'tests/installed-candidate', 'tests/source-candidate-behaviour.php' ) : array( 'tests', 'scripts' );
-			$excluded = $real ? array( 'tests/fixtures/PortabilityApi.php', 'tests/fixtures/AdminInteractionApi.php', 'tests/bootstrap.php' ) : array( 'tests/installed-candidate/*', 'tests/source-candidate-behaviour.php' );
-			$scanned  = $real ? array( 'tests/fixtures/analysis', 'src', 'vendor/ran-source-core/source/RAN' ) : array( 'src' );
-			if ( 5 !== ( $config['parameters']['level'] ?? null )
-				|| ( $config['parameters']['paths'] ?? null ) !== $paths
-				|| array( 'analyseAndScan' => $excluded ) !== ( $config['parameters']['excludePaths'] ?? null )
-				|| ( $config['parameters']['scanDirectories'] ?? null ) !== $scanned
-				|| ( $real ? array( 'tests/source-candidate-bootstrap.php', 'tests/WpPusherSourceTest.php' ) : array() ) !== ( $config['parameters']['scanFiles'] ?? array() )
-				|| array( 'tests/phpstan-bootstrap.php' ) !== ( $config['parameters']['bootstrapFiles'] ?? null )
-				|| array( 'vendor/szepeviktor/phpstan-wordpress/extension.neon' ) !== ( $config['includes'] ?? null )
-				|| isset( $config['parameters']['ignoreErrors'] ) || isset( $config['parameters']['fileExtensions'] ) ) {
+			$ran_booster_wp_pusher_migrator_real     = 'phpstan-real-proofs.neon.dist' === $ran_booster_wp_pusher_migrator_configuration;
+			$ran_booster_wp_pusher_migrator_paths    = $ran_booster_wp_pusher_migrator_real ? array( 'tests/installed-candidate', 'tests/source-candidate-behaviour.php' ) : array( 'tests', 'scripts' );
+			$ran_booster_wp_pusher_migrator_excluded = $ran_booster_wp_pusher_migrator_real ? array( 'tests/fixtures/PortabilityApi.php', 'tests/fixtures/AdminInteractionApi.php', 'tests/bootstrap.php' ) : array( 'tests/installed-candidate/*', 'tests/source-candidate-behaviour.php' );
+			$ran_booster_wp_pusher_migrator_scanned  = $ran_booster_wp_pusher_migrator_real ? array( 'tests/fixtures/analysis', 'src', 'vendor/ran-source-core/source/RAN' ) : array( 'src' );
+			if ( 5 !== ( $ran_booster_wp_pusher_migrator_config['parameters']['level'] ?? null )
+				|| ( $ran_booster_wp_pusher_migrator_config['parameters']['paths'] ?? null ) !== $ran_booster_wp_pusher_migrator_paths
+				|| array( 'analyseAndScan' => $ran_booster_wp_pusher_migrator_excluded ) !== ( $ran_booster_wp_pusher_migrator_config['parameters']['excludePaths'] ?? null )
+				|| ( $ran_booster_wp_pusher_migrator_config['parameters']['scanDirectories'] ?? null ) !== $ran_booster_wp_pusher_migrator_scanned
+				|| ( $ran_booster_wp_pusher_migrator_real ? array( 'tests/source-candidate-bootstrap.php', 'tests/WpPusherSourceTest.php' ) : array() ) !== ( $ran_booster_wp_pusher_migrator_config['parameters']['scanFiles'] ?? array() )
+				|| array( 'tests/phpstan-bootstrap.php' ) !== ( $ran_booster_wp_pusher_migrator_config['parameters']['bootstrapFiles'] ?? null )
+				|| array( 'vendor/szepeviktor/phpstan-wordpress/extension.neon' ) !== ( $ran_booster_wp_pusher_migrator_config['includes'] ?? null )
+				|| isset( $ran_booster_wp_pusher_migrator_config['parameters']['ignoreErrors'] ) || isset( $ran_booster_wp_pusher_migrator_config['parameters']['fileExtensions'] ) ) {
 				throw new RuntimeException( 'Review development analysis level and isolated fixture worlds.' );
 			}
 		}
 	}
-	$iterator = new RecursiveCallbackFilterIterator(
-		new RecursiveDirectoryIterator( $root, FilesystemIterator::SKIP_DOTS ),
-		static function ( SplFileInfo $entry ) use ( $root, $exemptions ): bool {
-			return ! $entry->isDir() || ! in_array( substr( $entry->getPathname(), strlen( $root ) + 1 ), $exemptions, true );
+	$ran_booster_wp_pusher_migrator_iterator = new RecursiveCallbackFilterIterator(
+		new RecursiveDirectoryIterator( $ran_booster_wp_pusher_migrator_root, FilesystemIterator::SKIP_DOTS ),
+		static function ( SplFileInfo $ran_booster_wp_pusher_migrator_entry ) use ( $ran_booster_wp_pusher_migrator_root, $ran_booster_wp_pusher_migrator_exemptions ): bool {
+			return ! $ran_booster_wp_pusher_migrator_entry->isDir() || ! in_array( substr( $ran_booster_wp_pusher_migrator_entry->getPathname(), strlen( $ran_booster_wp_pusher_migrator_root ) + 1 ), $ran_booster_wp_pusher_migrator_exemptions, true );
 		}
 	);
-	$expected = array();
-	foreach ( new RecursiveIteratorIterator( $iterator ) as $entry ) {
-		if ( ! $entry->isFile() || ( $development && ! preg_match( '~^(?:tests|scripts)/~', substr( $entry->getPathname(), strlen( $root ) + 1 ) ) ) ) {
+	$ran_booster_wp_pusher_migrator_expected = array();
+	foreach ( new RecursiveIteratorIterator( $ran_booster_wp_pusher_migrator_iterator ) as $ran_booster_wp_pusher_migrator_entry ) {
+		if ( ! $ran_booster_wp_pusher_migrator_entry->isFile() || ( $ran_booster_wp_pusher_migrator_development && ! preg_match( '~^(?:tests|scripts)/~', substr( $ran_booster_wp_pusher_migrator_entry->getPathname(), strlen( $ran_booster_wp_pusher_migrator_root ) + 1 ) ) ) ) {
 			continue;
 		}
-		if ( 0 === strcasecmp( $entry->getExtension(), 'php' ) ) {
-			if ( 'php' !== $entry->getExtension() ) {
+		if ( 0 === strcasecmp( $ran_booster_wp_pusher_migrator_entry->getExtension(), 'php' ) ) {
+			if ( 'php' !== $ran_booster_wp_pusher_migrator_entry->getExtension() ) {
 				throw new RuntimeException( 'Unsupported PHP extension must not evade analysis.' );
 			}
-			$expected[] = $entry->getPathname();
+			$ran_booster_wp_pusher_migrator_expected[] = $ran_booster_wp_pusher_migrator_entry->getPathname();
 		} else {
-			$header = file_get_contents( $entry->getPathname(), false, null, 0, 512 );
-			if ( preg_match( '/^(?:#![^\n]*\n)?\s*<\?(?:php\b|=)/i', $header ) ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Standalone CLI guard reads local analysis metadata and emits terminal diagnostics, not HTML.
+			$ran_booster_wp_pusher_migrator_header = file_get_contents( $ran_booster_wp_pusher_migrator_entry->getPathname(), false, null, 0, 512 );
+			if ( preg_match( '/^(?:#![^\n]*\n)?\s*<\?(?:php\b|=)/i', $ran_booster_wp_pusher_migrator_header ) ) {
 				throw new RuntimeException( 'Nonstandard-extension PHP needs an explicit reviewed analysis decision.' );
 			}
 		}
 	}
-	if ( array() === $expected || array() !== array_diff( $expected, array_keys( $selected ) ) || array() !== array_diff( array_keys( $selected ), $expected ) ) {
+	if ( array() === $ran_booster_wp_pusher_migrator_expected || array() !== array_diff( $ran_booster_wp_pusher_migrator_expected, array_keys( $ran_booster_wp_pusher_migrator_selected ) ) || array() !== array_diff( array_keys( $ran_booster_wp_pusher_migrator_selected ), $ran_booster_wp_pusher_migrator_expected ) ) {
 		throw new RuntimeException( 'Effective PHPStan selection differs from independently discovered PHP.' );
 	}
-	if ( $source_only || $development || 1 === $argc ) {
+	if ( $ran_booster_wp_pusher_migrator_source_only || $ran_booster_wp_pusher_migrator_development || 1 === $argc ) {
 		exit( 0 );
 	}
-	printf( "Analysis coverage: all %d maintained production PHP files directly selected.\n", count( $expected ) );
-	$zip = new ZipArchive();
-	if ( true !== $zip->open( $argv[1], ZipArchive::RDONLY ) ) {
+	printf( "Analysis coverage: all %d maintained production PHP files directly selected.\n", count( $ran_booster_wp_pusher_migrator_expected ) );
+	$ran_booster_wp_pusher_migrator_zip = new ZipArchive();
+	if ( true !== $ran_booster_wp_pusher_migrator_zip->open( $argv[1], ZipArchive::RDONLY ) ) {
 		throw new RuntimeException( 'Cannot open the finished runtime ZIP.' );
 	}
-	$prefix  = 'ran-booster-wp-pusher-migrator/';
-	$count   = 0;
-	$missing = array();
+	$ran_booster_wp_pusher_migrator_prefix  = 'ran-booster-wp-pusher-migrator/';
+	$ran_booster_wp_pusher_migrator_count   = 0;
+	$ran_booster_wp_pusher_migrator_missing = array();
 // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Native ZipArchive::$numFiles property.
-	for ( $index = 0; $index < $zip->numFiles; ++$index ) {
-		$name = $zip->getNameIndex( $index );
-		if ( ! is_string( $name ) || ! str_starts_with( $name, $prefix )
-			|| str_contains( $name, '\\' ) || str_contains( $name, "\0" )
-			|| preg_match( '~(?:^|/)(?:\.|\.\.)(?:/|$)|//~', $name ) ) {
+	for ( $ran_booster_wp_pusher_migrator_index = 0; $ran_booster_wp_pusher_migrator_index < $ran_booster_wp_pusher_migrator_zip->numFiles; ++$ran_booster_wp_pusher_migrator_index ) {
+		$ran_booster_wp_pusher_migrator_name = $ran_booster_wp_pusher_migrator_zip->getNameIndex( $ran_booster_wp_pusher_migrator_index );
+		if ( ! is_string( $ran_booster_wp_pusher_migrator_name ) || ! str_starts_with( $ran_booster_wp_pusher_migrator_name, $ran_booster_wp_pusher_migrator_prefix )
+			|| str_contains( $ran_booster_wp_pusher_migrator_name, '\\' ) || str_contains( $ran_booster_wp_pusher_migrator_name, "\0" )
+			|| preg_match( '~(?:^|/)(?:\.|\.\.)(?:/|$)|//~', $ran_booster_wp_pusher_migrator_name ) ) {
 			throw new RuntimeException( 'Non-canonical archive member; run archive:verify.' );
 		}
-		if ( 0 !== strcasecmp( pathinfo( $name, PATHINFO_EXTENSION ), 'php' ) ) {
+		if ( 0 !== strcasecmp( pathinfo( $ran_booster_wp_pusher_migrator_name, PATHINFO_EXTENSION ), 'php' ) ) {
 			continue;
 		}
-		$relative = substr( $name, strlen( $prefix ) );
-		$source   = $root . '/' . $relative;
-		++$count;
-		if ( ! isset( $selected[ $source ] ) ) {
-			$missing[] = $relative;
+		$ran_booster_wp_pusher_migrator_relative = substr( $ran_booster_wp_pusher_migrator_name, strlen( $ran_booster_wp_pusher_migrator_prefix ) );
+		$ran_booster_wp_pusher_migrator_source   = $ran_booster_wp_pusher_migrator_root . '/' . $ran_booster_wp_pusher_migrator_relative;
+		++$ran_booster_wp_pusher_migrator_count;
+		if ( ! isset( $ran_booster_wp_pusher_migrator_selected[ $ran_booster_wp_pusher_migrator_source ] ) ) {
+			$ran_booster_wp_pusher_migrator_missing[] = $ran_booster_wp_pusher_migrator_relative;
 			continue;
 		}
 		// Bind discovery to the shipped bytes, not a same-named local substitute.
-		if ( ! is_file( $source ) || $zip->getFromIndex( $index ) !== file_get_contents( $source ) ) {
-			throw new RuntimeException( 'Shipped PHP differs from selected source: ' . $relative );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Standalone CLI guard reads local analysis metadata and emits terminal diagnostics, not HTML.
+		if ( ! is_file( $ran_booster_wp_pusher_migrator_source ) || $ran_booster_wp_pusher_migrator_zip->getFromIndex( $ran_booster_wp_pusher_migrator_index ) !== file_get_contents( $ran_booster_wp_pusher_migrator_source ) ) {
+			throw new RuntimeException( 'Shipped PHP differs from selected source: ' . $ran_booster_wp_pusher_migrator_relative );
 		}
 	}
-	$zip->close();
-	if ( array() !== $missing ) {
-		throw new RuntimeException( 'Shipped PHP is outside direct PHPStan selection: ' . implode( ', ', $missing ) );
+	$ran_booster_wp_pusher_migrator_zip->close();
+	if ( array() !== $ran_booster_wp_pusher_migrator_missing ) {
+		throw new RuntimeException( 'Shipped PHP is outside direct PHPStan selection: ' . implode( ', ', $ran_booster_wp_pusher_migrator_missing ) );
 	}
-	if ( 0 === $count ) {
+	if ( 0 === $ran_booster_wp_pusher_migrator_count ) {
 		throw new RuntimeException( 'Runtime archive contains no PHP files.' );
 	}
-	printf( "Analysis coverage: all %d shipped PHP files directly selected by locked PHPStan.\n", $count );
-} catch ( Throwable $error ) {
-	fwrite( STDERR, 'Analysis coverage failed: ' . $error->getMessage() . "\n" );
+	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Standalone CLI guard reads local analysis metadata and emits terminal diagnostics, not HTML.
+	printf( "Analysis coverage: all %d shipped PHP files directly selected by locked PHPStan.\n", $ran_booster_wp_pusher_migrator_count );
+} catch ( Throwable $ran_booster_wp_pusher_migrator_error ) {
+	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Standalone CLI guard reads local analysis metadata and emits terminal diagnostics, not HTML.
+	fwrite( STDERR, 'Analysis coverage failed: ' . $ran_booster_wp_pusher_migrator_error->getMessage() . "\n" );
 	exit( 1 );
 }

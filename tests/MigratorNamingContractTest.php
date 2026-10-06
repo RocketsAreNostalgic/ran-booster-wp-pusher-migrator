@@ -50,13 +50,43 @@ final class MigratorNamingContractTest extends TestCase {
 	}
 
 	private static function is_blanket_suppression( string $comment ): bool {
-		// PHPCS annotations are case-insensitive; doc comments can split the directive over lines.
+		// PHPCS treats modern directives case-insensitively, including doc-comment lines.
 		$normalized = preg_replace( '/[\s*\/]+/', ' ', $comment );
-		return 1 === preg_match( '/phpcs:set\b|phpcs:(?:disable|ignore)\s+(?:[A-Za-z0-9_.]+\s*,\s*)*(?:[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)?)(?=\s|,|$)/i', $normalized ) || 1 === preg_match( '/phpcs:(?:disable|ignore)\b.*\bWordPress\.NamingConventions\.PrefixAllGlobals(?![A-Za-z0-9_.])/i', $normalized ) || 1 === preg_match( '/(?:@?phpcs:ignorefile|@codingStandards(?:ChangeSetting|Ignore(?:File|Start|Line)\b)|@?phpcs:(?:disable|ignore)(?=\s*(?:--|$)))/i', trim( $normalized ) );
+		if ( 1 === preg_match( '/@codingStandards(?:ChangeSetting|Ignore)|phpcs:(?:set|disable|enable|ignorefile)/i', $normalized ) ) {
+			return true;
+		}
+		preg_match_all( '/phpcs:ignore\b(.*?)(?=phpcs:|$)/i', $normalized, $directives );
+		foreach ( $directives[1] as $directive ) {
+			// Only a diagnostic (not its standard/category/sniff), with an occurrence rationale.
+			if ( 1 !== preg_match( '/\A\s*[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+){3}(?:\s*,\s*[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+){3})*\s+--\s+\S.*\z/', $directive ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public function test_standards_profile_cannot_silently_weaken_coverage(): void {
+		$root = dirname( __DIR__ );
+		$xml  = simplexml_load_file( $root . '/.phpcs.xml.dist' );
+		self::assertNotFalse( $xml );
+		self::assertSame( array( '.' ), array_map( static fn( \SimpleXMLElement $node ): string => (string) $node, $xml->xpath( './file' ) ) );
+		self::assertSame( array( '/vendor/', '/node_modules/', '/.git/', '/.phpunit.cache/', '/.phpcs-cache' ), array_map( static fn( \SimpleXMLElement $node ): string => (string) $node, $xml->xpath( './exclude-pattern' ) ) );
+		self::assertSame( array( 'RANWordPressPlugin', 'RANOwnedMethods', 'WordPress.NamingConventions.PrefixAllGlobals' ), array_map( static fn( \SimpleXMLElement $node ): string => (string) $node['ref'], $xml->xpath( './rule' ) ) );
+		self::assertSame( array(), $xml->xpath( '//exclude|//severity|//type|//rule//exclude-pattern|//rule//include-pattern' ), 'No rule disabling, recategorization, or path-specific bypasses.' );
+		self::assertSame( array( 'ran_booster_wp_pusher_migrator', 'RAN\\BoosterWpPusherMigrator' ), array_map( static fn( \SimpleXMLElement $node ): string => (string) $node['value'], $xml->xpath( './rule/properties/property/element' ) ) );
+		self::assertCount( 1, $xml->xpath( '//property' ) );
+		self::assertSame( 'prefixes', (string) $xml->rule[2]->properties->property['name'] );
+		self::assertSame( 'array', (string) $xml->rule[2]->properties->property['type'] );
+		self::assertSame( array( 'minimum_wp_version=7.0', 'testVersion=8.2-' ), array_map( static fn( \SimpleXMLElement $node ): string => (string) $node['name'] . '=' . (string) $node['value'], $xml->xpath( './config' ) ) );
+		self::assertSame( array( 'basepath=.', 'colors=', 'extensions=php', 'parallel=4', '=sp' ), array_map( static fn( \SimpleXMLElement $node ): string => (string) $node['name'] . '=' . (string) $node['value'], $xml->xpath( './arg' ) ) );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Inspect the canonical local command, without executing configuration.
+		$manifest = json_decode( file_get_contents( $root . '/composer.json' ), true, 512, JSON_THROW_ON_ERROR );
+		self::assertSame( 'phpcs --standard=.phpcs.xml.dist --report=summary', $manifest['scripts']['standards'] );
+		self::assertSame( 'phpcbf --standard=.phpcs.xml.dist', $manifest['scripts']['standards:fix'] );
 	}
 
 	public function test_prefix_category_guard_keeps_precise_fixture_exceptions(): void {
-		foreach ( array( '// phpcs:disable RANOwnedMethods', '// phpcs:disable Generic.Files.LineLength, WordPress', '// PHPCS:IGNORE WordPress.NamingConventions', '// phpcs:set WordPress.NamingConventions.PrefixAllGlobals prefixes probe', '// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals' ) as $annotation ) {
+		foreach ( array( '// phpcs:disable RANOwnedMethods', '// PHPCS:DISABLE WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound', '// phpcs:ignore WordPress.PHP.YodaConditions -- Too broad.', '// phpcs:ignore Generic.Files.OneObjectStructurePerFile.MultipleFound, WordPress -- Mixed broad selector.', '// phpcs:ignore Generic.Files.OneObjectStructurePerFile.MultipleFound', '// phpcs:ignore Generic.Files.OneObjectStructurePerFile.MultipleFound -- Reason. phpcs:ignore WordPress', '// phpcs:disable Generic.Files.LineLength, WordPress', '// PHPCS:IGNORE WordPress.NamingConventions', '// phpcs:set WordPress.NamingConventions.PrefixAllGlobals prefixes probe', '// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals' ) as $annotation ) {
 			self::assertTrue( self::is_blanket_suppression( $annotation ) );
 		}
 		self::assertTrue( self::is_blanket_suppression( '/* phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals */' ) );

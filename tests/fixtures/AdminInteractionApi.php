@@ -41,6 +41,7 @@ final readonly class AdminInteractionRequest {
 	}
 }
 
+// phpcs:ignore Generic.Files.OneObjectStructurePerFile.MultipleFound -- Colocated test double belongs to this fixture load unit; unrelated declarations remain checked.
 final readonly class AdminInteractionOutcome {
 
 	private function __construct(
@@ -75,6 +76,7 @@ final readonly class AdminInteractionOutcome {
 	}
 }
 
+// phpcs:ignore Generic.Files.OneObjectStructurePerFile.MultipleFound -- Colocated test double belongs to this fixture load unit; unrelated declarations remain checked.
 interface AdminInteractionFacade {
 
 	public const API_VERSION = 3;
@@ -86,6 +88,7 @@ interface AdminInteractionFacade {
 	public function respond( AdminInteractionOutcome $outcome ): never;
 }
 
+// phpcs:ignore Generic.Files.OneObjectStructurePerFile.MultipleFound -- Colocated test double belongs to this fixture load unit; unrelated declarations remain checked.
 interface TransporterRowAdminInteractionFacade {
 
 	/** @param callable(string):void $render_fragment */

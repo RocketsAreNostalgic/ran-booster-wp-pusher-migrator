@@ -121,3 +121,36 @@ Source qualification still uses the unchanged exact Core source tuple. PHPStan
 remains level 6. Released-host certification, installed/manual acceptance and
 release PR43 remain separate held work; this naming follow-up establishes none
 of those acceptances.
+
+## Occurrence-scoped exception follow-up — #65 / #128
+
+This tranche starts at PR #63 head
+`96c3ddf74ba4fc5c5ed8d1b573df19c7556a72db`. It replaces the remaining
+specific-diagnostic filewide spans described above; those earlier spans did not
+establish acceptance merely by naming a diagnostic.
+
+| Owned identifier | Change |
+| --- | --- |
+| Release verifier `fail`, `git_output`, `normalize_member_name`, `source_files`, `expected_directories`, `release_metadata` | Add `ran_booster_wp_pusher_migrator_` to declaration and calls. |
+| Verifier `PACKAGE_ROOT`, `SLUG`, `MAX_ARCHIVE_MEMBERS`, `MAX_MEMBER_BYTES`, `MAX_UNCOMPRESSED_BYTES`, `MAX_COMPRESSED_BYTES`, `MAX_COMPRESSION_RATIO`, `CANONICAL_REPOSITORY`, `CANONICAL_REPOSITORY_URL` | Add `RAN_BOOSTER_WP_PUSHER_MIGRATOR_`; values stay unchanged. |
+| Verifier and installed probe top-level locals; coverage CLI locals | Add the package prefix; preserve PHP `$argv` / `$argc`, WordPress `$wpdb` and foreign `$GLOBALS` entries. |
+| `ran_booster_wp_pusher_test_*` private globals | `ran_booster_wp_pusher_migrator_test_*` in test producers and consumers. |
+| `ran_migrator_proof_*` private recorder globals | `ran_booster_wp_pusher_migrator_proof_*` in recorder and probe. |
+| Source-row `$migration_complete` | `$ran_booster_wp_pusher_migrator_migration_complete`; row-model key remains `migration_complete`. |
+
+The source-card `$row` foreach binding retains exactly one variable-prefix ignore
+on that line because the included row renderer consumes it. No disable/enable
+span remains. The former tests-directory object-structure exemption is narrowed
+to 17 exact declarations across eight fixture/test files. Original Core fixture
+class identities and loading units are preserved. CLI native file/process/JSON
+operations and installed proof serialization retain exact call-site diagnostics;
+all removed unused waivers confer no continuing permission. Three pure-value
+comparison operand orders change to satisfy Yoda conditions without an exception.
+
+Review disposition is pending independent review of the published exact candidate.
+The existing naming contract now rejects spans, broad/mixed ignores and inline
+configuration, and verifies the profile and command enforce the intended rules.
+Actual-command controls require immediate-outside violations for file operations,
+verifier function/class/constant prefixes, colocated fixture classes and template
+variables. Checks of the historical installed driver are source-contract evidence,
+not execution or renewed installed acceptance.

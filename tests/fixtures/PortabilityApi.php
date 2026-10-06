@@ -20,6 +20,7 @@ final readonly class PortabilityCandidate {
 	}
 }
 
+// phpcs:ignore Generic.Files.OneObjectStructurePerFile.MultipleFound -- Colocated test double belongs to this fixture load unit; unrelated declarations remain checked.
 final readonly class PortabilityReviewResult {
 
 	public function __construct(
@@ -32,6 +33,7 @@ final readonly class PortabilityReviewResult {
 	}
 }
 
+// phpcs:ignore Generic.Files.OneObjectStructurePerFile.MultipleFound -- Colocated test double belongs to this fixture load unit; unrelated declarations remain checked.
 final readonly class PortabilityApplyResult {
 
 	public function __construct(
@@ -43,6 +45,7 @@ final readonly class PortabilityApplyResult {
 	}
 }
 
+// phpcs:ignore Generic.Files.OneObjectStructurePerFile.MultipleFound -- Colocated test double belongs to this fixture load unit; unrelated declarations remain checked.
 abstract class PortabilityFacade {
 
 	public const API_VERSION = 3;

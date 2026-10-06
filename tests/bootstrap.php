@@ -1,5 +1,4 @@
 <?php
-// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Test fixture variables model isolated CLI or WordPress state; declaration prefixes remain checked.
 
 
 declare(strict_types=1);
@@ -16,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /** @param callable|array{class-string,string}|string $callback */
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- The WordPress stand-in must retain the exact global function name called by the code under test.
 function add_action( string $hook, callable|array|string $callback, int $priority = 10, int $accepted_args = 1 ): void {
-	$GLOBALS['ran_booster_wp_pusher_test_hooks'][ $hook ][] = array(
+	$GLOBALS['ran_booster_wp_pusher_migrator_test_hooks'][ $hook ][] = array(
 		'callback'      => $callback,
 		'priority'      => $priority,
 		'accepted_args' => $accepted_args,
@@ -65,10 +64,10 @@ function wp_nonce_field( string $action ): void {
 
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- The WordPress stand-in must retain the exact global function name called by the code under test.
 function current_user_can( string $capability ): bool {
-	$GLOBALS['ran_booster_wp_pusher_test_events'][] = 'capability:' . $capability;
+	$GLOBALS['ran_booster_wp_pusher_migrator_test_events'][] = 'capability:' . $capability;
 
-	return $GLOBALS['ran_booster_wp_pusher_test_capabilities'][ $capability ]
-		?? $GLOBALS['ran_booster_wp_pusher_test_can_manage']
+	return $GLOBALS['ran_booster_wp_pusher_migrator_test_capabilities'][ $capability ]
+		?? $GLOBALS['ran_booster_wp_pusher_migrator_test_can_manage']
 		?? true;
 }
 
@@ -93,7 +92,7 @@ function absint( mixed $value ): int {
 }
 
 function check_admin_referer( string $action ): void {
-	$GLOBALS['ran_booster_wp_pusher_test_events'][] = 'nonce:' . $action;
+	$GLOBALS['ran_booster_wp_pusher_migrator_test_events'][] = 'nonce:' . $action;
 	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Test stub verifies the captured nonce immediately below.
 	$nonce = $_POST['_wpnonce'] ?? null;
 	if ( ! is_string( $nonce )
@@ -139,7 +138,7 @@ function wp_die( string $message, string $title = '', array $args = array() ): n
 /** @return array<string, array<string, mixed>> */
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- The WordPress stand-in must retain the exact global function name called by the code under test.
 function get_plugins(): array {
-	return $GLOBALS['ran_booster_wp_pusher_test_plugins'] ?? array(
+	return $GLOBALS['ran_booster_wp_pusher_migrator_test_plugins'] ?? array(
 		'fixture/fixture.php' => array( 'Name' => 'Fixture Plugin' ),
 	);
 }

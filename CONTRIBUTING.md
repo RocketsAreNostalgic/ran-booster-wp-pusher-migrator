@@ -123,9 +123,9 @@ The owned runtime naming cohort uses snake_case, including promoted properties
 and named parameters. Keep shared Admin Interaction API 3 snake_case identifiers and all
 serialized/database/UI keys unchanged. Owned tests and CLI helpers now join the enforced cohort, including inherited
 test methods through `RANOwnedMethods`. PHPUnit lifecycle overrides and native
-ZipArchive properties retain precise explained exceptions. Four broad helper
-suppressions are replaced by named CLI/hostile-fixture exceptions; a token-aware
-regression prohibits blanket suppressions. Actual-command negative controls
+ZipArchive properties retain precise explained exceptions. Broad helper suppressions are replaced by occurrence-local CLI/hostile-fixture
+exceptions; a token-aware regression prohibits all disable/enable spans and
+standard/category/sniff-wide ignores, regardless of case. Actual-command negative controls
 reject a camelCase inherited helper and a CLI variable. See `docs/migrator-owned-naming-inventory.md`.
 
 The Core `v1.0.0-beta.31` tuple records the automated released-host baseline.
@@ -168,30 +168,42 @@ reserved parameter is rejected.
 
 ### Global declaration prefix boundary
 
-Seven existing test/view files locally except only `PrefixAllGlobals.NonPrefixedVariableFound`
-for request-local variables. New functions, classes, constants and namespaces
-remain checked at those paths. Twenty-nine occurrence-local diagnostic annotations
-preserve two genuine Core interception namespaces, 19 WordPress function stand-ins
-and eight WordPress/Core capability constants. Eleven owned test namespaces now
-use `RAN\BoosterWpPusherMigrator\Tests`, with Composer dev-autoload and the source
-behavior fixture reference updated together. The seven owned installed-proof
-helpers and owned wp_die exception now use the package prefix, with their
-callers and fixture references updated together. Wire keys, environment names,
-WordPress entrypoints, production API and executable runtime tokens remain unchanged.
+Owned CLI globals, six release-verifier functions and nine constants use the package
+prefix. Private test globals (`ran_booster_wp_pusher_test_*`) and installed recorder
+keys (`ran_migrator_proof_*`) now use `ran_booster_wp_pusher_migrator_test_*` and
+`ran_booster_wp_pusher_migrator_proof_*`; producers and consumers move together.
+WordPress globals, environment inputs, wire keys and fixture identities remain unchanged.
+The source-row template's computed local is prefixed. Only the source-card `foreach`
+`$row` binding needs an occurrence-local variable exception: source-row consumes that
+exact renderer-supplied variable. All template PHP and literal HTML remain equivalent
+under the documented local rename; rendered behavior is covered by the view tests.
 
-The existing actual-command standards contract rejects unprefixed functions,
-classes and constants in future test/view/source/root files. The comment guard
-rejects the whole PrefixAllGlobals category while retaining exact diagnostic
-exceptions; other accepted named ranges are not prohibited. Separate retained
-exception families and exact-candidate manual acceptance remain open boundaries.
+Existing occurrence-local diagnostic annotations preserve genuine Core interception
+namespaces, WordPress function stand-ins, capability constants, PHPUnit lifecycle
+methods and native ZipArchive properties. The former tests-directory
+`OneObjectStructurePerFile` exemption is replaced by 17 exact class-declaration
+annotations in eight files. They preserve fixture load units; a newly appended class
+in the same fixture must fail. Native filesystem/process/JSON calls in the CLI
+verifier and archive tests retain only the exact diagnostic at each invocation.
+The standalone coverage helper's terminal output is not HTML. The disposable
+installed probe's local file operations and serialized active_plugins recovery
+format retain exact occurrence exceptions; class-disabled decoding, digest/round-trip
+checks and all caller-bound security fences remain in force. Unused SQL, Yoda and
+global-override waivers are removed; three pure-value comparisons use Yoda operand order.
 
-Variable exceptions are confined to existing source files with a reasoned
-`NonPrefixedVariableFound` annotation. No path-wide prefix exception remains;
-new test/view files and nested production `tests`/`views` paths are checked.
+`MigratorNamingContractTest` rejects all PHPCS disable/enable spans, inline settings,
+legacy ignore directives, case variants and ignores without an exact diagnostic and
+reason. The profile guard pins recursive PHP scope, mandatory standards, prefixes,
+canonical commands and configuration; excludes, severity/type weakening and narrowed
+CLI sniff selection fail. `tests/standards-contract.sh` checks real adjacent file
+operations, declarations, fixture classes and template variables, plus actual checker
+suppression followed by independent guard rejection. Repeated fixes must preserve bytes.
 
-The comment guard also rejects suffixed, case-insensitive `ignoreFile` directives
-that PHPCS treats as whole-file suppression; the actual-checker negative control
-proves that spelling cannot bypass the guard.
+These retained exception groups are proposed for independent review of the exact
+candidate under #65/#128; local green checks or this rationale do not establish
+acceptance. The historical installed driver still requires its retained beta.7 /
+Core beta.22 archives and an authorized disposable site. Its source-contract checks
+do not replace that run, the native installed matrix or release #43 manual acceptance.
 
 
 ## Maintained PHP analysis (#65 / #128)

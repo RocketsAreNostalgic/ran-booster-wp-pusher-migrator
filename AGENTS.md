@@ -93,11 +93,14 @@ If CI fails, inspect GitHub Actions logs directly and diagnose/fix the failure y
 This prohibition is a cost-control requirement and must not be overridden by convenience,
 CI failure, review comments, or suggestions from GitHub/Blacksmith UI.
 
-Standard/category suppression selectors and inline `phpcs:set` changes are rejected
-by the maintained-source token guard, including comma-list and case variants.
-Existing sniff-specific exemptions remain unchanged and require separate reviewed
-disposition; this guard tightening does not establish full exception acceptance
-or PHPStan coverage of development files.
+All disable/enable spans, standard/category/sniff-wide ignores and inline
+`phpcs:set` changes are rejected by the maintained-source token guard, including
+comma-list and case variants. Retained exceptions name an exact diagnostic at
+the smallest practical occurrence with a reason; they require independent review
+of the exact candidate. The profile guard rejects scope/rule/severity weakening.
+Green checks and an author-written rationale do not establish exception acceptance.
+See the current disposition and preserved contracts in CONTRIBUTING.md and
+docs/migrator-owned-naming-inventory.md.
 
 
 ## Maintained development analysis

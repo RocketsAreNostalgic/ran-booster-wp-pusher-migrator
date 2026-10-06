@@ -36,8 +36,8 @@ final class ReleaseWorkflowTest extends TestCase {
 		self::assertStringContainsString( 'git show "${source_commit}:release-contents.txt"', $builder );
 		self::assertStringContainsString( 'git archive', $builder );
 		self::assertStringContainsString( 'exec php "$root/scripts/verify-release.php" "$@"', $wrapper );
-		self::assertStringContainsString( '$source_commit = $argv[2] ??', $verifier );
-		self::assertStringContainsString( "'commit'             => \$source_commit", $verifier );
+		self::assertStringContainsString( '$ran_booster_wp_pusher_migrator_source_commit = $argv[2] ??', $verifier );
+		self::assertStringContainsString( "'commit'             => \$ran_booster_wp_pusher_migrator_source_commit", $verifier );
 		self::assertStringContainsString( 'bash scripts/build-release.sh "$source_commit"', $quality );
 	}
 
