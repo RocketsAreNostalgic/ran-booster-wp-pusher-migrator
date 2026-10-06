@@ -109,7 +109,7 @@ run_command standards || fail 'restored helper naming controls do not pass'
 
 # PHPCS accepts these annotation variants. The independent token guard must reject
 # each even when the actual shared method sniff is completely suppressed.
-for annotation in '// phpcs:ignoreFile' $'/* phpcs:disable\n */' '// PHPCS:DISABLE' '// @codingStandardsIgnoreStart' '// @codingStandardsIgnoreFile' '// @codingStandardsIgnoreLine'; do
+for annotation in '// phpcs:ignoreFile' '// PHPCS:IGNOREFILEsuffix' $'/* phpcs:disable\n */' '// PHPCS:DISABLE' '// @codingStandardsIgnoreStart' '// @codingStandardsIgnoreFile' '// @codingStandardsIgnoreLine'; do
 	printf '<?php\n%s\nclass NamingGuardProbe { public function badMethod() {} }\n' "$annotation" > "$fixture/tests/NamingGuardProbe.php"
 	"$repo_root/vendor/bin/phpcs" --standard=RANOwnedMethods -q "$fixture/tests/NamingGuardProbe.php" > "$work_root/output" 2>&1 || fail 'negative annotation no longer suppresses the actual shared sniff'
 	if composer --no-interaction --no-plugins --working-dir="$fixture" test -- --filter test_helper_naming_cannot_be_hidden_by_blanket_suppressions > "$work_root/output" 2>&1; then

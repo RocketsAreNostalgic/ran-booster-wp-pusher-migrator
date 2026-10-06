@@ -169,3 +169,7 @@ exception families and exact-candidate manual acceptance remain open boundaries.
 Variable exceptions are confined to existing source files with a reasoned
 `NonPrefixedVariableFound` annotation. No path-wide prefix exception remains;
 new test/view files and nested production `tests`/`views` paths are checked.
+
+The comment guard also rejects suffixed, case-insensitive `ignoreFile` directives
+that PHPCS treats as whole-file suppression; the actual-checker negative control
+proves that spelling cannot bypass the guard.
