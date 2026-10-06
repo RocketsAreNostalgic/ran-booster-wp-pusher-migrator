@@ -92,3 +92,9 @@ If CI fails, inspect GitHub Actions logs directly and diagnose/fix the failure y
 
 This prohibition is a cost-control requirement and must not be overridden by convenience,
 CI failure, review comments, or suggestions from GitHub/Blacksmith UI.
+
+Standard/category suppression selectors and inline `phpcs:set` changes are rejected
+by the maintained-source token guard, including comma-list and case variants.
+Existing sniff-specific exemptions remain unchanged and require separate reviewed
+disposition; this guard tightening does not establish full exception acceptance
+or PHPStan coverage of development files.

@@ -28,18 +28,22 @@ final class MigratorNamingContractTest extends TestCase {
 	}
 
 	public function test_helper_naming_cannot_be_hidden_by_blanket_suppressions(): void {
-		foreach ( array( 'tests', 'scripts' ) as $directory ) {
-			$files = new \RecursiveIteratorIterator( new \RecursiveDirectoryIterator( dirname( __DIR__ ) . '/' . $directory ) );
-			foreach ( $files as $file ) {
-				if ( ! $file->isFile() || 'php' !== $file->getExtension() ) {
-					continue;
-				}
-				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Inspect comments in owned development source without executing it.
-				$tokens = token_get_all( file_get_contents( $file->getPathname() ) );
-				foreach ( $tokens as $token ) {
-					if ( is_array( $token ) && in_array( $token[0], array( T_COMMENT, T_DOC_COMMENT ), true ) ) {
-						self::assertFalse( self::is_blanket_suppression( $token[1] ), $file->getPathname() . ':' . $token[2] . ' blanket PHPCS suppression' );
-					}
+		$root  = dirname( __DIR__ );
+		$files = new \RecursiveIteratorIterator(
+			new \RecursiveCallbackFilterIterator(
+				new \RecursiveDirectoryIterator( $root, \FilesystemIterator::SKIP_DOTS ),
+				static fn ( \SplFileInfo $file ): bool => ! $file->isDir() || ! in_array( substr( $file->getPathname(), strlen( $root ) + 1 ), array( '.git', 'vendor', 'node_modules', 'dist', '.workspaces' ), true )
+			)
+		);
+		foreach ( $files as $file ) {
+			if ( ! $file->isFile() || 'php' !== $file->getExtension() ) {
+				continue;
+			}
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Inspect comments in owned maintained source without executing it.
+			$tokens = token_get_all( file_get_contents( $file->getPathname() ) );
+			foreach ( $tokens as $token ) {
+				if ( is_array( $token ) && in_array( $token[0], array( T_COMMENT, T_DOC_COMMENT ), true ) ) {
+					self::assertFalse( self::is_blanket_suppression( $token[1] ), $file->getPathname() . ':' . $token[2] . ' blanket PHPCS suppression' );
 				}
 			}
 		}
@@ -48,11 +52,13 @@ final class MigratorNamingContractTest extends TestCase {
 	private static function is_blanket_suppression( string $comment ): bool {
 		// PHPCS annotations are case-insensitive; doc comments can split the directive over lines.
 		$normalized = preg_replace( '/[\s*\/]+/', ' ', $comment );
-		return 1 === preg_match( '/phpcs:(?:disable|ignore)\b.*\bWordPress\.NamingConventions\.PrefixAllGlobals(?![A-Za-z0-9_.])/i', $normalized ) || 1 === preg_match( '/(?:@?phpcs:ignorefile|@codingStandardsIgnore(?:File|Start|Line)\b|@?phpcs:(?:disable|ignore)(?=\s*(?:--|$)))/i', trim( $normalized ) );
+		return 1 === preg_match( '/phpcs:set\b|phpcs:(?:disable|ignore)\s+(?:[A-Za-z0-9_.]+\s*,\s*)*(?:[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)?)(?=\s|,|$)/i', $normalized ) || 1 === preg_match( '/phpcs:(?:disable|ignore)\b.*\bWordPress\.NamingConventions\.PrefixAllGlobals(?![A-Za-z0-9_.])/i', $normalized ) || 1 === preg_match( '/(?:@?phpcs:ignorefile|@codingStandardsIgnore(?:File|Start|Line)\b|@?phpcs:(?:disable|ignore)(?=\s*(?:--|$)))/i', trim( $normalized ) );
 	}
 
 	public function test_prefix_category_guard_keeps_precise_fixture_exceptions(): void {
-		self::assertTrue( self::is_blanket_suppression( '// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals' ) );
+		foreach ( array( '// phpcs:disable RANOwnedMethods', '// phpcs:disable Generic.Files.LineLength, WordPress', '// PHPCS:IGNORE WordPress.NamingConventions', '// phpcs:set WordPress.NamingConventions.PrefixAllGlobals prefixes probe', '// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals' ) as $annotation ) {
+			self::assertTrue( self::is_blanket_suppression( $annotation ) );
+		}
 		self::assertTrue( self::is_blanket_suppression( '/* phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals */' ) );
 		self::assertFalse( self::is_blanket_suppression( '// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- WordPress stand-in.' ) );
 	}

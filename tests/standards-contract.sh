@@ -109,7 +109,7 @@ run_command standards || fail 'restored helper naming controls do not pass'
 
 # PHPCS accepts these annotation variants. The independent token guard must reject
 # each even when the actual shared method sniff is completely suppressed.
-for annotation in '// phpcs:ignoreFile' '// PHPCS:IGNOREFILEsuffix' $'/* phpcs:disable\n */' '// PHPCS:DISABLE' '// @codingStandardsIgnoreStart' '// @codingStandardsIgnoreFile' '// @codingStandardsIgnoreLine'; do
+for annotation in '// phpcs:disable RANOwnedMethods' '// phpcs:disable RANOwnedMethods.NamingConventions' '// phpcs:ignoreFile' '// PHPCS:IGNOREFILEsuffix' $'/* phpcs:disable\n */' '// PHPCS:DISABLE' '// @codingStandardsIgnoreStart' '// @codingStandardsIgnoreFile' '// @codingStandardsIgnoreLine'; do
 	printf '<?php\n%s\nclass NamingGuardProbe { public function badMethod() {} }\n' "$annotation" > "$fixture/tests/NamingGuardProbe.php"
 	"$repo_root/vendor/bin/phpcs" --standard=RANOwnedMethods -q "$fixture/tests/NamingGuardProbe.php" > "$work_root/output" 2>&1 || fail 'negative annotation no longer suppresses the actual shared sniff'
 	if composer --no-interaction --no-plugins --working-dir="$fixture" test -- --filter test_helper_naming_cannot_be_hidden_by_blanket_suppressions > "$work_root/output" 2>&1; then
@@ -118,6 +118,18 @@ for annotation in '// phpcs:ignoreFile' '// PHPCS:IGNOREFILEsuffix' $'/* phpcs:d
 	grep -q 'blanket PHPCS suppression' "$work_root/output" || fail 'blanket annotation failed for an unrelated reason'
 done
 rm "$fixture/tests/NamingGuardProbe.php"
+
+# The same token policy covers maintained production and root files.
+for relative in src/NamingGuardProbe.php views/naming-guard-probe.php naming-guard-probe.php src/tests/NamingGuardProbe.php; do
+	mkdir -p "$(dirname "$fixture/$relative")"
+	printf '<?php\n// phpcs:disable RANOwnedMethods\nclass NamingGuardProbe { public function badMethod() {} }\n' > "$fixture/$relative"
+	if composer --no-interaction --no-plugins --working-dir="$fixture" test -- --filter test_helper_naming_cannot_be_hidden_by_blanket_suppressions > "$work_root/output" 2>&1; then
+		fail "ancestor suppression escaped the maintained-source token guard: $relative"
+	fi
+	grep -q 'blanket PHPCS suppression' "$work_root/output" || fail 'production annotation failed for an unrelated reason'
+	rm "$fixture/$relative"
+done
+
 run_command standards || fail 'restored annotation controls do not pass'
 
 # Test/template local variables must not exempt new global declarations.
