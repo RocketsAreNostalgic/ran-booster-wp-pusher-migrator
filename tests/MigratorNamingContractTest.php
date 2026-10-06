@@ -52,7 +52,7 @@ final class MigratorNamingContractTest extends TestCase {
 	private static function is_blanket_suppression( string $comment ): bool {
 		// PHPCS annotations are case-insensitive; doc comments can split the directive over lines.
 		$normalized = preg_replace( '/[\s*\/]+/', ' ', $comment );
-		return 1 === preg_match( '/phpcs:set\b|phpcs:(?:disable|ignore)\s+(?:[A-Za-z0-9_.]+\s*,\s*)*(?:[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)?)(?=\s|,|$)/i', $normalized ) || 1 === preg_match( '/phpcs:(?:disable|ignore)\b.*\bWordPress\.NamingConventions\.PrefixAllGlobals(?![A-Za-z0-9_.])/i', $normalized ) || 1 === preg_match( '/(?:@?phpcs:ignorefile|@codingStandardsIgnore(?:File|Start|Line)\b|@?phpcs:(?:disable|ignore)(?=\s*(?:--|$)))/i', trim( $normalized ) );
+		return 1 === preg_match( '/phpcs:set\b|phpcs:(?:disable|ignore)\s+(?:[A-Za-z0-9_.]+\s*,\s*)*(?:[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)?)(?=\s|,|$)/i', $normalized ) || 1 === preg_match( '/phpcs:(?:disable|ignore)\b.*\bWordPress\.NamingConventions\.PrefixAllGlobals(?![A-Za-z0-9_.])/i', $normalized ) || 1 === preg_match( '/(?:@?phpcs:ignorefile|@codingStandards(?:ChangeSetting|Ignore(?:File|Start|Line)\b)|@?phpcs:(?:disable|ignore)(?=\s*(?:--|$)))/i', trim( $normalized ) );
 	}
 
 	public function test_prefix_category_guard_keeps_precise_fixture_exceptions(): void {

@@ -117,6 +117,12 @@ for annotation in '// phpcs:disable RANOwnedMethods' '// phpcs:disable RANOwnedM
 	fi
 	grep -q 'blanket PHPCS suppression' "$work_root/output" || fail 'blanket annotation failed for an unrelated reason'
 done
+for directive in 'phpcs:set' '@codingStandardsChangeSetting'; do
+	printf '<?php\n// %s WordPress.NamingConventions.PrefixAllGlobals prefixes unowned\nfunction unowned_probe() {}\n' "$directive" > "$fixture/tests/NamingGuardProbe.php"
+	"$repo_root/vendor/bin/phpcs" --standard="$fixture/.phpcs.xml.dist" --sniffs=WordPress.NamingConventions.PrefixAllGlobals -q "$fixture/tests/NamingGuardProbe.php" > "$work_root/output" 2>&1 || fail 'inline property control no longer suppresses the real checker'
+	if composer --no-interaction --no-plugins --working-dir="$fixture" test -- --filter test_helper_naming_cannot_be_hidden_by_blanket_suppressions > "$work_root/output" 2>&1; then fail 'inline property change escaped token guard'; fi
+	grep -qi 'blanket PHPCS suppression' "$work_root/output" || fail 'inline property control failed for an unrelated reason'
+done
 rm "$fixture/tests/NamingGuardProbe.php"
 
 # The same token policy covers maintained production and root files.
