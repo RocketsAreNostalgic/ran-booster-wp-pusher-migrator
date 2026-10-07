@@ -26,7 +26,9 @@ $ran_booster_wp_pusher_migrator_mode = $argv[2] ?? 'candidate';
 expect( in_array( $ran_booster_wp_pusher_migrator_mode, array( 'baseline', 'candidate' ), true ), 'Expected baseline or candidate mode.' );
 expect( false !== $ran_booster_wp_pusher_migrator_root, 'Migrator source is missing.' );
 verify_source( $ran_booster_wp_pusher_migrator_root, $argv[3] ?? '', array( 'src/', 'views/', 'tests/WpPusherSourceTest.php', 'composer.lock' ) );
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- Supply the exact WordPress or Core capability constant consumed by the host-contract fixture.
 define( 'ABSPATH', '/tmp/source-candidate-wordpress/' );
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- Supply the exact WordPress or Core capability constant consumed by the host-contract fixture.
 define( 'ARRAY_A', 'ARRAY_A' );
 $ran_booster_wp_pusher_migrator_core_vendor = getenv( 'RAN_MIGRATOR_SOURCE_CORE_VENDOR' );
 if ( false === $ran_booster_wp_pusher_migrator_core_vendor || '' === $ran_booster_wp_pusher_migrator_core_vendor ) {
@@ -64,7 +66,7 @@ $ran_booster_wp_pusher_migrator_facade                  = new class() extends Po
 	}
 };
 $ran_booster_wp_pusher_migrator_facade->resolved_method = $ran_booster_wp_pusher_migrator_resolved;
-$ran_booster_wp_pusher_migrator_database                = new \Tests\FakeDatabase();
+$ran_booster_wp_pusher_migrator_database                = new \RAN\BoosterWpPusherMigrator\Tests\FakeDatabase();
 $ran_booster_wp_pusher_migrator_source                  = new WpPusherSource(
 	$ran_booster_wp_pusher_migrator_database,
 	static fn (): array => array( WpPusherSource::PLUGIN => array( 'Version' => '3.0.13' ) ),
@@ -77,13 +79,17 @@ $ran_booster_wp_pusher_migrator_service                 = new MigrationService( 
 $ran_booster_wp_pusher_migrator_package                 = $ran_booster_wp_pusher_migrator_service->packages()[0];
 $ran_booster_wp_pusher_migrator_review                  = $ran_booster_wp_pusher_migrator_service->review( 1, $ran_booster_wp_pusher_migrator_package->fingerprint(), null, 'nonce' );
 $ran_booster_wp_pusher_migrator_result                  = $ran_booster_wp_pusher_migrator_service->apply( 1, $ran_booster_wp_pusher_migrator_package->fingerprint(), null, $ran_booster_wp_pusher_migrator_review->fingerprint, 'nonce' );
+// @phpstan-ignore property.notFound (Paired immutable baseline API 2 uses targetVerified; the candidate API 3 uses target_verified. Both generations run in the existing behavior proof.)
 expect( $ran_booster_wp_pusher_migrator_result->{$ran_booster_wp_pusher_migrator_verified}, 'Real result property was not consumed.' );
 
 $ran_booster_wp_pusher_migrator_evidence = array(
+	// @phpstan-ignore method.notFound (Paired immutable API 2 baseline retains the legacy spelling; the API 3 candidate spelling is checked by the existing real-generation behavior proof.)
 	'candidate'          => $ran_booster_wp_pusher_migrator_review->candidate->{$ran_booster_wp_pusher_migrator_array_method}(),
 	'source_fingerprint' => $ran_booster_wp_pusher_migrator_package->fingerprint(),
 	'review_fingerprint' => $ran_booster_wp_pusher_migrator_review->fingerprint,
+	// @phpstan-ignore method.notFound (Paired immutable API 2 baseline retains the legacy spelling; the API 3 candidate spelling is checked by the existing real-generation behavior proof.)
 	'review_nonce'       => $ran_booster_wp_pusher_migrator_service->{$ran_booster_wp_pusher_migrator_nonce_method}( 'review', $ran_booster_wp_pusher_migrator_package ),
+	// @phpstan-ignore method.notFound (Paired immutable API 2 baseline retains the legacy spelling; the API 3 candidate spelling is checked by the existing real-generation behavior proof.)
 	'apply_nonce'        => $ran_booster_wp_pusher_migrator_service->{$ran_booster_wp_pusher_migrator_nonce_method}( 'apply', $ran_booster_wp_pusher_migrator_package, null, $ran_booster_wp_pusher_migrator_review->fingerprint ),
 	'apply'              => array( $ran_booster_wp_pusher_migrator_result->status, $ran_booster_wp_pusher_migrator_result->reason, $ran_booster_wp_pusher_migrator_result->message ),
 );

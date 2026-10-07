@@ -14,6 +14,7 @@
  * @var string              $plugins_url
  */
 
+
 defined( 'ABSPATH' ) || exit;
 
 ?>
@@ -59,7 +60,7 @@ defined( 'ABSPATH' ) || exit;
 						</tr>
 						</thead>
 						<tbody>
-							<?php foreach ( $rows as $row ) { ?>
+							<?php foreach ( $rows as $row ) { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Renderer passes this exact row local into source-row.php. ?>
 								<?php
 								require __DIR__ . '/source-row.php';
 								?>

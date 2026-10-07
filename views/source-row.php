@@ -6,17 +6,18 @@
  * @var object               $admin_interaction Exact Core form-attribute presentation seam.
  */
 
+
 defined( 'ABSPATH' ) || exit;
 
-$migration_complete = true === $row['migration_complete'];
+$ran_booster_wp_pusher_migrator_migration_complete = true === $row['migration_complete'];
 ?>
-<tr<?php echo '' === $row['target_element_id'] ? '' : ' id="' . esc_attr( $row['target_element_id'] ) . '"'; ?><?php echo $migration_complete ? ' data-ran-booster-wp-pusher-migration-complete="true"' : ''; ?>>
+<tr<?php echo '' === $row['target_element_id'] ? '' : ' id="' . esc_attr( $row['target_element_id'] ) . '"'; ?><?php echo $ran_booster_wp_pusher_migrator_migration_complete ? ' data-ran-booster-wp-pusher-migration-complete="true"' : ''; ?>>
 	<th scope="row"><code><?php echo esc_html( $row['package'] ); ?></code></th>
 	<td><code><?php echo esc_html( $row['repository'] ); ?></code></td>
 	<td>
 		<?php if ( $row['status_strong'] ) { ?>
 			<strong><?php echo esc_html( $row['status_heading'] ); ?></strong>
-			<?php if ( $migration_complete ) { ?>
+			<?php if ( $ran_booster_wp_pusher_migrator_migration_complete ) { ?>
 				<span class="screen-reader-text" role="status" aria-live="polite"><?php esc_html_e( 'Package migration complete.', 'ran-booster-wp-pusher-migrator' ); ?></span>
 			<?php } ?>
 		<?php } else { ?>

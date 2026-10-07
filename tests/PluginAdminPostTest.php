@@ -1,8 +1,9 @@
 <?php
 
+
 declare(strict_types=1);
 
-namespace Tests;
+namespace RAN\BoosterWpPusherMigrator\Tests;
 
 use PHPUnit\Framework\TestCase;
 use RAN\AddOn\Portability\PortabilityApplyResult;
@@ -28,10 +29,10 @@ final class PluginAdminPostTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		$_POST = array();
-		$GLOBALS['ran_booster_wp_pusher_test_can_manage']   = true;
-		$GLOBALS['ran_booster_wp_pusher_test_capabilities'] = array();
-		$GLOBALS['ran_booster_wp_pusher_test_events']       = array();
-		$GLOBALS['ran_booster_wp_pusher_test_plugins']      = array(
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_can_manage']   = true;
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_capabilities'] = array();
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_events']       = array();
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_plugins']      = array(
 			'fixture/fixture.php' => array( 'Name' => 'Fixture Plugin' ),
 		);
 	}
@@ -39,7 +40,7 @@ final class PluginAdminPostTest extends TestCase {
 	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Exact PHPUnit lifecycle override.
 	protected function tearDown(): void {
 		$_POST = array();
-		$GLOBALS['ran_booster_wp_pusher_test_capabilities'] = array();
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_capabilities'] = array();
 		parent::tearDown();
 	}
 
@@ -50,33 +51,33 @@ final class PluginAdminPostTest extends TestCase {
 		$this->connect( $database, $portability, $interaction );
 		$source = $this->source_package( $database );
 
-		$GLOBALS['ran_booster_wp_pusher_test_events']     = array();
-		$GLOBALS['ran_booster_wp_pusher_test_can_manage'] = false;
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_events']     = array();
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_can_manage'] = false;
 		$_POST = array( 'ran_booster_wp_pusher_migrator_action' => 'wrong' );
 		try {
 			$this->controller->handle_admin_post();
 			self::fail( 'Invalid operation did not stop.' );
-		} catch ( \WpDieException $failure ) {
+		} catch ( \Ran_Booster_Wp_Pusher_Migrator_Wp_Die_Exception $failure ) {
 			self::assertSame( 400, $failure->args['response'] );
 		}
-		self::assertSame( array(), $GLOBALS['ran_booster_wp_pusher_test_events'] );
+		self::assertSame( array(), $GLOBALS['ran_booster_wp_pusher_migrator_test_events'] );
 
 		$_POST = $this->review_request( $source );
 		try {
 			$this->controller->handle_admin_post();
 			self::fail( 'Unauthorized request did not stop.' );
-		} catch ( \WpDieException $failure ) {
+		} catch ( \Ran_Booster_Wp_Pusher_Migrator_Wp_Die_Exception $failure ) {
 			self::assertSame( 403, $failure->args['response'] );
 		}
-		self::assertSame( array( 'capability:manage_options' ), $GLOBALS['ran_booster_wp_pusher_test_events'] );
+		self::assertSame( array( 'capability:manage_options' ), $GLOBALS['ran_booster_wp_pusher_migrator_test_events'] );
 
-		$GLOBALS['ran_booster_wp_pusher_test_can_manage'] = true;
-		$GLOBALS['ran_booster_wp_pusher_test_events']     = array();
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_can_manage'] = true;
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_events']     = array();
 		$_POST = $this->review_request( $source, 'wrong-nonce' );
 		try {
 			$this->controller->handle_admin_post();
 			self::fail( 'Invalid nonce did not stop.' );
-		} catch ( \WpDieException $failure ) {
+		} catch ( \Ran_Booster_Wp_Pusher_Migrator_Wp_Die_Exception $failure ) {
 			self::assertSame( 403, $failure->args['response'] );
 		}
 		self::assertSame(
@@ -84,16 +85,16 @@ final class PluginAdminPostTest extends TestCase {
 				'capability:manage_options',
 				'nonce:ran-booster-wp-pusher-migrator-review-v1',
 			),
-			$GLOBALS['ran_booster_wp_pusher_test_events']
+			$GLOBALS['ran_booster_wp_pusher_migrator_test_events']
 		);
 
-		$GLOBALS['ran_booster_wp_pusher_test_events'] = array();
-		$_POST                                        = $this->apply_request( $source, 'v1:' . str_repeat( 'a', 64 ) );
-		$_POST['_wpnonce']                            = 'wrong-nonce';
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_events'] = array();
+		$_POST             = $this->apply_request( $source, 'v1:' . str_repeat( 'a', 64 ) );
+		$_POST['_wpnonce'] = 'wrong-nonce';
 		try {
 			$this->controller->handle_admin_post();
 			self::fail( 'Invalid Apply nonce did not stop.' );
-		} catch ( \WpDieException $failure ) {
+		} catch ( \Ran_Booster_Wp_Pusher_Migrator_Wp_Die_Exception $failure ) {
 			self::assertSame( 403, $failure->args['response'] );
 		}
 		self::assertSame(
@@ -101,7 +102,7 @@ final class PluginAdminPostTest extends TestCase {
 				'capability:manage_options',
 				'nonce:ran-booster-wp-pusher-migrator-apply-v1',
 			),
-			$GLOBALS['ran_booster_wp_pusher_test_events']
+			$GLOBALS['ran_booster_wp_pusher_migrator_test_events']
 		);
 		self::assertSame( 0, $portability->review_calls );
 		self::assertSame( 0, $portability->apply_calls );
@@ -113,18 +114,18 @@ final class PluginAdminPostTest extends TestCase {
 		$portability = new AdminPostPortabilityFacade();
 		$interaction = new AdminPostInteractionSpy();
 		$this->connect( $database, $portability, $interaction );
-		$GLOBALS['ran_booster_wp_pusher_test_events']     = array();
-		$GLOBALS['ran_booster_wp_pusher_test_can_manage'] = false;
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_events']     = array();
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_can_manage'] = false;
 		$_POST = array( 'action' => 'ran_booster_wp_pusher_migrator_package' );
 
 		try {
 			$this->controller->render_panel();
 			self::fail( 'Malformed native submission did not stop.' );
-		} catch ( \WpDieException $failure ) {
+		} catch ( \Ran_Booster_Wp_Pusher_Migrator_Wp_Die_Exception $failure ) {
 			self::assertSame( 400, $failure->args['response'] );
 		}
 
-		self::assertSame( array(), $GLOBALS['ran_booster_wp_pusher_test_events'] );
+		self::assertSame( array(), $GLOBALS['ran_booster_wp_pusher_migrator_test_events'] );
 		self::assertSame( 0, $portability->review_calls );
 		self::assertSame( 0, $portability->apply_calls );
 		self::assertSame( array( AdminPostDatabase::fixture_row() ), $database->rows );
@@ -137,25 +138,25 @@ final class PluginAdminPostTest extends TestCase {
 		$this->connect( $database, $portability, $interaction );
 		$source = $this->source_package( $database );
 
-		$GLOBALS['ran_booster_wp_pusher_test_events']     = array();
-		$GLOBALS['ran_booster_wp_pusher_test_can_manage'] = false;
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_events']     = array();
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_can_manage'] = false;
 		$_POST = $this->review_request( $source );
 		ob_start();
 		$this->controller->render_panel();
 		self::assertSame( '', (string) ob_get_clean() );
-		self::assertSame( array( 'capability:manage_options' ), $GLOBALS['ran_booster_wp_pusher_test_events'] );
+		self::assertSame( array( 'capability:manage_options' ), $GLOBALS['ran_booster_wp_pusher_migrator_test_events'] );
 
-		$GLOBALS['ran_booster_wp_pusher_test_can_manage'] = true;
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_can_manage'] = true;
 		foreach ( array( 'review', 'apply' ) as $operation ) {
-			$GLOBALS['ran_booster_wp_pusher_test_events'] = array();
-			$_POST                                        = 'review' === $operation
+			$GLOBALS['ran_booster_wp_pusher_migrator_test_events'] = array();
+			$_POST             = 'review' === $operation
 				? $this->review_request( $source, 'wrong-nonce' )
 				: $this->apply_request( $source, 'v1:' . str_repeat( 'a', 64 ) );
-			$_POST['_wpnonce']                            = 'wrong-nonce';
+			$_POST['_wpnonce'] = 'wrong-nonce';
 			try {
 				$this->controller->render_panel();
 				self::fail( 'Invalid native nonce did not stop.' );
-			} catch ( \WpDieException $failure ) {
+			} catch ( \Ran_Booster_Wp_Pusher_Migrator_Wp_Die_Exception $failure ) {
 				self::assertSame( 403, $failure->args['response'] );
 			}
 			self::assertSame(
@@ -163,7 +164,7 @@ final class PluginAdminPostTest extends TestCase {
 					'capability:manage_options',
 					'nonce:ran-booster-wp-pusher-migrator-' . $operation . '-v1',
 				),
-				$GLOBALS['ran_booster_wp_pusher_test_events']
+				$GLOBALS['ran_booster_wp_pusher_migrator_test_events']
 			);
 		}
 		self::assertSame( 0, $portability->review_calls );
@@ -176,15 +177,15 @@ final class PluginAdminPostTest extends TestCase {
 		$portability = new AdminPostPortabilityFacade();
 		$interaction = new AdminPostInteractionSpy();
 		$this->connect( $database, $portability, $interaction );
-		$GLOBALS['ran_booster_wp_pusher_test_events'] = array();
-		$_POST                                        = array();
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_events'] = array();
+		$_POST = array();
 
 		ob_start();
 		$this->controller->render_panel();
 		$output = (string) ob_get_clean();
 
-		self::assertSame( 'capability:manage_options', $GLOBALS['ran_booster_wp_pusher_test_events'][0] ?? null );
-		self::assertContains( 'database', $GLOBALS['ran_booster_wp_pusher_test_events'] );
+		self::assertSame( 'capability:manage_options', $GLOBALS['ran_booster_wp_pusher_migrator_test_events'][0] ?? null );
+		self::assertContains( 'database', $GLOBALS['ran_booster_wp_pusher_migrator_test_events'] );
 		self::assertStringContainsString( 'fixture/fixture.php', $output );
 		self::assertSame( 0, $portability->review_calls );
 	}
@@ -194,9 +195,9 @@ final class PluginAdminPostTest extends TestCase {
 		$portability = new AdminPostPortabilityFacade();
 		$interaction = new AdminPostInteractionSpy();
 		$this->connect( $database, $portability, $interaction );
-		$source                                       = $this->source_package( $database );
-		$GLOBALS['ran_booster_wp_pusher_test_events'] = array();
-		$_POST                                        = $this->review_request( $source );
+		$source = $this->source_package( $database );
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_events'] = array();
+		$_POST = $this->review_request( $source );
 
 		ob_start();
 		$this->controller->render_panel();
@@ -208,7 +209,7 @@ final class PluginAdminPostTest extends TestCase {
 				'nonce:ran-booster-wp-pusher-migrator-review-v1',
 				'database',
 			),
-			array_slice( $GLOBALS['ran_booster_wp_pusher_test_events'], 0, 3 )
+			array_slice( $GLOBALS['ran_booster_wp_pusher_migrator_test_events'], 0, 3 )
 		);
 		self::assertSame( 1, $portability->review_calls );
 		self::assertStringContainsString( '<strong>Ready to adopt</strong>', $output );
@@ -231,7 +232,7 @@ final class PluginAdminPostTest extends TestCase {
 
 		self::assertStringContainsString( 'The WP Pusher package changed. Review it again.', $native );
 		self::assertSame( 'validation_failure', $interaction->outcome?->kind() );
-		self::assertSame( 'The WP Pusher package changed. Review it again.', $interaction->outcome?->message() );
+		self::assertSame( 'The WP Pusher package changed. Review it again.', $interaction->outcome->message() );
 		self::assertSame( 0, $portability->review_calls );
 	}
 
@@ -287,8 +288,8 @@ final class PluginAdminPostTest extends TestCase {
 		$target_id     = 'ran-booster-transporter-migration-source-'
 			. substr( hash( 'sha256', 'wp-pusher:package-' . $identity_hash ), 0, 32 );
 		self::assertSame( 'success', $interaction->outcome?->kind() );
-		self::assertSame( 'wp-pusher:check-package', $interaction->outcome?->request()->operation() );
-		self::assertSame( $target_id, $interaction->outcome?->request()->target_element_id() );
+		self::assertSame( 'wp-pusher:check-package', $interaction->outcome->request()->operation() );
+		self::assertSame( $target_id, $interaction->outcome->request()->target_element_id() );
 		self::assertStringStartsWith( '<tr id="' . $target_id . '">', trim( $interaction->fragment ) );
 		self::assertStringContainsString( '<strong>Ready to adopt</strong>', $interaction->fragment );
 		self::assertStringContainsString( '>Adopt</button>', $interaction->fragment );
@@ -312,8 +313,8 @@ final class PluginAdminPostTest extends TestCase {
 		$this->run_handler();
 
 		self::assertSame( 'bb', $portability->candidate?->provider_code );
-		self::assertSame( 'fixture-workspace/private-plugin', $portability->candidate?->repository );
-		self::assertSame( 'bitbucket_profile', $portability->candidate?->credential_id );
+		self::assertSame( 'fixture-workspace/private-plugin', $portability->candidate->repository );
+		self::assertSame( 'bitbucket_profile', $portability->candidate->credential_id );
 		self::assertStringContainsString( 'name="credential_id" value="bitbucket_profile"', $interaction->fragment );
 
 		$_POST = $this->apply_request(
@@ -324,8 +325,8 @@ final class PluginAdminPostTest extends TestCase {
 
 		$this->run_handler();
 
-		self::assertSame( 'bb', $portability->candidate?->provider_code );
-		self::assertSame( 'bitbucket_profile', $portability->candidate?->credential_id );
+		self::assertSame( 'bb', $portability->candidate->provider_code );
+		self::assertSame( 'bitbucket_profile', $portability->candidate->credential_id );
 	}
 
 	public function test_stale_source_fingerprint_fails_locally_without_applying(): void {
@@ -340,7 +341,7 @@ final class PluginAdminPostTest extends TestCase {
 		$this->run_handler();
 
 		self::assertSame( 'validation_failure', $interaction->outcome?->kind() );
-		self::assertSame( 'The WP Pusher package changed. Review it again.', $interaction->outcome?->message() );
+		self::assertSame( 'The WP Pusher package changed. Review it again.', $interaction->outcome->message() );
 		self::assertSame( 0, $portability->review_calls );
 		self::assertCount( 1, $database->rows );
 	}
@@ -357,7 +358,7 @@ final class PluginAdminPostTest extends TestCase {
 		$this->run_handler();
 
 		self::assertSame( 'success', $interaction->outcome?->kind() );
-		self::assertSame( 'wp-pusher:import-package', $interaction->outcome?->request()->operation() );
+		self::assertSame( 'wp-pusher:import-package', $interaction->outcome->request()->operation() );
 		self::assertSame( $review_fingerprint, $portability->expected_review_fingerprint );
 		self::assertSame( array(), $database->rows );
 		self::assertStringContainsString( 'data-ran-booster-wp-pusher-migration-complete="true"', $interaction->fragment );
@@ -434,9 +435,9 @@ final class PluginAdminPostTest extends TestCase {
 		self::assertSame( 'validation_failure', $interaction->outcome?->kind() );
 		self::assertSame(
 			'Booster verified the adopted package, but its exact WP Pusher source record could not be removed. Keep WP Pusher inactive and try again.',
-			$interaction->outcome?->message()
+			$interaction->outcome->message()
 		);
-		self::assertLessThanOrEqual( 255, strlen( (string) $interaction->outcome?->message() ) );
+		self::assertLessThanOrEqual( 255, strlen( (string) $interaction->outcome->message() ) );
 		self::assertCount( 1, $database->rows );
 	}
 
@@ -452,7 +453,7 @@ final class PluginAdminPostTest extends TestCase {
 		try {
 			$this->controller->handle_admin_post();
 			self::fail( 'Missing source did not stop.' );
-		} catch ( \WpDieException $failure ) {
+		} catch ( \Ran_Booster_Wp_Pusher_Migrator_Wp_Die_Exception $failure ) {
 			self::assertSame( 409, $failure->args['response'] );
 		}
 
@@ -473,8 +474,8 @@ final class PluginAdminPostTest extends TestCase {
 		$this->run_handler();
 
 		self::assertSame( 'unexpected_failure', $interaction->outcome?->kind() );
-		self::assertSame( 'We could not complete that request. Please try again.', $interaction->outcome?->message() );
-		self::assertStringNotContainsString( 'SECRET-CANARY', (string) $interaction->outcome?->message() );
+		self::assertSame( 'We could not complete that request. Please try again.', $interaction->outcome->message() );
+		self::assertStringNotContainsString( 'SECRET-CANARY', (string) $interaction->outcome->message() );
 	}
 
 	private function run_handler(): void {
@@ -547,9 +548,11 @@ final class PluginAdminPostTest extends TestCase {
 	}
 }
 
+// phpcs:ignore Generic.Files.OneObjectStructurePerFile.MultipleFound -- Colocated test double belongs to this fixture load unit; unrelated declarations remain checked.
 final class AdminPostResponse extends RuntimeException {
 }
 
+// phpcs:ignore Generic.Files.OneObjectStructurePerFile.MultipleFound -- Colocated test double belongs to this fixture load unit; unrelated declarations remain checked.
 final class AdminPostInteractionSpy implements AdminInteractionFacade, TransporterRowAdminInteractionFacade {
 
 	public ?AdminInteractionOutcome $outcome = null;
@@ -582,6 +585,7 @@ final class AdminPostInteractionSpy implements AdminInteractionFacade, Transport
 	}
 }
 
+// phpcs:ignore Generic.Files.OneObjectStructurePerFile.MultipleFound -- Colocated test double belongs to this fixture load unit; unrelated declarations remain checked.
 final class AdminPostPortabilityFacade extends PortabilityFacade {
 
 	public int $review_calls                   = 0;
@@ -630,6 +634,7 @@ final class AdminPostPortabilityFacade extends PortabilityFacade {
 	}
 }
 
+// phpcs:ignore Generic.Files.OneObjectStructurePerFile.MultipleFound -- Colocated test double belongs to this fixture load unit; unrelated declarations remain checked.
 final class AdminPostDatabase {
 
 	public string $prefix  = 'wp_';
@@ -663,8 +668,8 @@ final class AdminPostDatabase {
 		);
 	}
 
-	public function get_var( string $query ): string|int|null {
-		$GLOBALS['ran_booster_wp_pusher_test_events'][] = 'database';
+	public function get_var( string $query ): string|int {
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_events'][] = 'database';
 		if ( str_starts_with( $query, 'SHOW TABLES' ) ) {
 			return 'wp_wppusher_packages';
 		}
@@ -675,7 +680,7 @@ final class AdminPostDatabase {
 	/** @return list<array<string, mixed>> */
 	public function get_results( string $query, string $output ): array {
 		unset( $output );
-		$GLOBALS['ran_booster_wp_pusher_test_events'][] = 'database';
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_events'][] = 'database';
 		if ( $this->fail_inventory_read_after_delete
 			&& $this->deleted
 			&& str_starts_with( $query, 'SELECT `' ) ) {
@@ -738,13 +743,13 @@ final class AdminPostDatabase {
 	/** @return list<string> */
 	public function get_col( string $query ): array {
 		unset( $query );
-		$GLOBALS['ran_booster_wp_pusher_test_events'][] = 'database';
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_events'][] = 'database';
 
 		return array();
 	}
 
-	public function query( string $query ): int|false {
-		$GLOBALS['ran_booster_wp_pusher_test_events'][] = 'database';
+	public function query( string $query ): int {
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_events'][] = 'database';
 		if ( str_starts_with( $query, 'DELETE FROM `wp_wppusher_packages`' )
 			&& 1 === $this->delete_result ) {
 			$source_id     = (string) ( $this->prepared_values[0] ?? '' );

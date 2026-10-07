@@ -43,10 +43,17 @@ absence of JavaScript or a compiled frontend pipeline.
 canonical PHP check/fix pair is `composer standards` / `composer standards:fix`,
 using the same `.phpcs.xml.dist` rules and scope. `composer check` includes the
 disposable actual-command standards regression and repeated-fix stability proof.
-`composer analyze` blocks at PHPStan level 6 on `src/`, `views/`, `index.php`
-and the plugin entry point, targeting PHP 8.2 with WordPress 7.0 declarations.
+`composer analyze` blocks at PHPStan level 6 with an independent repository-root
+production population gate before analysis. Existing `src`, `views` and root
+entrypoint inference is preserved; a new production path must be selected or
+fail the canonical command before analysis. Root tests/scripts, dependencies,
+build output and workspaces have explicit roles; same-named nested production
+directories do not inherit those exemptions. Tests/scripts are excluded from
+symbol scanning too. Preserve the exact Core RAN scan instead of scanning its
+entrypoint and test doubles through a broader vendor discovery root.
 Its first run prepares the exact reviewed Core source commit/tree under `vendor/`;
-later runs verify the same clean bytes offline. Use `composer analysis:setup`
+the same setup prepares the exact historical beta.7 receiver used by the existing
+proof. Later runs verify the same consumed bytes offline. Use `composer analysis:setup`
 for explicit preparation. Never substitute PHPUnit doubles or a floating Core
 checkout. `composer analyze:certified` separately verifies the immutable tagged
 Core and analyzes current production against it; release-candidate Quality and
@@ -86,3 +93,34 @@ If CI fails, inspect GitHub Actions logs directly and diagnose/fix the failure y
 
 This prohibition is a cost-control requirement and must not be overridden by convenience,
 CI failure, review comments, or suggestions from GitHub/Blacksmith UI.
+
+All disable/enable spans, standard/category/sniff-wide ignores and inline
+`phpcs:set` changes are rejected by the maintained-source token guard, including
+comma-list and case variants. Retained exceptions name an exact diagnostic at
+the smallest practical occurrence with a reason; they require independent review
+of the exact candidate. The profile guard rejects scope/rule/severity weakening and PHPCS/PHPCBF-only
+attributes on any element; the checker and fixer must enforce the same rules.
+Green checks and an author-written rationale do not establish exception acceptance.
+See the current disposition and preserved contracts in CONTRIBUTING.md and
+docs/migrator-owned-naming-inventory.md.
+
+
+## Maintained development analysis
+
+`composer analyze` now retains the production level-6 profile and requires two
+level-5 development worlds. Recursive tests/scripts discovery is the default;
+installed-candidate proofs and the paired source-candidate behavior entrypoint
+use real pinned Core declarations instead of PHPUnit Core doubles. The existing
+coverage guard compares their effective union with independently discovered
+maintained development PHP, verifies levels and role boundaries, and rejects
+missing/stub-only files. No maintained PHP file is exempt and no baseline is added.
+
+Keep the small analysis-only WP-CLI output declaration out of execution/autoload.
+Its two documented foreign signatures are checked as maintained PHP. Exact local
+PHPStan API annotations acknowledge locked CLI internals; four historical-member
+annotations preserve the existing immutable API-2/API-3 behavioral comparison.
+The installed beta.7 probe separately retains its exact historical `deleteExact`
+call with a local annotation and real historical-receiver regression.
+They are not permission for adjacent diagnostics or new exceptions. Retain the
+actual pinned-generation behavioral proof and the real-Core/fixture separation
+negative; do not load synthetic Core declarations into production inference.

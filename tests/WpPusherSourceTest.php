@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests;
+namespace RAN\BoosterWpPusherMigrator\Tests;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -64,7 +64,7 @@ final class WpPusherSourceTest extends TestCase {
 			$this->source( $schema_drift )->packages();
 			self::fail( 'Schema drift was accepted.' );
 		} catch ( RuntimeException ) {
-			self::assertTrue( true );
+			self::addToAssertionCount( 1 );
 		}
 
 		$duplicates       = new FakeDatabase();
@@ -100,7 +100,7 @@ final class WpPusherSourceTest extends TestCase {
 			$this->source( $malformed )->packages();
 			self::fail( 'Malformed row was accepted.' );
 		} catch ( \InvalidArgumentException ) {
-			self::assertTrue( true );
+			self::addToAssertionCount( 1 );
 		}
 
 		$over_bound       = new FakeDatabase();
@@ -153,6 +153,7 @@ final class WpPusherSourceTest extends TestCase {
 	}
 }
 
+// phpcs:ignore Generic.Files.OneObjectStructurePerFile.MultipleFound -- Colocated test double belongs to this fixture load unit; unrelated declarations remain checked.
 final class FakeDatabase {
 
 	public string $prefix  = 'wp_';
@@ -239,7 +240,7 @@ final class FakeDatabase {
 		return count( $this->rows );
 	}
 
-	public function query( string $query ): int|false {
+	public function query( string $query ): int {
 		$this->queries[] = $query;
 		if ( str_starts_with( $query, 'DELETE FROM `wp_wppusher_packages`' ) && 1 === $this->affected_rows ) {
 			$this->rows = array();

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-final class WpDieException extends RuntimeException {
+final class Ran_Booster_Wp_Pusher_Migrator_Wp_Die_Exception extends RuntimeException {
 
 	/** @param array<string, mixed> $args */
 	public function __construct(

@@ -2,9 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests;
-
-// phpcs:disable WordPress.PHP.DiscouragedPHPFunctions.system_calls_proc_open,WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents,WordPress.WP.AlternativeFunctions.file_system_operations_fclose,WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents,WordPress.WP.AlternativeFunctions.file_system_operations_mkdir,WordPress.WP.AlternativeFunctions.file_system_operations_rmdir,WordPress.WP.AlternativeFunctions.json_encode_json_encode,WordPress.WP.AlternativeFunctions.unlink_unlink -- Hostile release fixtures deliberately use local process and filesystem APIs. Naming checks remain enabled.
+namespace RAN\BoosterWpPusherMigrator\Tests;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -25,19 +23,23 @@ final class ReleaseArchiveTest extends TestCase {
 			\RecursiveIteratorIterator::CHILD_FIRST
 		);
 		foreach ( $files as $file ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir,WordPress.WP.AlternativeFunctions.unlink_unlink -- Isolated archive test uses native local files and subprocess pipes without a WordPress filesystem runtime.
 			$file->isDir() ? rmdir( $file->getPathname() ) : unlink( $file->getPathname() );
 		}
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Isolated archive test uses native local files and subprocess pipes without a WordPress filesystem runtime.
 		rmdir( $this->temporary );
 	}
 
 	public function test_exact_commit_build_ignores_dirty_worktree_and_passes_hostile_verification(): void {
 		$fixture = $this->archive_fixture();
 		$digest  = hash_file( 'sha256', $fixture['archive'] );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Isolated archive test uses native local files and subprocess pipes without a WordPress filesystem runtime.
 		file_put_contents( $fixture['repo'] . '/src/Plugin.php', "<?php\n// dirty worktree must be ignored\n" );
 
 		self::assertSame( 0, $this->command( array( 'bash', $fixture['repo'] . '/scripts/build-release.sh', $fixture['commit'] ), $fixture['repo'] ) );
 		self::assertSame( $digest, hash_file( 'sha256', $fixture['archive'] ) );
 		self::assertSame( 0, $this->verify( $fixture ) );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Isolated archive test uses native local files and subprocess pipes without a WordPress filesystem runtime.
 		$metadata = json_decode( (string) file_get_contents( $fixture['metadata'] ), true, 512, JSON_THROW_ON_ERROR );
 		self::assertSame( 1, $metadata['schema_version'] ?? null );
 		self::assertSame( $fixture['commit'], $metadata['commit'] ?? null );
@@ -168,6 +170,7 @@ final class ReleaseArchiveTest extends TestCase {
 		$this->refresh_integrity_files( $fixture );
 
 		self::assertSame( 1, $this->verify( $fixture ) );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Isolated archive test uses native local files and subprocess pipes without a WordPress filesystem runtime.
 		$verifier = file_get_contents( $fixture['repo'] . '/scripts/verify-release.php' );
 		self::assertIsString( $verifier );
 		self::assertStringNotContainsString( 'extractTo(', $verifier );
@@ -215,16 +218,20 @@ PYTHON;
 
 	public function test_checksum_metadata_and_wrong_commit_are_rejected(): void {
 		$fixture = $this->archive_fixture();
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Isolated archive test uses native local files and subprocess pipes without a WordPress filesystem runtime.
 		file_put_contents( $fixture['checksum'], str_repeat( '0', 64 ) . '  ' . basename( $fixture['archive'] ) . "\n" );
 		self::assertSame( 1, $this->verify( $fixture ) );
 
 		$this->refresh_integrity_files( $fixture );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Isolated archive test uses native local files and subprocess pipes without a WordPress filesystem runtime.
 		$metadata           = json_decode( (string) file_get_contents( $fixture['metadata'] ), true, 512, JSON_THROW_ON_ERROR );
 		$metadata['commit'] = str_repeat( '0', 40 );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents,WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Isolated archive test uses native local files and subprocess pipes without a WordPress filesystem runtime.
 		file_put_contents( $fixture['metadata'], json_encode( $metadata, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR ) . "\n" );
 		self::assertSame( 1, $this->verify( $fixture ) );
 
 		$this->refresh_integrity_files( $fixture );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Isolated archive test uses native local files and subprocess pipes without a WordPress filesystem runtime.
 		file_put_contents( $fixture['repo'] . '/src/Plugin.php', "<?php\n// another committed source\n" );
 		self::assertSame( 0, $this->command( array( 'git', 'add', 'src/Plugin.php' ), $fixture['repo'] ) );
 		self::assertSame( 0, $this->command( array( 'git', 'commit', '-q', '-m', 'second source' ), $fixture['repo'] ) );
@@ -239,6 +246,7 @@ PYTHON;
 		$source          = dirname( __DIR__ );
 		$this->temporary = sys_get_temp_dir() . '/ran-migrator-release-test-' . bin2hex( random_bytes( 8 ) );
 		$repo            = $this->temporary . '/repository';
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- Isolated archive test uses native local files and subprocess pipes without a WordPress filesystem runtime.
 		mkdir( $repo, 0700, true );
 		$files = preg_split( '/\R/', trim( $this->command_output( array( 'git', 'ls-files', '--cached', '--others', '--exclude-standard' ), $source ) ) );
 		self::assertIsArray( $files );
@@ -248,6 +256,7 @@ PYTHON;
 			}
 			$target = $repo . '/' . $relative;
 			if ( ! is_dir( dirname( $target ) ) ) {
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- Isolated archive test uses native local files and subprocess pipes without a WordPress filesystem runtime.
 				mkdir( dirname( $target ), 0700, true );
 			}
 			copy( $source . '/' . $relative, $target );
@@ -286,10 +295,13 @@ PYTHON;
 	private function refresh_integrity_files( array $fixture ): void {
 		$digest = hash_file( 'sha256', $fixture['archive'] );
 		self::assertIsString( $digest );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Isolated archive test uses native local files and subprocess pipes without a WordPress filesystem runtime.
 		file_put_contents( $fixture['checksum'], $digest . '  ' . basename( $fixture['archive'] ) . "\n" );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Isolated archive test uses native local files and subprocess pipes without a WordPress filesystem runtime.
 		$metadata               = json_decode( (string) file_get_contents( $fixture['metadata'] ), true, 512, JSON_THROW_ON_ERROR );
 		$metadata['zip_size']   = filesize( $fixture['archive'] );
 		$metadata['zip_sha256'] = $digest;
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents,WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Isolated archive test uses native local files and subprocess pipes without a WordPress filesystem runtime.
 		file_put_contents( $fixture['metadata'], json_encode( $metadata, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR ) . "\n" );
 	}
 
@@ -300,6 +312,7 @@ PYTHON;
 
 	/** @param list<string> $command */
 	private function command( array $command, string $directory ): int {
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_proc_open -- Isolated archive test uses native local files and subprocess pipes without a WordPress filesystem runtime.
 		$process = proc_open(
 			$command,
 			array(
@@ -312,7 +325,9 @@ PYTHON;
 		self::assertIsResource( $process );
 		stream_get_contents( $pipes[1] );
 		stream_get_contents( $pipes[2] );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Isolated archive test uses native local files and subprocess pipes without a WordPress filesystem runtime.
 		fclose( $pipes[1] );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Isolated archive test uses native local files and subprocess pipes without a WordPress filesystem runtime.
 		fclose( $pipes[2] );
 
 		return proc_close( $process );
@@ -320,6 +335,7 @@ PYTHON;
 
 	/** @param list<string> $command */
 	private function command_output( array $command, string $directory ): string {
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_proc_open -- Isolated archive test uses native local files and subprocess pipes without a WordPress filesystem runtime.
 		$process = proc_open(
 			$command,
 			array(
@@ -332,7 +348,9 @@ PYTHON;
 		self::assertIsResource( $process );
 		$output = stream_get_contents( $pipes[1] );
 		stream_get_contents( $pipes[2] );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Isolated archive test uses native local files and subprocess pipes without a WordPress filesystem runtime.
 		fclose( $pipes[1] );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Isolated archive test uses native local files and subprocess pipes without a WordPress filesystem runtime.
 		fclose( $pipes[2] );
 		self::assertSame( 0, proc_close( $process ) );
 		self::assertIsString( $output );

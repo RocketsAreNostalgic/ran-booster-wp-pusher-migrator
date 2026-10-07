@@ -65,7 +65,7 @@
   },
   "autoload-dev": {
     "psr-4": {
-      "Tests\\": "tests/"
+      "RAN\\BoosterWpPusherMigrator\\Tests\\": "tests/"
     }
   },
   "scripts": {
@@ -94,14 +94,25 @@
     "test:standards-contract": "bash tests/standards-contract.sh",
     "analysis:setup": "bash scripts/prepare-analysis-core.sh",
     "analyze": [
-      "@analysis:setup",
-      "phpstan analyze --configuration=phpstan.neon.dist --memory-limit=512M"
+      "@analyze:production",
+      "@analyze:development"
     ],
     "test:analysis-contract": "bash tests/analysis-contract.sh",
     "analysis:coverage": "php scripts/check-analysis-coverage.php",
     "test:analysis-coverage-contract": "bash tests/analysis-coverage-contract.sh",
     "analyze:certified": "bash tests/certified-core-analysis.sh",
-    "test:source-behaviour": "bash tests/pinned-source-behaviour.sh"
+    "test:source-behaviour": "bash tests/pinned-source-behaviour.sh",
+    "analyze:production": [
+      "@analysis:setup",
+      "@php scripts/check-analysis-coverage.php --source",
+      "phpstan analyze --configuration=phpstan.neon.dist --memory-limit=512M"
+    ],
+    "analyze:development": [
+      "@analysis:setup",
+      "@php scripts/check-analysis-coverage.php --development",
+      "phpstan analyze --configuration=phpstan-development.neon.dist --memory-limit=512M",
+      "phpstan analyze --configuration=phpstan-real-proofs.neon.dist --memory-limit=512M"
+    ]
   },
   "config": {
     "sort-packages": true,

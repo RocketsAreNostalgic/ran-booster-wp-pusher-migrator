@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests;
+namespace RAN\BoosterWpPusherMigrator\Tests;
 
 use PHPUnit\Framework\TestCase;
 use RAN\AddOn\Portability\PortabilityApplyResult;
@@ -80,9 +80,9 @@ final class MigrationServiceTest extends TestCase {
 		$service->review( $source->id, $source->fingerprint(), 'bitbucket_profile', 'review-nonce' );
 
 		self::assertSame( 'bb', $facade->candidate?->provider_code );
-		self::assertSame( 'fixture-workspace/private-plugin', $facade->candidate?->repository );
-		self::assertSame( 'packages/plugin', $facade->candidate?->subdirectory );
-		self::assertSame( 'bitbucket_profile', $facade->candidate?->credential_id );
+		self::assertSame( 'fixture-workspace/private-plugin', $facade->candidate->repository );
+		self::assertSame( 'packages/plugin', $facade->candidate->subdirectory );
+		self::assertSame( 'bitbucket_profile', $facade->candidate->credential_id );
 
 		$service->apply(
 			$source->id,
@@ -92,8 +92,8 @@ final class MigrationServiceTest extends TestCase {
 			'apply-nonce'
 		);
 
-		self::assertSame( 'bb', $facade->candidate?->provider_code );
-		self::assertSame( 'bitbucket_profile', $facade->candidate?->credential_id );
+		self::assertSame( 'bb', $facade->candidate->provider_code );
+		self::assertSame( 'bitbucket_profile', $facade->candidate->credential_id );
 	}
 
 	public function test_cleanup_requires_verified_target_and_exact_source(): void {
@@ -157,6 +157,7 @@ final class MigrationServiceTest extends TestCase {
 	}
 }
 
+// phpcs:ignore Generic.Files.OneObjectStructurePerFile.MultipleFound -- Colocated test double belongs to this fixture load unit; unrelated declarations remain checked.
 final class FakePortabilityFacade extends PortabilityFacade {
 
 	public ?PortabilityCandidate $candidate = null;

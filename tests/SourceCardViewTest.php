@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests;
+namespace RAN\BoosterWpPusherMigrator\Tests;
 
 use PHPUnit\Framework\TestCase;
 use RAN\AddOn\Portability\PortabilityCandidate;
@@ -350,6 +350,7 @@ final class SourceCardViewTest extends TestCase {
 	}
 }
 
+// phpcs:ignore Generic.Files.OneObjectStructurePerFile.MultipleFound -- Colocated test double belongs to this fixture load unit; unrelated declarations remain checked.
 final class SourceCardInteractionSpy implements AdminInteractionFacade, TransporterRowAdminInteractionFacade {
 
 	/** @var list<string> */

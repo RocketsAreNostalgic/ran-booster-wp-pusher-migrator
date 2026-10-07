@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests;
+namespace RAN\BoosterWpPusherMigrator\Tests;
 
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
@@ -27,7 +27,7 @@ final class CoreCertificationTest extends TestCase {
 		self::assertStringContainsString( 'ref: ${{ needs.runtime-archive.outputs.core-commit }}', $quality );
 		self::assertStringContainsString( 'core-certification.php verify migrator/composer.json core', $quality );
 		self::assertStringContainsString( 'git show "${source_commit}:composer.json"', $builder );
-		self::assertStringContainsString( 'read_core_certification( $composer_path )', $verifier );
+		self::assertStringContainsString( 'read_core_certification( $ran_booster_wp_pusher_migrator_composer_path )', $verifier );
 		self::assertStringNotContainsString( $tuple['commit'], $quality );
 		self::assertStringNotContainsString( $tuple['tag'], $quality );
 	}
