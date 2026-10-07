@@ -52,7 +52,8 @@ directories do not inherit those exemptions. Tests/scripts are excluded from
 symbol scanning too. Preserve the exact Core RAN scan instead of scanning its
 entrypoint and test doubles through a broader vendor discovery root.
 Its first run prepares the exact reviewed Core source commit/tree under `vendor/`;
-later runs verify the same clean bytes offline. Use `composer analysis:setup`
+the same setup prepares the exact historical beta.7 receiver used by the existing
+proof. Later runs verify the same consumed bytes offline. Use `composer analysis:setup`
 for explicit preparation. Never substitute PHPUnit doubles or a floating Core
 checkout. `composer analyze:certified` separately verifies the immutable tagged
 Core and analyzes current production against it; release-candidate Quality and

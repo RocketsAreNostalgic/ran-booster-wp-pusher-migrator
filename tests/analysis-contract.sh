@@ -244,11 +244,28 @@ done
 # Execute its actual stale-cleanup expression against that immutable receiver.
 historical="$fixture/historical-migrator"
 historical_commit=862396ec07594a4dada0991f66446f30346a7d44
-git init --quiet "$historical"
-git -C "$historical" fetch --quiet --depth 1 https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator.git "$historical_commit"
-test "$(git -C "$historical" rev-parse FETCH_HEAD)" = "$historical_commit"
+historical_cache="$project_root/vendor/ran-historical-migrator/source"
+mkdir -p "$historical"
+test "$(git --no-replace-objects -C "$historical_cache" rev-parse HEAD)" = "$historical_commit"
+# Prepared setup must use verified cached bytes without any network command.
+setup_probe="$fixture/prepared-setup"
+mkdir -p "$setup_probe/scripts" "$setup_probe/tests" "$setup_probe/vendor/ran-historical-migrator" "$setup_probe/bin"
+cp "$project_root/composer.json" "$setup_probe/"
+cp "$project_root/scripts/prepare-analysis-core.sh" "$project_root/scripts/core-source.php" "$project_root/scripts/core-certification.php" "$setup_probe/scripts/"
+cp "$project_root/tests/phpstan-bootstrap.php" "$setup_probe/tests/"
+ln -s "$project_root/vendor/ran-source-core" "$setup_probe/vendor/ran-source-core"
+git clone --quiet --shared "$historical_cache" "$setup_probe/vendor/ran-historical-migrator/source"
+actual_git="$(command -v git)"
+printf '#!/usr/bin/env bash\nfor arg in "$@"; do case "$arg" in fetch|clone|pull|ls-remote) echo "Unexpected network Git command" >&2; exit 97;; esac; done\nexec %q "$@"\n' "$actual_git" > "$setup_probe/bin/git"
+chmod +x "$setup_probe/bin/git"
+PATH="$setup_probe/bin:$PATH" bash "$setup_probe/scripts/prepare-analysis-core.sh"
+historical_probe="$setup_probe/vendor/ran-historical-migrator/source"
+git -C "$historical_probe" update-index --assume-unchanged src/WpPusherSource.php
+printf '\n// Hidden historical cache alteration.\n' >> "$historical_probe/src/WpPusherSource.php"
+if PATH="$setup_probe/bin:$PATH" bash "$setup_probe/scripts/prepare-analysis-core.sh" > "$fixture/historical-cache-negative.log" 2>&1; then exit 1; fi
+grep -Fq 'Historical Migrator cache bytes differ.' "$fixture/historical-cache-negative.log"
 for file in WpPusherSource WpPusherPackage; do
-    git -C "$historical" show "$historical_commit:src/$file.php" > "$historical/$file.php"
+    git --no-replace-objects -C "$historical_cache" show "$historical_commit:src/$file.php" > "$historical/$file.php"
 done
 historical_cleanup() {
     php -r '

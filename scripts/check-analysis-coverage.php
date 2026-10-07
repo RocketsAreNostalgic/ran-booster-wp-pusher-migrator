@@ -15,8 +15,8 @@ try {
 	// Composer forwards analyzer flags to every aggregate step; source mode consumes none.
 	$ran_booster_wp_pusher_migrator_source_only = '--source' === ( $argv[1] ?? null );
 	$ran_booster_wp_pusher_migrator_development = '--development' === ( $argv[1] ?? null );
-	if ( ! $ran_booster_wp_pusher_migrator_source_only && ! $ran_booster_wp_pusher_migrator_development && ( $argc > 2 || ( 2 === $argc && ! is_file( $argv[1] ) ) ) ) {
-		throw new RuntimeException( 'Usage: php scripts/check-analysis-coverage.php [--source|--development|finished-runtime.zip]' );
+	if ( ! $ran_booster_wp_pusher_migrator_source_only && ! $ran_booster_wp_pusher_migrator_development && ( 2 !== $argc || ! is_file( $argv[1] ) ) ) {
+		throw new RuntimeException( 'Usage: php scripts/check-analysis-coverage.php --source|--development|finished-runtime.zip (exactly one archive required in archive mode)' );
 	}
 	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Standalone CLI guard reads local analysis metadata and emits terminal diagnostics, not HTML.
 	$ran_booster_wp_pusher_migrator_manifest = json_decode( file_get_contents( $ran_booster_wp_pusher_migrator_root . '/composer.json' ), true, 512, JSON_THROW_ON_ERROR );
@@ -111,7 +111,7 @@ try {
 	if ( array() === $ran_booster_wp_pusher_migrator_expected || array() !== array_diff( $ran_booster_wp_pusher_migrator_expected, array_keys( $ran_booster_wp_pusher_migrator_selected ) ) || array() !== array_diff( array_keys( $ran_booster_wp_pusher_migrator_selected ), $ran_booster_wp_pusher_migrator_expected ) ) {
 		throw new RuntimeException( 'Effective PHPStan selection differs from independently discovered PHP.' );
 	}
-	if ( $ran_booster_wp_pusher_migrator_source_only || $ran_booster_wp_pusher_migrator_development || 1 === $argc ) {
+	if ( $ran_booster_wp_pusher_migrator_source_only || $ran_booster_wp_pusher_migrator_development ) {
 		exit( 0 );
 	}
 	printf( "Analysis coverage: all %d maintained production PHP files directly selected.\n", count( $ran_booster_wp_pusher_migrator_expected ) );

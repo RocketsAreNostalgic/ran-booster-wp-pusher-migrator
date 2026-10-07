@@ -236,6 +236,10 @@ legacy call while the development profile sees current declarations. The actual
 beta.7 receiver regression executes the probe call and rejects replacing it with
 current `delete_exact`; an adjacent unknown call still fails analysis. This
 source-level regression does not supply installed/manual acceptance.
+`composer analysis:setup` prepares that immutable historical receiver once under
+`vendor/`; subsequent checks verify and reuse its bytes offline. The public
+`composer analysis:coverage -- <zip>` requires exactly one existing ZIP, while
+the explicit `--source` and `--development` modes remain separate inventory checks.
 Remaining cleanup removes nullsafe accesses only after prior
 assertions have proven non-null, narrows test-double returns to their actual
 values, preserves absent legacy-property checks via Reflection, and records

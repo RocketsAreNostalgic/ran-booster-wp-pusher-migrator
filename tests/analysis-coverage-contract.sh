@@ -30,6 +30,25 @@ reject() {
 bash scripts/build-release.sh "$(git rev-parse HEAD)" >/dev/null
 check
 
+# The public archive command may not silently fall back to source-only coverage.
+archive_arguments_rejected() {
+	if composer --no-interaction --no-plugins analysis:coverage -- "$@" > "$fixture/arguments.log" 2>&1; then
+		printf 'Archive coverage accepted missing or excess archive arguments.\n' >&2
+		exit 1
+	fi
+	grep -Fq 'exactly one archive required in archive mode' "$fixture/arguments.log"
+}
+archive_arguments_rejected
+archive_arguments_rejected ''
+archive_arguments_rejected "$fixture/missing.zip"
+archive_arguments_rejected "$archive" "$archive"
+composer --no-interaction --no-plugins analysis:coverage -- "$archive"
+composer --no-interaction --no-plugins analysis:coverage -- --source
+composer --no-interaction --no-plugins analysis:coverage -- --development
+printf '' > "$fixture/empty.zip"
+if composer --no-interaction --no-plugins analysis:coverage -- "$fixture/empty.zip" > "$fixture/arguments.log" 2>&1; then exit 1; fi
+grep -Fq 'Cannot open the finished runtime ZIP.' "$fixture/arguments.log"
+
 # Maintained sources cannot silently escape before packaging admits them.
 cp phpstan.neon.dist coverage-baseline.neon
 mkdir -p new-product/contracts src/tests
