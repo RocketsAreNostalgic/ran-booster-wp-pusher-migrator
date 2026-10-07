@@ -132,7 +132,13 @@ try {
 			if ( false === $ran_booster_wp_pusher_migrator_contents ) {
 				throw new RuntimeException( 'Cannot inspect maintained file for PHP coverage.' );
 			}
-			if ( 'phtml' === $ran_booster_wp_pusher_migrator_extension || preg_match( $ran_booster_wp_pusher_migrator_inert ? '/^(?:\xEF\xBB\xBF)?(?:#![^\n]*\n)?\s*<\?(?:php\b|=)/i' : '/<\?(?:php\b|=)/i', $ran_booster_wp_pusher_migrator_contents ) ) {
+			// Only a genuine leading XML declaration is data rather than a possible short PHP tag.
+			$ran_booster_wp_pusher_migrator_contents = preg_replace(
+				'~\A(?:\xEF\xBB\xBF)?<\?xml[ \t\r\n]+version[ \t\r\n]*=[ \t\r\n]*(?:"1\.[01]"|\'1\.[01]\')(?:[ \t\r\n]+encoding[ \t\r\n]*=[ \t\r\n]*(?:"[A-Za-z][A-Za-z0-9._-]*"|\'[A-Za-z][A-Za-z0-9._-]*\'))?(?:[ \t\r\n]+standalone[ \t\r\n]*=[ \t\r\n]*(?:"(?:yes|no)"|\'(?:yes|no)\'))?[ \t\r\n]*\?>~',
+				'',
+				$ran_booster_wp_pusher_migrator_contents
+			);
+			if ( null === $ran_booster_wp_pusher_migrator_contents || 'phtml' === $ran_booster_wp_pusher_migrator_extension || preg_match( $ran_booster_wp_pusher_migrator_inert ? '/^(?:\xEF\xBB\xBF)?(?:#![^\n]*\n)?\s*<\?/i' : '/<\?/i', $ran_booster_wp_pusher_migrator_contents ) ) {
 				throw new RuntimeException( 'Nonstandard-extension PHP needs an explicit reviewed analysis decision.' );
 			}
 		}

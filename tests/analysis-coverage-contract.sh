@@ -80,6 +80,39 @@ for header in '<?PHP' '<?='; do
 		rm "$path"
 	done
 done
+# Discovery rejects executable bare tags independently of the host INI setting.
+printf '<? echo "short-tag-executed"; ?>' > short-execution.tpl
+test "$(php -d short_open_tag=1 short-execution.tpl)" = short-tag-executed
+test "$(php -d short_open_tag=0 short-execution.tpl)" = '<? echo "short-tag-executed"; ?>'
+rm short-execution.tpl
+for mode in --source --development; do
+	prefix=''
+	if [[ "$mode" == --development ]]; then prefix='tests/'; fi
+	for enabled in 0 1; do
+		for suffix in inc html tpl; do
+			printf '<main><? echo "executed"; ?>' > "${prefix}short.$suffix"
+			if php -d short_open_tag="$enabled" scripts/check-analysis-coverage.php "$mode" > result.log 2>&1; then exit 1; fi
+			grep -Fq 'Nonstandard-extension PHP' result.log
+			rm "${prefix}short.$suffix"
+		done
+		printf '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><root/>' > "${prefix}example.xml"
+		php -d short_open_tag="$enabled" scripts/check-analysis-coverage.php "$mode"
+		printf '<? echo "executed"; ?>' >> "${prefix}example.xml"
+		if php -d short_open_tag="$enabled" scripts/check-analysis-coverage.php "$mode" > result.log 2>&1; then exit 1; fi
+		grep -Fq 'Nonstandard-extension PHP' result.log
+		printf '<?xmlfoo payload?><root/>' > "${prefix}example.xml"
+		if php -d short_open_tag="$enabled" scripts/check-analysis-coverage.php "$mode" > result.log 2>&1; then exit 1; fi
+		grep -Fq 'Nonstandard-extension PHP' result.log
+		rm "${prefix}example.xml"
+	done
+	# Existing documentation, JSON data and declared Bash fixtures remain inert.
+	printf '# Example\n<? echo "quoted"; ?>\n' > "${prefix}example.md"
+	printf '{"example":"<? echo 1; ?>"}\n' > "${prefix}example.json"
+	printf '#!/usr/bin/env bash\nprintf '\''<? echo 1; ?>'\''\n' > "${prefix}example.sh"
+	php scripts/check-analysis-coverage.php "$mode"
+	rm "${prefix}example.md" "${prefix}example.json" "${prefix}example.sh"
+done
+printf 'Analysis coverage contract: bare short tags, INI independence and XML/data boundaries passed.\n'
 sed -i '/- views$/d' phpstan.neon.dist
 reject 'shrunken selection' 'Effective PHPStan selection differs'
 cp coverage-baseline.neon phpstan.neon.dist
