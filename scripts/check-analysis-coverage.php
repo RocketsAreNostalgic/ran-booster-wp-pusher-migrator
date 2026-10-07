@@ -60,6 +60,22 @@ try {
 		$ran_booster_wp_pusher_migrator_selected += array_fill_keys( $ran_booster_wp_pusher_migrator_inception->getFiles()[0], true );
 		// @phpstan-ignore phpstanApi.constructor, phpstanApi.method (Inspect locked NEON structure to fail closed on changed role boundaries.)
 		$ran_booster_wp_pusher_migrator_config = ( new PHPStan\DependencyInjection\NeonAdapter( array() ) )->load( $ran_booster_wp_pusher_migrator_root . '/' . $ran_booster_wp_pusher_migrator_configuration );
+		// The effective container includes imported suppressions; only the two reviewed
+		// defensive POST checks may be excepted, and obsolete entries must still fail.
+		$ran_booster_wp_pusher_migrator_reviewed_ignores = $ran_booster_wp_pusher_migrator_development ? array() : array(
+			array(
+				'identifier' => 'function.alreadyNarrowedType',
+				'message'    => '#^Call to function is_array\\(\\) with array<mixed> will always evaluate to true\\.$#',
+				'path'       => $ran_booster_wp_pusher_migrator_root . '/src/MigrationRequestController.php',
+				'count'      => 2,
+			),
+		);
+		// @phpstan-ignore phpstanApi.method (Read the locked CLI effective container rather than only its top-level configuration.)
+		$ran_booster_wp_pusher_migrator_container = $ran_booster_wp_pusher_migrator_inception->getContainer();
+		if ( $ran_booster_wp_pusher_migrator_reviewed_ignores !== $ran_booster_wp_pusher_migrator_container->getParameter( 'ignoreErrors' )
+			|| true !== $ran_booster_wp_pusher_migrator_container->getParameter( 'reportUnmatchedIgnoredErrors' ) ) {
+			throw new RuntimeException( 'Review effective analysis suppressions and their exact occurrence counts.' );
+		}
 		if ( ! $ran_booster_wp_pusher_migrator_development ) {
 			if ( 6 !== ( $ran_booster_wp_pusher_migrator_config['parameters']['level'] ?? null )
 				|| array( 'analyseAndScan' => array_map( static fn( string $ran_booster_wp_pusher_migrator_path ): string => $ran_booster_wp_pusher_migrator_path . '/*', array_values( array_diff( $ran_booster_wp_pusher_migrator_exemptions, array( 'vendor' ) ) ) ) ) !== ( $ran_booster_wp_pusher_migrator_config['parameters']['excludePaths'] ?? null )
@@ -103,7 +119,20 @@ try {
 		} else {
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Standalone CLI guard reads local analysis metadata and emits terminal diagnostics, not HTML.
 			$ran_booster_wp_pusher_migrator_header = file_get_contents( $ran_booster_wp_pusher_migrator_entry->getPathname(), false, null, 0, 512 );
-			if ( preg_match( '/^(?:#![^\n]*\n)?\s*<\?(?:php\b|=)/i', $ran_booster_wp_pusher_migrator_header ) ) {
+			if ( false === $ran_booster_wp_pusher_migrator_header ) {
+				throw new RuntimeException( 'Cannot inspect maintained file for PHP coverage.' );
+			}
+			$ran_booster_wp_pusher_migrator_extension = strtolower( $ran_booster_wp_pusher_migrator_entry->getExtension() );
+			// Documentation/data and declared Bash fixtures may contain literal PHP.
+			// Every other suffix, including future template formats, is inspected fully.
+			$ran_booster_wp_pusher_migrator_inert = in_array( $ran_booster_wp_pusher_migrator_extension, array( 'md', 'json' ), true )
+				|| ( 'sh' === $ran_booster_wp_pusher_migrator_extension && ( str_starts_with( $ran_booster_wp_pusher_migrator_header, "#!/usr/bin/env bash\n" ) || str_starts_with( $ran_booster_wp_pusher_migrator_header, "#!/bin/bash\n" ) ) );
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Inspect potentially executable local source bodies without executing them.
+			$ran_booster_wp_pusher_migrator_contents = $ran_booster_wp_pusher_migrator_inert ? $ran_booster_wp_pusher_migrator_header : file_get_contents( $ran_booster_wp_pusher_migrator_entry->getPathname() );
+			if ( false === $ran_booster_wp_pusher_migrator_contents ) {
+				throw new RuntimeException( 'Cannot inspect maintained file for PHP coverage.' );
+			}
+			if ( 'phtml' === $ran_booster_wp_pusher_migrator_extension || preg_match( $ran_booster_wp_pusher_migrator_inert ? '/^(?:\xEF\xBB\xBF)?(?:#![^\n]*\n)?\s*<\?(?:php\b|=)/i' : '/<\?(?:php\b|=)/i', $ran_booster_wp_pusher_migrator_contents ) ) {
 				throw new RuntimeException( 'Nonstandard-extension PHP needs an explicit reviewed analysis decision.' );
 			}
 		}
