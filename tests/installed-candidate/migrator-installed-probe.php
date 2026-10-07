@@ -293,7 +293,8 @@ if ( 'source-cases' === $ran_booster_wp_pusher_migrator_mode ) {
 	global $wpdb;
 	$ran_booster_wp_pusher_migrator_old = $ran_booster_wp_pusher_migrator_packages[0];
 	$wpdb->update( $wpdb->prefix . 'wppusher_packages', array( 'branch' => 'changed-after-review' ), array( 'id' => $ran_booster_wp_pusher_migrator_old->id ) );
-	if ( $ran_booster_wp_pusher_migrator_source->delete_exact( $ran_booster_wp_pusher_migrator_old ) ) {
+	// @phpstan-ignore method.notFound (The retained beta.7 installed archive exposes deleteExact; this historical probe never loads current Migrator source.)
+	if ( $ran_booster_wp_pusher_migrator_source->deleteExact( $ran_booster_wp_pusher_migrator_old ) ) {
 		throw new RuntimeException( 'Stale exact cleanup unexpectedly deleted the changed source row.' );
 	}
 	$wpdb->update( $wpdb->prefix . 'wppusher_packages', array( 'branch' => $ran_booster_wp_pusher_migrator_old->branch ), array( 'id' => $ran_booster_wp_pusher_migrator_old->id ) );

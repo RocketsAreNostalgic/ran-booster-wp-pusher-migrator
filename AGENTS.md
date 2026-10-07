@@ -118,6 +118,8 @@ Keep the small analysis-only WP-CLI output declaration out of execution/autoload
 Its two documented foreign signatures are checked as maintained PHP. Exact local
 PHPStan API annotations acknowledge locked CLI internals; four historical-member
 annotations preserve the existing immutable API-2/API-3 behavioral comparison.
+The installed beta.7 probe separately retains its exact historical `deleteExact`
+call with a local annotation and real historical-receiver regression.
 They are not permission for adjacent diagnostics or new exceptions. Retain the
 actual pinned-generation behavioral proof and the real-Core/fixture separation
 negative; do not load synthetic Core declarations into production inference.

@@ -240,6 +240,54 @@ for occurrence in 0 1 2 3; do
     fi
     cp "$project_root/tests/source-candidate-behaviour.php" "$development_fixture/tests/source-candidate-behaviour.php"
 done
+# The installed proof is deliberately bound to beta.7, not current Migrator.
+# Execute its actual stale-cleanup expression against that immutable receiver.
+historical="$fixture/historical-migrator"
+historical_commit=862396ec07594a4dada0991f66446f30346a7d44
+git init --quiet "$historical"
+git -C "$historical" fetch --quiet --depth 1 https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator.git "$historical_commit"
+test "$(git -C "$historical" rev-parse FETCH_HEAD)" = "$historical_commit"
+for file in WpPusherSource WpPusherPackage; do
+    git -C "$historical" show "$historical_commit:src/$file.php" > "$historical/$file.php"
+done
+historical_cleanup() {
+    php -r '
+        require $argv[1] . "/WpPusherSource.php";
+        require $argv[1] . "/WpPusherPackage.php";
+        $database = new class {
+            public string $prefix = "wp_";
+            public int $queries = 0;
+            public function prepare(string $query, mixed ...$values): string {
+                if ($values[3] !== "old-branch" || !str_contains($query, "`branch` = %s")) {
+                    throw new RuntimeException("Historical cleanup lost its exact-row branch predicate.");
+                }
+                return $query;
+            }
+            public function query(string $query): int { ++$this->queries; return 0; }
+        };
+        $ran_booster_wp_pusher_migrator_source = new RAN\BoosterWpPusherMigrator\WpPusherSource($database);
+        $ran_booster_wp_pusher_migrator_old = new RAN\BoosterWpPusherMigrator\WpPusherPackage(1, "fixture/plugin.php", "owner/repository", "old-branch", 1, 0, 0, "gh", 0, null);
+        $probe = file_get_contents($argv[2]);
+        if (1 !== preg_match("/if \( (\\x24ran_booster_wp_pusher_migrator_source->\\w+\( \\x24ran_booster_wp_pusher_migrator_old \)) \) \{/", $probe, $match)) {
+            throw new RuntimeException("Historical cleanup expression missing or ambiguous.");
+        }
+        if (false !== eval("return " . $match[1] . ";") || 1 !== $database->queries) {
+            throw new RuntimeException("Historical stale cleanup did not preserve refusal.");
+        }
+    ' "$historical" "$1"
+}
+historical_cleanup "$project_root/tests/installed-candidate/migrator-installed-probe.php"
+sed 's/->deleteExact(/->delete_exact(/' "$project_root/tests/installed-candidate/migrator-installed-probe.php" > "$fixture/current-spelling-probe.php"
+if historical_cleanup "$fixture/current-spelling-probe.php" > "$fixture/historical-negative.log" 2>&1; then exit 1; fi
+grep -q 'undefined method.*delete_exact' "$fixture/historical-negative.log"
+# The one historical allowance cannot hide an immediately adjacent missing call.
+sed -i '/@phpstan-ignore method.notFound/i\	$ran_booster_wp_pusher_migrator_source->ran_missing_outside_historical_cleanup();' "$development_fixture/tests/installed-candidate/migrator-installed-probe.php"
+if development > "$fixture/development-installed-negative.log" 2>&1; then exit 1; fi
+grep -q 'ran_missing_outside_historical_cleanup' "$fixture/development-installed-negative.log"
+grep -q 'method.notFound' "$fixture/development-installed-negative.log"
+cp "$project_root/tests/installed-candidate/migrator-installed-probe.php" "$development_fixture/tests/installed-candidate/migrator-installed-probe.php"
+printf 'Historical beta.7 cleanup receiver and exact exception boundary passed.\n'
+
 # The real CLI profile must see real Core's method, never the PHPUnit stand-in.
 printf '<?php\nfunction ran_booster_wp_pusher_migrator_real_world(\\RAN\\AddOn\\Portability\\PortabilityCandidate $candidate): array { return $candidate->to_array(); }\n' > "$development_fixture/tests/installed-candidate/world-proof.php"
 development > "$fixture/development-world.log"

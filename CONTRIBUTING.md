@@ -230,9 +230,13 @@ No broad missing-method/property category or file exclusion is added. The new
 WP-CLI declaration models only documented `line`/`success` output signatures,
 is never loaded at runtime, and does not model application behavior.
 
-The analysis surfaced an installed-proof typo: `deleteExact` referenced a removed
-owned method. The proof now calls current `delete_exact`, preserving its stale-row
-refusal assertion. Remaining cleanup removes nullsafe accesses only after prior
+The installed proof retains `deleteExact` because its immutable beta.7 receiver
+exposes that historical method. One exact analysis annotation accounts for this
+legacy call while the development profile sees current declarations. The actual
+beta.7 receiver regression executes the probe call and rejects replacing it with
+current `delete_exact`; an adjacent unknown call still fails analysis. This
+source-level regression does not supply installed/manual acceptance.
+Remaining cleanup removes nullsafe accesses only after prior
 assertions have proven non-null, narrows test-double returns to their actual
 values, preserves absent legacy-property checks via Reflection, and records
 expected exception assertions without tautological `assertTrue(true)` calls.
