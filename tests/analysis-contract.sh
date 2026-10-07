@@ -26,6 +26,52 @@ if analyze > "$fixture/level.log" 2>&1; then exit 1; fi
 grep -q 'Review maintained analysis scope' "$fixture/level.log"
 cp phpstan.neon.dist "$fixture/phpstan.neon.dist"
 
+# Unknown template suffixes are executable candidates, not a named inclusion list.
+for path in src/coverage-template.phtml src/coverage-command views/coverage-template.tpl src/coverage-template.custom; do
+	for shape in tag html bom-long-echo; do
+		php -r '$source = $argv[2] === "tag" ? "<?php function ran_migrator_template(): int { return \"invalid\"; }" : ($argv[2] === "html" ? "<main>template</main><?php function ran_migrator_template(): int { return \"invalid\"; }" : "\xEF\xBB\xBF<main>" . str_repeat("x",8192) . "</main><?= ran_missing_template(); ?>");file_put_contents($argv[1],$source);' "$fixture/$path" "$shape"
+		if analyze > "$fixture/template.log" 2>&1; then printf 'Template escaped: %s/%s\n' "$path" "$shape" >&2; exit 1; fi
+		grep -q 'Nonstandard-extension PHP needs an explicit reviewed analysis decision' "$fixture/template.log"
+		rm "$fixture/$path"
+	done
+done
+printf '# Example\n<main><?php example(); ?></main>\n' > "$fixture/coverage-example.md"
+printf '{"example":"<main><?php example(); ?></main>"}\n' > "$fixture/coverage-example.json"
+analyze > "$fixture/inert.json"
+rm "$fixture/coverage-example.md" "$fixture/coverage-example.json"
+
+# Preserve the accepted two-count POST exception while rejecting imported additions.
+printf '<?php\nfunction ran_booster_wp_pusher_migrator_suppression_probe(): int { return "invalid"; }\n' > "$fixture/src/CoverageSuppressionProbe.php"
+if (cd "$fixture" && php "$project_root/vendor/bin/phpstan" analyze -c phpstan.neon.dist --no-progress --error-format=json) > "$fixture/suppression-before.json" 2> "$fixture/suppression-before.log"; then exit 1; fi
+grep -q 'return.type' "$fixture/suppression-before.json"
+cat > "$fixture/coverage-ignore.neon" <<'NEON'
+parameters:
+	ignoreErrors:
+		-
+			identifier: return.type
+			path: src/CoverageSuppressionProbe.php
+			reportUnmatched: false
+NEON
+sed -i '/^includes:/a\	- coverage-ignore.neon' "$fixture/phpstan.neon.dist"
+(cd "$fixture" && php "$project_root/vendor/bin/phpstan" analyze -c phpstan.neon.dist --no-progress --error-format=json) > "$fixture/suppression-after.json" 2> "$fixture/suppression-after.log"
+php -r '$report=json_decode(file_get_contents($argv[1]),true,512,JSON_THROW_ON_ERROR);if($report["totals"]["errors"]!==0||$report["totals"]["file_errors"]!==0){exit(1);}' "$fixture/suppression-after.json"
+if analyze > "$fixture/suppression-guard.log" 2>&1; then exit 1; fi
+grep -q 'Review effective analysis suppressions' "$fixture/suppression-guard.log"
+cp phpstan.neon.dist "$fixture/phpstan.neon.dist"
+rm "$fixture/coverage-ignore.neon" "$fixture/src/CoverageSuppressionProbe.php"
+for mutation in count path unmatched; do
+	case "$mutation" in
+		count) sed -i 's/count: 2/count: 3/' "$fixture/phpstan.neon.dist" ;;
+		path) sed -i 's#path: src/MigrationRequestController.php#path: src/*#' "$fixture/phpstan.neon.dist" ;;
+		unmatched) printf '\treportUnmatchedIgnoredErrors: false\n' >> "$fixture/phpstan.neon.dist" ;;
+	esac
+	if analyze > "$fixture/suppression-guard.log" 2>&1; then exit 1; fi
+	grep -q 'Review effective analysis suppressions' "$fixture/suppression-guard.log"
+	cp phpstan.neon.dist "$fixture/phpstan.neon.dist"
+done
+analyze > "$fixture/restored-suppressions.json"
+printf 'Template and suppression controls passed: unknown bodies rejected; inert examples and exact two-count exception retained; imported suppression and scope changes rejected.\n'
+
 # Prove recursive src/view selection, both root files, return checks and real Core symbols.
 for path in src/AnalysisNegative.php views/analysis-negative.php index.php ran-booster-wp-pusher-migrator.php src/tests/runtime.php; do
 	if [[ -f "$fixture/$path" ]]; then
@@ -213,6 +259,32 @@ printf '<?php\nnew PHPStan\\DependencyInjection\\NeonAdapter([]);\n' > "$develop
 if development > "$fixture/development-negative.log" 2>&1; then exit 1; fi
 grep -q 'phpstanApi.constructor' "$fixture/development-negative.log"
 rm "$development_fixture/scripts/future-helper.php"
+# The new exact effective-container API annotation leaves the next call diagnosed.
+sed -i '/_inception->getContainer();/a\\		$ran_booster_wp_pusher_migrator_inception->getContainer();' "$development_fixture/scripts/check-analysis-coverage.php"
+if development > "$fixture/development-container-api.log" 2>&1; then exit 1; fi
+grep -q 'phpstanApi.method' "$fixture/development-container-api.log"
+cp "$project_root/scripts/check-analysis-coverage.php" "$development_fixture/scripts/check-analysis-coverage.php"
+# Both development worlds keep unknown templates and imported suppressions visible.
+for path in tests/coverage-template.tpl scripts/coverage-template.custom; do
+    printf '<main>template</main><?= ran_missing_development_template(); ?>\n' > "$development_fixture/$path"
+    if development > "$fixture/development-template.log" 2>&1; then exit 1; fi
+    grep -q 'Nonstandard-extension PHP needs an explicit reviewed analysis decision' "$fixture/development-template.log"
+    rm "$development_fixture/$path"
+done
+printf '#!/usr/bin/env bash\nprintf '\''<main><?php fixture(); ?></main>'\''\n' > "$development_fixture/scripts/coverage-example.sh"
+development > "$fixture/bash-example.log" 2>&1
+sed -i '1d' "$development_fixture/scripts/coverage-example.sh"
+if development > "$fixture/bash-example.log" 2>&1; then exit 1; fi
+grep -q 'Nonstandard-extension PHP needs an explicit reviewed analysis decision' "$fixture/bash-example.log"
+rm "$development_fixture/scripts/coverage-example.sh"
+for configuration in phpstan-development.neon.dist phpstan-real-proofs.neon.dist; do
+    printf 'parameters:\n\tignoreErrors:\n\t\t-\n\t\t\tidentifier: return.type\n\t\t\treportUnmatched: false\n' > "$development_fixture/development-ignore.neon"
+    sed -i '/^includes:/a\\	- development-ignore.neon' "$development_fixture/$configuration"
+    if development > "$fixture/development-ignore.log" 2>&1; then exit 1; fi
+    grep -q 'Review effective analysis suppressions' "$fixture/development-ignore.log"
+    cp "$project_root/$configuration" "$development_fixture/$configuration"
+    rm "$development_fixture/development-ignore.neon"
+done
 # Each historical-member waiver leaves its immediately preceding statement checked.
 for occurrence in 0 1 2 3; do
     php -r '
