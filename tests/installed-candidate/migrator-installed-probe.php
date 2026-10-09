@@ -149,7 +149,7 @@ if ( 'snapshot-active' === $ran_booster_wp_pusher_migrator_mode ) {
 	);
 	$ran_booster_wp_pusher_migrator_path    = ran_booster_wp_pusher_migrator_required_env( 'RAN_MIGRATOR_ACTIVE_SNAPSHOT' );
 	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod,WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Disposable installed proof validates its caller-authorized local marker or private recovery file; failure aborts the proof.
-	if ( strlen( $ran_booster_wp_pusher_migrator_payload ) !== file_put_contents( $ran_booster_wp_pusher_migrator_path, $ran_booster_wp_pusher_migrator_payload, LOCK_EX ) || ! chmod( $ran_booster_wp_pusher_migrator_path, 0600 ) ) {
+	if ( ! is_string( $ran_booster_wp_pusher_migrator_payload ) || strlen( $ran_booster_wp_pusher_migrator_payload ) !== file_put_contents( $ran_booster_wp_pusher_migrator_path, $ran_booster_wp_pusher_migrator_payload, LOCK_EX ) || ! chmod( $ran_booster_wp_pusher_migrator_path, 0600 ) ) {
 		throw new RuntimeException( 'The active_plugins recovery snapshot could not be retained.' );
 	}
 	WP_CLI::success( 'Exact active_plugins baseline retained.' );

@@ -18,7 +18,7 @@ function read_core_source( string $manifest_path ): array {
 	}
 	$keys = array_keys( $source );
 	sort( $keys );
-	if ( array( 'commit', 'tree' ) !== $keys ) {
+	if ( array( 'commit', 'tree' ) !== $keys || ! isset( $source['commit'], $source['tree'] ) ) {
 		throw new InvalidArgumentException( 'Pinned Core source requires exactly commit and tree.' );
 	}
 	foreach ( $source as $value ) {

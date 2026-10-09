@@ -24,7 +24,9 @@ function expect( bool $condition, string $message ): void {
 $ran_booster_wp_pusher_migrator_root = realpath( $argv[1] ?? dirname( __DIR__ ) );
 $ran_booster_wp_pusher_migrator_mode = $argv[2] ?? 'candidate';
 expect( in_array( $ran_booster_wp_pusher_migrator_mode, array( 'baseline', 'candidate' ), true ), 'Expected baseline or candidate mode.' );
-expect( false !== $ran_booster_wp_pusher_migrator_root, 'Migrator source is missing.' );
+if ( false === $ran_booster_wp_pusher_migrator_root ) {
+	throw new RuntimeException( 'Migrator source is missing.' );
+}
 verify_source( $ran_booster_wp_pusher_migrator_root, $argv[3] ?? '', array( 'src/', 'views/', 'tests/WpPusherSourceTest.php', 'composer.lock' ) );
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- Supply the exact WordPress or Core capability constant consumed by the host-contract fixture.
 define( 'ABSPATH', '/tmp/source-candidate-wordpress/' );

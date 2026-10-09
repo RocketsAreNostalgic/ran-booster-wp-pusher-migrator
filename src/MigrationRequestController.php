@@ -9,6 +9,7 @@ use RAN\AddOn\Portability\PortabilityReviewResult;
 use RAN\Admin\Interaction\AdminInteractionFacade;
 use RAN\Admin\Interaction\AdminInteractionOutcome;
 use RAN\Admin\Interaction\TransporterRowAdminInteractionFacade;
+use LogicException;
 use RuntimeException;
 use Throwable;
 
@@ -158,13 +159,18 @@ final readonly class MigrationRequestController {
 		};
 		$row = null;
 		if ( 'success' === $outcome['kind'] ) {
-			$row = 'review' === $operation
-				? $this->presenter->row( $source, $outcome['review'] )
-				: $this->presenter->imported_row(
+			if ( 'review' === $operation ) {
+				$row = $this->presenter->row( $source, $outcome['review'] );
+			} else {
+				if ( null === $outcome['apply'] ) {
+					throw new LogicException( 'A successful migration apply requires its result.' );
+				}
+				$row = $this->presenter->imported_row(
 					$source,
 					$outcome['apply']['result'],
 					$outcome['migration_complete']
 				);
+			}
 		}
 
 		$this->admin_interaction->respond_with_transporter_row_fragment(
