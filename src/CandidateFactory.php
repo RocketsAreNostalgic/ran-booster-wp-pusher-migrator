@@ -28,7 +28,7 @@ final class CandidateFactory {
 	/**
 	 * Build one bounded candidate without provider-issued identity.
 	 *
-	 * @return array{type:'plugin'|'theme',identifier:string,display_name:string,provider:'gh'|'bb',repository:string,branch:string,subdirectory:string|null,credential_id:string|null}
+	 * @return array{type:'plugin'|'theme',identifier:string,display_name:string,provider:string,repository:string,branch:string,subdirectory:string|null,credential_id:string|null}
 	 */
 	public function candidate( WpPusherPackage $source, ?string $credential_id = null ): array {
 		if ( 'gl' === $source->host ) {

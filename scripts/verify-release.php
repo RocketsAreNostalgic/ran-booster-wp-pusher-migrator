@@ -121,7 +121,10 @@ function ran_booster_wp_pusher_migrator_source_files( string $commit ): array {
 	return $files;
 }
 
-/** @param array<string,string> $files @return array<string,true> */
+/**
+ * @param array<string, string> $files
+ * @return array<string, true> Archive directory members inferred from file paths.
+ */
 function ran_booster_wp_pusher_migrator_expected_directories( array $files ): array {
 	$directories = array( RAN_BOOSTER_WP_PUSHER_MIGRATOR_PACKAGE_ROOT => true );
 	foreach ( array_keys( $files ) as $file ) {
