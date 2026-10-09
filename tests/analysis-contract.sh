@@ -410,7 +410,7 @@ cp "$project_root/tests/installed-candidate/migrator-installed-probe.php" "$deve
 printf 'Historical beta.7 cleanup receiver and exact exception boundary passed.\n'
 
 # The real CLI profile must see real Core's method, never the PHPUnit stand-in.
-printf '<?php\nfunction ran_booster_wp_pusher_migrator_real_world(\\RAN\\AddOn\\Portability\\PortabilityCandidate $candidate): array { return $candidate->to_array(); }\n' > "$development_fixture/tests/installed-candidate/world-proof.php"
+printf '<?php\n/** @return array<string, string|null> */\nfunction ran_booster_wp_pusher_migrator_real_world(\\RAN\\AddOn\\Portability\\PortabilityCandidate $candidate): array { return $candidate->to_array(); }\n' > "$development_fixture/tests/installed-candidate/world-proof.php"
 development > "$fixture/development-world.log"
 sed -i '/- tests\/fixtures\/PortabilityApi.php$/d' "$development_fixture/phpstan-real-proofs.neon.dist"
 printf 'parameters:\n\tpaths:\n\t\t- tests/installed-candidate\n\t\t- tests/source-candidate-behaviour.php\n\t\t- tests/fixtures/PortabilityApi.php\n' > "$development_fixture/world-import.neon"
