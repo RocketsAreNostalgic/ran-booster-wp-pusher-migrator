@@ -644,7 +644,7 @@ final class AdminPostDatabase {
 	public array $rows;
 	public int $delete_result                     = 1;
 	public bool $fail_inventory_read_after_delete = false;
-	/** @var list<mixed> */
+	/** @var array<int|string, mixed> Variadic arguments retain named keys too. */
 	private array $prepared_values = array();
 	private bool $deleted          = false;
 

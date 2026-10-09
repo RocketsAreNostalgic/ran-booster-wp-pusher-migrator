@@ -19,7 +19,11 @@ try {
 		throw new RuntimeException( 'Usage: php scripts/check-analysis-coverage.php --source|--development|finished-runtime.zip (exactly one archive required in archive mode)' );
 	}
 	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Standalone CLI guard reads local analysis metadata and emits terminal diagnostics, not HTML.
-	$ran_booster_wp_pusher_migrator_manifest = json_decode( file_get_contents( $ran_booster_wp_pusher_migrator_root . '/composer.json' ), true, 512, JSON_THROW_ON_ERROR );
+	$ran_booster_wp_pusher_migrator_manifest_json = file_get_contents( $ran_booster_wp_pusher_migrator_root . '/composer.json' );
+	if ( false === $ran_booster_wp_pusher_migrator_manifest_json ) {
+		throw new RuntimeException( 'Cannot read the analysis manifest.' );
+	}
+	$ran_booster_wp_pusher_migrator_manifest = json_decode( $ran_booster_wp_pusher_migrator_manifest_json, true, 512, JSON_THROW_ON_ERROR );
 	if ( ( $ran_booster_wp_pusher_migrator_manifest['scripts']['analyze'] ?? null ) !== array( '@analyze:production', '@analyze:development' )
 		|| ( $ran_booster_wp_pusher_migrator_manifest['scripts']['analyze:development'] ?? null ) !== array(
 			'@analysis:setup',
@@ -46,16 +50,31 @@ try {
 	foreach ( $ran_booster_wp_pusher_migrator_configurations as $ran_booster_wp_pusher_migrator_configuration ) {
 		// Resolve the PHAR-scoped Symfony namespace without baking its build hash into this script.
 		// @phpstan-ignore phpstanApi.classConstant (Locked CLI discovery contract deliberately inspects its exact internal entry point.)
-		$ran_booster_wp_pusher_migrator_parameters  = ( new ReflectionMethod( CommandHelper::class, 'begin' ) )->getParameters();
+		$ran_booster_wp_pusher_migrator_begin       = new ReflectionMethod( CommandHelper::class, 'begin' );
+		$ran_booster_wp_pusher_migrator_parameters  = $ran_booster_wp_pusher_migrator_begin->getParameters();
 		$ran_booster_wp_pusher_migrator_input_type  = $ran_booster_wp_pusher_migrator_parameters[0]->getType();
 		$ran_booster_wp_pusher_migrator_output_type = $ran_booster_wp_pusher_migrator_parameters[1]->getType();
 		if ( ! $ran_booster_wp_pusher_migrator_input_type instanceof ReflectionNamedType || ! $ran_booster_wp_pusher_migrator_output_type instanceof ReflectionNamedType ) {
 			throw new RuntimeException( 'Review changed PHPStan discovery parameter types.' );
 		}
-		$ran_booster_wp_pusher_migrator_input_class  = str_replace( 'InputInterface', 'ArrayInput', $ran_booster_wp_pusher_migrator_input_type->getName() );
-		$ran_booster_wp_pusher_migrator_output_class = str_replace( 'OutputInterface', 'ConsoleOutput', $ran_booster_wp_pusher_migrator_output_type->getName() );
-		// @phpstan-ignore phpstanApi.method (Use the locked actual CLI file selection, including imports and stubs.)
-		$ran_booster_wp_pusher_migrator_inception = CommandHelper::begin( new $ran_booster_wp_pusher_migrator_input_class( array() ), new $ran_booster_wp_pusher_migrator_output_class(), array(), '512M', null, array( $ran_booster_wp_pusher_migrator_root ), $ran_booster_wp_pusher_migrator_root . '/' . $ran_booster_wp_pusher_migrator_configuration, null, null, false, false, null, null, false );
+		$ran_booster_wp_pusher_migrator_input_class      = str_replace( 'InputInterface', 'ArrayInput', $ran_booster_wp_pusher_migrator_input_type->getName() );
+		$ran_booster_wp_pusher_migrator_output_class     = str_replace( 'OutputInterface', 'ConsoleOutput', $ran_booster_wp_pusher_migrator_output_type->getName() );
+		$ran_booster_wp_pusher_migrator_input_interface  = $ran_booster_wp_pusher_migrator_input_type->getName();
+		$ran_booster_wp_pusher_migrator_output_interface = $ran_booster_wp_pusher_migrator_output_type->getName();
+		$ran_booster_wp_pusher_migrator_input            = new $ran_booster_wp_pusher_migrator_input_class( array() );
+		$ran_booster_wp_pusher_migrator_output           = new $ran_booster_wp_pusher_migrator_output_class();
+		if ( ! $ran_booster_wp_pusher_migrator_input instanceof $ran_booster_wp_pusher_migrator_input_interface
+			|| ! $ran_booster_wp_pusher_migrator_output instanceof $ran_booster_wp_pusher_migrator_output_interface ) {
+			throw new RuntimeException( 'Review changed PHPStan discovery interface implementations.' );
+		}
+		// PHPStan cannot analyze its PHAR-prefixed Symfony names (class.prefixed),
+		// while unscoped names are absent. Reflect only this existing locked call;
+		// native parameter checks still apply to every argument and the result is checked.
+		$ran_booster_wp_pusher_migrator_inception = $ran_booster_wp_pusher_migrator_begin->invoke( null, $ran_booster_wp_pusher_migrator_input, $ran_booster_wp_pusher_migrator_output, array(), '512M', null, array( $ran_booster_wp_pusher_migrator_root ), $ran_booster_wp_pusher_migrator_root . '/' . $ran_booster_wp_pusher_migrator_configuration, null, null, false, false, null, null, false );
+		// @phpstan-ignore phpstanApi.class (Verify the locked CLI discovery result; requalify this internal adapter on PHPStan upgrades.)
+		if ( ! $ran_booster_wp_pusher_migrator_inception instanceof PHPStan\Command\InceptionResult ) {
+			throw new RuntimeException( 'Review changed PHPStan discovery result type.' );
+		}
 		// @phpstan-ignore phpstanApi.method (Obtain the locked CLI effective analyzed files rather than approximate discovery.)
 		$ran_booster_wp_pusher_migrator_selected += array_fill_keys( $ran_booster_wp_pusher_migrator_inception->getFiles()[0], true );
 		// @phpstan-ignore phpstanApi.constructor, phpstanApi.method (Inspect locked NEON structure to fail closed on changed role boundaries.)
@@ -77,7 +96,7 @@ try {
 			throw new RuntimeException( 'Review effective analysis suppressions and their exact occurrence counts.' );
 		}
 		if ( ! $ran_booster_wp_pusher_migrator_development ) {
-			if ( 6 !== ( $ran_booster_wp_pusher_migrator_config['parameters']['level'] ?? null )
+			if ( 8 !== ( $ran_booster_wp_pusher_migrator_config['parameters']['level'] ?? null )
 				|| array( 'analyseAndScan' => array_map( static fn( string $ran_booster_wp_pusher_migrator_path ): string => $ran_booster_wp_pusher_migrator_path . '/*', array_values( array_diff( $ran_booster_wp_pusher_migrator_exemptions, array( 'vendor' ) ) ) ) ) !== ( $ran_booster_wp_pusher_migrator_config['parameters']['excludePaths'] ?? null )
 				|| array( 'vendor/ran-source-core/source/RAN' ) !== ( $ran_booster_wp_pusher_migrator_config['parameters']['scanDirectories'] ?? null )
 				|| array( 'tests/phpstan-bootstrap.php' ) !== ( $ran_booster_wp_pusher_migrator_config['parameters']['bootstrapFiles'] ?? null ) ) {
@@ -88,7 +107,7 @@ try {
 			$ran_booster_wp_pusher_migrator_paths    = $ran_booster_wp_pusher_migrator_real ? array( 'tests/installed-candidate', 'tests/source-candidate-behaviour.php' ) : array( 'tests', 'scripts' );
 			$ran_booster_wp_pusher_migrator_excluded = $ran_booster_wp_pusher_migrator_real ? array( 'tests/fixtures/PortabilityApi.php', 'tests/fixtures/AdminInteractionApi.php', 'tests/bootstrap.php' ) : array( 'tests/installed-candidate/*', 'tests/source-candidate-behaviour.php' );
 			$ran_booster_wp_pusher_migrator_scanned  = $ran_booster_wp_pusher_migrator_real ? array( 'tests/fixtures/analysis', 'src', 'vendor/ran-source-core/source/RAN' ) : array( 'src' );
-			if ( 5 !== ( $ran_booster_wp_pusher_migrator_config['parameters']['level'] ?? null )
+			if ( 8 !== ( $ran_booster_wp_pusher_migrator_config['parameters']['level'] ?? null )
 				|| ( $ran_booster_wp_pusher_migrator_config['parameters']['paths'] ?? null ) !== $ran_booster_wp_pusher_migrator_paths
 				|| array( 'analyseAndScan' => $ran_booster_wp_pusher_migrator_excluded ) !== ( $ran_booster_wp_pusher_migrator_config['parameters']['excludePaths'] ?? null )
 				|| ( $ran_booster_wp_pusher_migrator_config['parameters']['scanDirectories'] ?? null ) !== $ran_booster_wp_pusher_migrator_scanned

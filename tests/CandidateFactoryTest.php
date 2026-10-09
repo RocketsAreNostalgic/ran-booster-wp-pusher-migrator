@@ -106,6 +106,7 @@ final class CandidateFactoryTest extends TestCase {
 		$this->factory()->candidate( $this->package( array( 'host' => 'gl' ) ) );
 	}
 
+	/** @param array<string, array<string, mixed>> $plugins Deliberately absent or incomplete inventory. */
 	#[DataProvider( 'unsupported_candidate_provider' )]
 	public function test_rejects_unsupported_or_missing_candidate(
 		WpPusherPackage $package,

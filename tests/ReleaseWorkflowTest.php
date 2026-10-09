@@ -194,6 +194,11 @@ final class ReleaseWorkflowTest extends TestCase {
 		$contributing = file_get_contents( $root . '/CONTRIBUTING.md' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local documentation contract.
 		$suitability  = file_get_contents( $root . '/docs/wordpress-org-suitability.md' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local documentation contract.
 
+		self::assertIsString( $readme );
+		self::assertIsString( $security );
+		self::assertIsString( $support );
+		self::assertIsString( $contributing );
+		self::assertIsString( $suitability );
 		self::assertIsString( $entrypoint );
 		self::assertStringContainsString( 'Author URI: https://github.com/RocketsAreNostalgic', $entrypoint );
 		self::assertStringContainsString( 'License URI: https://www.gnu.org/licenses/gpl-2.0.html', $entrypoint );
@@ -207,7 +212,6 @@ final class ReleaseWorkflowTest extends TestCase {
 		);
 
 		foreach ( array( $readme, $security, $support, $contributing, $suitability ) as $document ) {
-			self::assertIsString( $document );
 			self::assertStringNotContainsString( '.ran-booster-workbench', $document );
 			self::assertStringNotContainsString( '/private/tmp', $document );
 		}

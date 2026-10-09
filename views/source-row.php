@@ -3,7 +3,7 @@
  * One retained WP Pusher source row.
  *
  * @var array<string, mixed> $row
- * @var object               $admin_interaction Exact Core form-attribute presentation seam.
+ * @var \RAN\Admin\Interaction\AdminInteractionFacade $admin_interaction Exact Core form-attribute presentation seam.
  */
 
 

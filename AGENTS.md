@@ -43,7 +43,7 @@ absence of JavaScript or a compiled frontend pipeline.
 canonical PHP check/fix pair is `composer standards` / `composer standards:fix`,
 using the same `.phpcs.xml.dist` rules and scope. `composer check` includes the
 disposable actual-command standards regression and repeated-fix stability proof.
-`composer analyze` blocks at PHPStan level 6 with an independent repository-root
+`composer analyze` blocks at PHPStan level 8 with an independent repository-root
 production population gate before analysis. Existing `src`, `views` and root
 entrypoint inference is preserved; a new production path must be selected or
 fail the canonical command before analysis. Root tests/scripts, dependencies,
@@ -107,8 +107,8 @@ docs/migrator-owned-naming-inventory.md.
 
 ## Maintained development analysis
 
-`composer analyze` now retains the production level-6 profile and requires two
-level-5 development worlds. Recursive tests/scripts discovery is the default;
+`composer analyze` now retains the production level-8 profile and requires two
+level-8 development worlds. Recursive tests/scripts discovery is the default;
 installed-candidate proofs and the paired source-candidate behavior entrypoint
 use real pinned Core declarations instead of PHPUnit Core doubles. The existing
 coverage guard compares their effective union with independently discovered

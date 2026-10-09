@@ -37,6 +37,10 @@ final class WpPusherSourceTest extends TestCase {
 		self::assertStringNotContainsString( 'SECRET-CANARY', implode( ' ', $database->queries ) );
 	}
 
+	/**
+	 * @param array<int, string> $active
+	 * @param array<string, int> $network_active
+	 */
 	#[DataProvider( 'unsupported_environment_provider' )]
 	public function test_rejects_unsupported_environment(
 		string $version,
@@ -136,8 +140,157 @@ final class WpPusherSourceTest extends TestCase {
 		self::assertCount( 1, $database->rows );
 	}
 
+	public function test_magic_database_keeps_property_reads_and_method_order(): void {
+		$inner  = new FakeDatabase();
+		$proxy  = new class( $inner ) {
+			/** @var list<string> */
+			public array $calls = array();
+
+			public function __construct( private FakeDatabase $inner ) {
+			}
+
+			public function __get( string $name ): mixed {
+				return $this->inner->$name;
+			}
+
+			/** @param array<int|string, mixed> $arguments */
+			public function __call( string $name, array $arguments ): mixed {
+				$this->calls[] = $name;
+				return $this->inner->$name( ...$arguments );
+			}
+		};
+		$source = $this->source( $proxy );
+		self::assertCount( 1, $source->packages() );
+		self::assertFalse( $source->option_presence()['gh_token'] );
+		$package      = WpPusherPackage::from_row( $inner->rows[0] );
+		$proxy->calls = array();
+		self::assertTrue( $source->delete_exact( $package ) );
+		self::assertSame( array( 'prepare', 'query' ), $proxy->calls );
+		self::assertStringContainsString( '`branch` = %s', implode( ' ', $inner->queries ) );
+		self::assertSame( array(), $inner->rows );
+	}
+
+	public function test_unavailable_query_does_not_prepare_cleanup(): void {
+		foreach ( array(
+			new class() {
+				public string $prefix = 'wp_';
+				public int $prepared  = 0;
+
+				public function prepare( string $query ): string {
+					++$this->prepared;
+					return $query;
+				}
+			},
+			new class() {
+				public string $prefix = 'wp_';
+				public int $prepared  = 0;
+
+				public function prepare( string $query ): string {
+					++$this->prepared;
+					return $query;
+				}
+
+				public function call_private_query(): int {
+					return $this->query( 'private query proof' );
+				}
+
+				private function query( string $query ): int {
+					unset( $query );
+					throw new RuntimeException( 'A private query method cannot be called.' );
+				}
+			},
+		) as $database ) {
+			$package = WpPusherPackage::from_row( ( new FakeDatabase() )->rows[0] );
+			try {
+				$this->source( $database )->delete_exact( $package );
+				self::fail( 'Unavailable cleanup method was accepted.' );
+			} catch ( RuntimeException $failure ) {
+				self::assertSame( 'The WP Pusher cleanup database is unavailable.', $failure->getMessage() );
+			}
+			self::assertSame( 0, $database->prepared );
+			if ( method_exists( $database, 'call_private_query' ) ) {
+				try {
+					$database->call_private_query();
+				} catch ( RuntimeException $failure ) {
+					self::assertSame( 'A private query method cannot be called.', $failure->getMessage() );
+				}
+			}
+		}
+	}
+
+	public function test_magic_dispatch_alone_cannot_supply_a_missing_options_property(): void {
+		$database = new class() {
+			public string $prefix = 'wp_';
+			public int $calls     = 0;
+
+			/** @param array<int|string, mixed> $arguments */
+			public function __call( string $name, array $arguments ): mixed {
+				unset( $name, $arguments );
+				++$this->calls;
+				return array();
+			}
+		};
+		try {
+			$this->source( $database )->option_presence();
+			self::fail( 'Missing options property was accepted.' );
+		} catch ( RuntimeException $failure ) {
+			self::assertSame( 'The WordPress options table is unavailable.', $failure->getMessage() );
+		}
+		self::assertSame( 0, $database->calls );
+	}
+
+	public function test_private_or_uninitialized_options_are_not_readable(): void {
+		foreach ( array(
+			new class() {
+				private string $options = 'private_options';
+
+				public function fixture_options(): string {
+					return $this->options;
+				}
+			},
+			new class() {
+				public string $options;
+			},
+		) as $database ) {
+			try {
+				$this->source( $database )->option_presence();
+				self::fail( 'Inaccessible options property was accepted.' );
+			} catch ( RuntimeException $failure ) {
+				self::assertSame( 'The WordPress options table is unavailable.', $failure->getMessage() );
+			}
+			if ( method_exists( $database, 'fixture_options' ) ) {
+				self::assertSame( 'private_options', $database->fixture_options() );
+			}
+		}
+	}
+
+	public function test_public_null_options_retains_existing_empty_table_coercion(): void {
+		$database = new class() {
+			public mixed $options = null;
+			public string $sql    = '';
+
+			public function prepare( string $query, mixed ...$values ): string {
+				unset( $values );
+				$this->sql = $query;
+				return $query;
+			}
+
+			/** @return list<string> */
+			public function get_col( string $query ): array {
+				unset( $query );
+				return array();
+			}
+		};
+		self::assertFalse( $this->source( $database )->option_presence()['gh_token'] );
+		self::assertStringContainsString( 'FROM ``', $database->sql );
+	}
+
+	/**
+	 * @param array<int, string> $active
+	 * @param array<string, int> $network_active
+	 */
 	private function source(
-		FakeDatabase $database,
+		object $database,
 		string $version = '3.0.13',
 		array $active = array(),
 		array $network_active = array(),

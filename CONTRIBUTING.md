@@ -38,7 +38,7 @@ copy: clean source, two byte-stable fixer passes, and a trailing-whitespace
 negative fixture that must fail checking and be restored by the fixer. It runs
 in `composer check` and requires Git and the installed development dependencies.
 
-`composer analyze` runs blocking PHPStan level 6 with PHP 8.2 and WordPress 7.0
+`composer analyze` runs blocking PHPStan level 8 with PHP 8.2 and WordPress 7.0
 signatures. An independent repository-root population gate runs before PHPStan:
 new production files, split/moved classes and new directories must be directly
 selected or the canonical command fails. Existing recursive `src`, `views` and
@@ -105,9 +105,9 @@ scan-only/stub/extension behavior and finished-archive byte binding. The analysi
 contract independently proves real diagnostics in new and moved production paths.
 The coverage guard also protects the existing pinned Core scan/bootstrap tuple.
 
-Level 7 remains a later boundary-typing slice: its measured findings concern
-candidate provider narrowing, the injected database seam and template facade
-types. Adoption at level 6 does not waive that remaining work.
+All three maintained analysis profiles enforce Level 8. The production and
+development symbol worlds remain separate, with the same automatic coverage
+and precise reviewed exceptions.
 
 Use a Conventional Commit title. Do not edit the release version,
 `.release-please-manifest.json`, or generated changelog entry in an ordinary
@@ -143,8 +143,8 @@ locked package changes. The shared profile deliberately disables
 is not rendering output. Three redundant fixture directives are removed or
 narrowed without changing fixture behavior or output-escaping checks.
 
-Whole-tree checking, PHPStan level 6, the source Core tuple and immutable
-beta.31 certification are preserved. This package adoption does not establish
+That package adoption preserved whole-tree checking, the then-current PHPStan
+level 6, the source Core tuple and immutable beta.31 certification. It does not establish
 full organisation #128 acceptance: retained
 helper exceptions, SQL receiver-recognition limitation and suppression-guard
 coverage still require their bounded dispositions. Release #43 continues to
@@ -209,8 +209,8 @@ do not replace that run, the native installed matrix or release #43 manual accep
 
 ## Maintained PHP analysis (#65 / #128)
 
-`composer analyze` runs `analyze:production` (unchanged level 6 and pinned-Core
-inference) and `analyze:development` (level 5). Recursive `tests` and `scripts`
+`composer analyze` runs `analyze:production` (Level 8 and pinned-Core
+inference) and `analyze:development` (Level 8 in each isolated world). Recursive `tests` and `scripts`
 are included by default. The installed-candidate directory and the existing
 paired source-candidate entrypoint are analyzed in their separate real-Core
 world. Other development files use the PHPUnit fixture world. The union covers

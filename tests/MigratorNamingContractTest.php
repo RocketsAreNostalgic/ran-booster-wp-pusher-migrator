@@ -40,7 +40,9 @@ final class MigratorNamingContractTest extends TestCase {
 				continue;
 			}
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Inspect comments in owned maintained source without executing it.
-			$tokens = token_get_all( file_get_contents( $file->getPathname() ) );
+			$source = file_get_contents( $file->getPathname() );
+			self::assertIsString( $source );
+			$tokens = token_get_all( $source );
 			foreach ( $tokens as $token ) {
 				if ( is_array( $token ) && in_array( $token[0], array( T_COMMENT, T_DOC_COMMENT ), true ) ) {
 					self::assertFalse( self::is_blanket_suppression( $token[1] ), $file->getPathname() . ':' . $token[2] . ' blanket PHPCS suppression' );
@@ -52,6 +54,7 @@ final class MigratorNamingContractTest extends TestCase {
 	private static function is_blanket_suppression( string $comment ): bool {
 		// PHPCS treats modern directives case-insensitively, including doc-comment lines.
 		$normalized = preg_replace( '/[\s*\/]+/', ' ', $comment );
+		self::assertNotNull( $normalized );
 		if ( 1 === preg_match( '/@codingStandards(?:ChangeSetting|Ignore)|phpcs:(?:set|disable|enable|ignorefile)/i', $normalized ) ) {
 			return true;
 		}
@@ -69,19 +72,35 @@ final class MigratorNamingContractTest extends TestCase {
 		$root = dirname( __DIR__ );
 		$xml  = simplexml_load_file( $root . '/.phpcs.xml.dist' );
 		self::assertNotFalse( $xml );
-		self::assertSame( array( '.' ), array_map( static fn( \SimpleXMLElement $node ): string => (string) $node, $xml->xpath( './file' ) ) );
-		self::assertSame( array( '/vendor/', '/node_modules/', '/.git/', '/.phpunit.cache/', '/.phpcs-cache' ), array_map( static fn( \SimpleXMLElement $node ): string => (string) $node, $xml->xpath( './exclude-pattern' ) ) );
-		self::assertSame( array( 'RANWordPressPlugin', 'RANOwnedMethods', 'WordPress.NamingConventions.PrefixAllGlobals' ), array_map( static fn( \SimpleXMLElement $node ): string => (string) $node['ref'], $xml->xpath( './rule' ) ) );
+		$arguments = $xml->xpath( './arg' );
+		self::assertIsArray( $arguments );
+		$configs = $xml->xpath( './config' );
+		self::assertIsArray( $configs );
+		$properties = $xml->xpath( '//property' );
+		self::assertIsArray( $properties );
+		$elements = $xml->xpath( './rule/properties/property/element' );
+		self::assertIsArray( $elements );
+		$rules = $xml->xpath( './rule' );
+		self::assertIsArray( $rules );
+		$exclusions = $xml->xpath( './exclude-pattern' );
+		self::assertIsArray( $exclusions );
+		$files = $xml->xpath( './file' );
+		self::assertIsArray( $files );
+		self::assertSame( array( '.' ), array_map( static fn( \SimpleXMLElement $node ): string => (string) $node, $files ) );
+		self::assertSame( array( '/vendor/', '/node_modules/', '/.git/', '/.phpunit.cache/', '/.phpcs-cache' ), array_map( static fn( \SimpleXMLElement $node ): string => (string) $node, $exclusions ) );
+		self::assertSame( array( 'RANWordPressPlugin', 'RANOwnedMethods', 'WordPress.NamingConventions.PrefixAllGlobals' ), array_map( static fn( \SimpleXMLElement $node ): string => (string) $node['ref'], $rules ) );
 		self::assertSame( array(), $xml->xpath( '//exclude|//severity|//type|//rule//exclude-pattern|//rule//include-pattern' ), 'No rule disabling, recategorization, or path-specific bypasses.' );
 		self::assertSame( array(), $xml->xpath( '//@phpcs-only|//@phpcbf-only' ), 'No command-conditional rules, properties, or array elements.' );
-		self::assertSame( array( 'ran_booster_wp_pusher_migrator', 'RAN\\BoosterWpPusherMigrator' ), array_map( static fn( \SimpleXMLElement $node ): string => (string) $node['value'], $xml->xpath( './rule/properties/property/element' ) ) );
-		self::assertCount( 1, $xml->xpath( '//property' ) );
+		self::assertSame( array( 'ran_booster_wp_pusher_migrator', 'RAN\\BoosterWpPusherMigrator' ), array_map( static fn( \SimpleXMLElement $node ): string => (string) $node['value'], $elements ) );
+		self::assertCount( 1, $properties );
 		self::assertSame( 'prefixes', (string) $xml->rule[2]->properties->property['name'] );
 		self::assertSame( 'array', (string) $xml->rule[2]->properties->property['type'] );
-		self::assertSame( array( 'minimum_wp_version=7.0', 'testVersion=8.2-' ), array_map( static fn( \SimpleXMLElement $node ): string => (string) $node['name'] . '=' . (string) $node['value'], $xml->xpath( './config' ) ) );
-		self::assertSame( array( 'basepath=.', 'colors=', 'extensions=php', 'parallel=4', '=sp' ), array_map( static fn( \SimpleXMLElement $node ): string => (string) $node['name'] . '=' . (string) $node['value'], $xml->xpath( './arg' ) ) );
+		self::assertSame( array( 'minimum_wp_version=7.0', 'testVersion=8.2-' ), array_map( static fn( \SimpleXMLElement $node ): string => (string) $node['name'] . '=' . (string) $node['value'], $configs ) );
+		self::assertSame( array( 'basepath=.', 'colors=', 'extensions=php', 'parallel=4', '=sp' ), array_map( static fn( \SimpleXMLElement $node ): string => (string) $node['name'] . '=' . (string) $node['value'], $arguments ) );
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Inspect the canonical local command, without executing configuration.
-		$manifest = json_decode( file_get_contents( $root . '/composer.json' ), true, 512, JSON_THROW_ON_ERROR );
+		$manifest_json = file_get_contents( $root . '/composer.json' );
+		self::assertIsString( $manifest_json );
+		$manifest = json_decode( $manifest_json, true, 512, JSON_THROW_ON_ERROR );
 		self::assertSame( 'phpcs --standard=.phpcs.xml.dist --report=summary', $manifest['scripts']['standards'] );
 		self::assertSame( 'phpcbf --standard=.phpcs.xml.dist', $manifest['scripts']['standards:fix'] );
 	}

@@ -21,10 +21,27 @@ analyze > "$fixture/result.json"
 if php -d register_argc_argv=0 "$fixture/scripts/check-analysis-coverage.php" --source > "$fixture/arguments.log" 2>&1; then exit 1; fi
 grep -q 'Analysis coverage requires CLI argument registration.' "$fixture/arguments.log"
 if grep -q 'PHP Warning' "$fixture/arguments.log"; then exit 1; fi
-sed -i 's/level: 6/level: 5/' "$fixture/phpstan.neon.dist"
+sed -i 's/level: 8/level: 7/' "$fixture/phpstan.neon.dist"
 if analyze > "$fixture/level.log" 2>&1; then exit 1; fi
 grep -q 'Review maintained analysis scope' "$fixture/level.log"
 cp phpstan.neon.dist "$fixture/phpstan.neon.dist"
+
+# The Level 8 gate must diagnose nullable arguments, beyond Level 7 cleanliness.
+printf '<?php\nfunction ran_booster_wp_pusher_migrator_nullable_product(?string $value): string { return strtolower($value); }\n' > "$fixture/src/nullable-product.php"
+if analyze > "$fixture/nullable-product.json" 2>&1; then exit 1; fi
+grep -q 'argument.type' "$fixture/nullable-product.json"
+(cd "$fixture" && php vendor/bin/phpstan analyze -c phpstan.neon.dist --level=7 --no-progress --error-format=json) > "$fixture/nullable-product-seven.json"
+rm "$fixture/src/nullable-product.php"
+
+# Reflection retains native parameter enforcement for the existing locked CLI call.
+cp "$fixture/scripts/check-analysis-coverage.php" "$fixture/original-coverage.php"
+sed -i "s/\$ran_booster_wp_pusher_migrator_output, array(), '512M'/\$ran_booster_wp_pusher_migrator_output, 'invalid paths', '512M'/" "$fixture/scripts/check-analysis-coverage.php"
+if php "$fixture/scripts/check-analysis-coverage.php" --source > "$fixture/wrong-discovery-argument.log" 2>&1; then exit 1; fi
+grep -q 'CommandHelper::begin' "$fixture/wrong-discovery-argument.log"
+grep -q 'Argument #3' "$fixture/wrong-discovery-argument.log"
+grep -q 'must be of type array' "$fixture/wrong-discovery-argument.log"
+cp "$fixture/original-coverage.php" "$fixture/scripts/check-analysis-coverage.php"
+rm "$fixture/original-coverage.php"
 
 # Unknown template suffixes are executable candidates, not a named inclusion list.
 for path in src/coverage-template.phtml src/coverage-command views/coverage-template.tpl src/coverage-template.custom; do
@@ -243,8 +260,18 @@ for path in tests/future-contract.php scripts/future-helper.php tests/installed-
     grep -q 'function.notFound' "$fixture/development-negative.log"
     rm "$development_fixture/$path"
 done
+# Each isolated world must reject its own new nullable source only at Level 8.
+for pair in 'phpstan-development.neon.dist:tests/future-nullable.php' 'phpstan-real-proofs.neon.dist:tests/installed-candidate/future-nullable.php'; do
+    configuration=${pair%%:*}
+    path=${pair#*:}
+    printf '<?php\nfunction ran_booster_wp_pusher_migrator_nullable_development(?string $value): string { return strtolower($value); }\n' > "$development_fixture/$path"
+    if development > "$fixture/development-nullable.json" 2>&1; then exit 1; fi
+    grep -q 'argument.type' "$fixture/development-nullable.json"
+    (cd "$development_fixture" && php vendor/bin/phpstan analyze -c "$configuration" --level=7 --no-progress --error-format=json) > "$fixture/development-nullable-seven.json"
+    rm "$development_fixture/$path"
+done
 for configuration in phpstan-development.neon.dist phpstan-real-proofs.neon.dist; do
-    sed -i 's/level: 5/level: 4/' "$development_fixture/$configuration"
+    sed -i 's/level: 8/level: 7/' "$development_fixture/$configuration"
     if development > "$fixture/development-negative.log" 2>&1; then exit 1; fi
     grep -q 'Review development analysis level' "$fixture/development-negative.log"
     cp "$project_root/$configuration" "$development_fixture/$configuration"
@@ -258,6 +285,11 @@ cp "$project_root/phpstan-development.neon.dist" "$development_fixture/phpstan-d
 printf '<?php\nnew PHPStan\\DependencyInjection\\NeonAdapter([]);\n' > "$development_fixture/scripts/future-helper.php"
 if development > "$fixture/development-negative.log" 2>&1; then exit 1; fi
 grep -q 'phpstanApi.constructor' "$fixture/development-negative.log"
+rm "$development_fixture/scripts/future-helper.php"
+# The new result-type API allowance cannot cover a neighboring class check.
+printf '<?php\nfunction ran_booster_wp_pusher_migrator_future_internal(object $value): bool { return $value instanceof PHPStan\\Command\\InceptionResult; }\n' > "$development_fixture/scripts/future-helper.php"
+if development > "$fixture/development-result-api.log" 2>&1; then exit 1; fi
+grep -q 'phpstanApi.class' "$fixture/development-result-api.log"
 rm "$development_fixture/scripts/future-helper.php"
 # The new exact effective-container API annotation leaves the next call diagnosed.
 sed -i '/_inception->getContainer();/a\\		$ran_booster_wp_pusher_migrator_inception->getContainer();' "$development_fixture/scripts/check-analysis-coverage.php"
@@ -378,7 +410,7 @@ cp "$project_root/tests/installed-candidate/migrator-installed-probe.php" "$deve
 printf 'Historical beta.7 cleanup receiver and exact exception boundary passed.\n'
 
 # The real CLI profile must see real Core's method, never the PHPUnit stand-in.
-printf '<?php\nfunction ran_booster_wp_pusher_migrator_real_world(\\RAN\\AddOn\\Portability\\PortabilityCandidate $candidate): array { return $candidate->to_array(); }\n' > "$development_fixture/tests/installed-candidate/world-proof.php"
+printf '<?php\n/** @return array<string, string|null> */\nfunction ran_booster_wp_pusher_migrator_real_world(\\RAN\\AddOn\\Portability\\PortabilityCandidate $candidate): array { return $candidate->to_array(); }\n' > "$development_fixture/tests/installed-candidate/world-proof.php"
 development > "$fixture/development-world.log"
 sed -i '/- tests\/fixtures\/PortabilityApi.php$/d' "$development_fixture/phpstan-real-proofs.neon.dist"
 printf 'parameters:\n\tpaths:\n\t\t- tests/installed-candidate\n\t\t- tests/source-candidate-behaviour.php\n\t\t- tests/fixtures/PortabilityApi.php\n' > "$development_fixture/world-import.neon"

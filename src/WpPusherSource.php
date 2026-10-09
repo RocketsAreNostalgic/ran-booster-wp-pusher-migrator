@@ -86,6 +86,9 @@ final class WpPusherSource {
 		$this->assert_package_table_schema( $table );
 
 		$columns = implode( '`, `', array_keys( self::COLUMNS ) );
+		if ( ! is_callable( array( $this->database, 'get_results' ) ) ) {
+			throw new RuntimeException( 'The WP Pusher database reader is unavailable.' );
+		}
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Exact validated table and constant column allowlist.
 		$rows = $this->database->get_results( "SELECT `{$columns}` FROM `{$table}` ORDER BY `id` ASC LIMIT 129", ARRAY_A );
 		if ( ! is_array( $rows ) || count( $rows ) > 128 ) {
@@ -110,10 +113,24 @@ final class WpPusherSource {
 	/** @return array<string, bool> */
 	public function option_presence(): array {
 		$this->assert_supported();
-		$options_table = (string) $this->database->options;
+		$getter_accessible = is_callable( array( $this->database, '__get' ) );
+		$getter_declared   = method_exists( $this->database, '__get' );
+		if ( ! array_key_exists( 'options', get_object_vars( $this->database ) )
+			&& ( ! $getter_declared || ! $getter_accessible ) ) {
+			throw new RuntimeException( 'The WordPress options table is unavailable.' );
+		}
+		/** @var object{options: mixed} $database Public or magic property reads retain their actual values. */
+		$database      = $this->database;
+		$options_table = (string) $database->options;
 		$placeholders  = implode( ', ', array_fill( 0, count( self::OPTIONS ), '%s' ) );
+		if ( ! is_callable( array( $this->database, 'prepare' ) ) ) {
+			throw new RuntimeException( 'The WP Pusher option reader is unavailable.' );
+		}
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Exact wpdb options table and generated placeholders.
-		$sql   = $this->database->prepare( "SELECT `option_name` FROM `{$options_table}` WHERE `option_name` IN ({$placeholders})", ...self::OPTIONS );
+		$sql = $this->database->prepare( "SELECT `option_name` FROM `{$options_table}` WHERE `option_name` IN ({$placeholders})", ...self::OPTIONS );
+		if ( ! is_callable( array( $this->database, 'get_col' ) ) ) {
+			throw new RuntimeException( 'The WP Pusher option reader is unavailable.' );
+		}
 		$names = $this->database->get_col( $sql );
 		$found = is_array( $names ) ? array_fill_keys( array_intersect( self::OPTIONS, $names ), true ) : array();
 
@@ -133,6 +150,9 @@ final class WpPusherSource {
 	}
 
 	private function assert_package_table_schema( string $table ): void {
+		if ( ! is_callable( array( $this->database, 'get_results' ) ) ) {
+			throw new RuntimeException( 'The WP Pusher schema reader is unavailable.' );
+		}
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Exact validated table derived from wpdb prefix.
 		$schema = $this->database->get_results( "SHOW COLUMNS FROM `{$table}`", ARRAY_A );
 		$this->assert_schema( is_array( $schema ) ? $schema : array() );
@@ -159,6 +179,10 @@ final class WpPusherSource {
 			$values[] = $expected->subdirectory;
 		}
 
+		// PHP resolves the outer query method before evaluating its prepare argument.
+		if ( ! is_callable( array( $this->database, 'query' ) ) || ! is_callable( array( $this->database, 'prepare' ) ) ) {
+			throw new RuntimeException( 'The WP Pusher cleanup database is unavailable.' );
+		}
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Prepared immediately from constant columns and exact values.
 		return 1 === $this->database->query( $this->database->prepare( $query, ...$values ) );
 	}
@@ -178,7 +202,7 @@ final class WpPusherSource {
 		}
 	}
 
-	/** @param list<array<string, mixed>> $schema */
+	/** @param array<mixed> $schema Database rows remain untrusted until validation. */
 	private function assert_schema( array $schema ): void {
 		if ( count( self::COLUMNS ) !== count( $schema ) ) {
 			throw new RuntimeException( 'The retained WP Pusher package schema is unsupported.' );
@@ -200,7 +224,15 @@ final class WpPusherSource {
 	}
 
 	private function table(): string {
-		$prefix = (string) $this->database->prefix;
+		$getter_accessible = is_callable( array( $this->database, '__get' ) );
+		$getter_declared   = method_exists( $this->database, '__get' );
+		if ( ! array_key_exists( 'prefix', get_object_vars( $this->database ) )
+			&& ( ! $getter_declared || ! $getter_accessible ) ) {
+			throw new RuntimeException( 'The WordPress database prefix is invalid.' );
+		}
+		/** @var object{prefix: mixed} $database Public or magic property reads retain their actual values. */
+		$database = $this->database;
+		$prefix   = (string) $database->prefix;
 		if ( '' === $prefix || 1 !== preg_match( '/\A[A-Za-z0-9_]+\z/D', $prefix ) ) {
 			throw new RuntimeException( 'The WordPress database prefix is invalid.' );
 		}
@@ -211,8 +243,14 @@ final class WpPusherSource {
 	private function package_table_exists(): bool {
 		$table = $this->table();
 		$like  = addcslashes( $table, '\\_%' );
-		$sql   = $this->database->prepare( 'SHOW TABLES LIKE %s', $like );
+		if ( ! is_callable( array( $this->database, 'prepare' ) ) ) {
+			throw new RuntimeException( 'The WP Pusher package table reader is unavailable.' );
+		}
+		$sql = $this->database->prepare( 'SHOW TABLES LIKE %s', $like );
 
+		if ( ! is_callable( array( $this->database, 'get_var' ) ) ) {
+			throw new RuntimeException( 'The WP Pusher package table reader is unavailable.' );
+		}
 		return $table === $this->database->get_var( $sql );
 	}
 
