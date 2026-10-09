@@ -143,8 +143,8 @@ locked package changes. The shared profile deliberately disables
 is not rendering output. Three redundant fixture directives are removed or
 narrowed without changing fixture behavior or output-escaping checks.
 
-Whole-tree checking, PHPStan level 8, the source Core tuple and immutable
-beta.31 certification are preserved. This package adoption does not establish
+That package adoption preserved whole-tree checking, the then-current PHPStan
+level 6, the source Core tuple and immutable beta.31 certification. It does not establish
 full organisation #128 acceptance: retained
 helper exceptions, SQL receiver-recognition limitation and suppression-guard
 coverage still require their bounded dispositions. Release #43 continues to
