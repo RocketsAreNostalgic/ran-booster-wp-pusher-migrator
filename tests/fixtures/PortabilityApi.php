@@ -23,12 +23,14 @@ final readonly class PortabilityCandidate {
 // phpcs:ignore Generic.Files.OneObjectStructurePerFile.MultipleFound -- Colocated test double belongs to this fixture load unit; unrelated declarations remain checked.
 final readonly class PortabilityReviewResult {
 
+	/** @param array<string,mixed>|null $provider_expectation Review context. */
 	public function __construct(
 		public PortabilityCandidate $candidate,
 		public string $action,
 		public string $reason,
 		public string $message,
-		public string $fingerprint
+		public string $fingerprint,
+		public ?array $provider_expectation = null
 	) {
 	}
 }
@@ -48,23 +50,27 @@ final readonly class PortabilityApplyResult {
 // phpcs:ignore Generic.Files.OneObjectStructurePerFile.MultipleFound -- Colocated test double belongs to this fixture load unit; unrelated declarations remain checked.
 abstract class PortabilityFacade {
 
-	public const API_VERSION = 3;
+	public const API_VERSION = 4;
 
+	/** @param array<string,mixed>|null $provider_expectation Review context. */
 	public function nonce_action(
 		string $operation,
 		PortabilityCandidate $candidate,
-		?string $expected_fingerprint = null
+		?string $expected_fingerprint,
+		?array $provider_expectation
 	): string {
-		unset( $candidate );
+		unset( $candidate, $provider_expectation );
 
 		return $operation . ':' . ( $expected_fingerprint ?? 'review' );
 	}
 
 	abstract public function review( PortabilityCandidate $candidate, string $nonce ): PortabilityReviewResult;
 
+	/** @param array<string,mixed>|null $provider_expectation Review context. */
 	abstract public function apply(
 		PortabilityCandidate $candidate,
 		string $expected_fingerprint,
-		string $nonce
+		string $nonce,
+		?array $provider_expectation
 	): PortabilityApplyResult;
 }

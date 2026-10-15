@@ -18,4 +18,4 @@ foreach ([
 }
 file_put_contents($argv[1], $config);
 ' "$configuration"
-php vendor/bin/phpstan analyze --configuration="$configuration" --memory-limit=512M --no-progress
+php vendor/bin/phpstan analyze --configuration="$configuration" --memory-limit=1G --no-progress

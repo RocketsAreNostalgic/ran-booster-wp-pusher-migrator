@@ -35,7 +35,7 @@ rm "$fixture/src/nullable-product.php"
 
 # Reflection retains native parameter enforcement for the existing locked CLI call.
 cp "$fixture/scripts/check-analysis-coverage.php" "$fixture/original-coverage.php"
-sed -i "s/\$ran_booster_wp_pusher_migrator_output, array(), '512M'/\$ran_booster_wp_pusher_migrator_output, 'invalid paths', '512M'/" "$fixture/scripts/check-analysis-coverage.php"
+sed -i "s/\$ran_booster_wp_pusher_migrator_output, array(), '1G'/\$ran_booster_wp_pusher_migrator_output, 'invalid paths', '1G'/" "$fixture/scripts/check-analysis-coverage.php"
 if php "$fixture/scripts/check-analysis-coverage.php" --source > "$fixture/wrong-discovery-argument.log" 2>&1; then exit 1; fi
 grep -q 'CommandHelper::begin' "$fixture/wrong-discovery-argument.log"
 grep -q 'Argument #3' "$fixture/wrong-discovery-argument.log"

@@ -54,6 +54,7 @@ $ran_booster_wp_pusher_migrator_migration_complete = true === $row['migration_co
 						<input type="hidden" name="ran_booster_wp_pusher_migrator_action" value="apply">
 						<input type="hidden" name="source_id" value="<?php echo esc_attr( (string) $row['source_id'] ); ?>">
 						<input type="hidden" name="source_fingerprint" value="<?php echo esc_attr( $row['source_fingerprint'] ); ?>">
+						<input type="hidden" name="provider_expectation" value="<?php echo esc_attr( $row['provider_expectation'] ); ?>">
 						<input type="hidden" name="review_fingerprint" value="<?php echo esc_attr( $row['review_fingerprint'] ); ?>">
 						<input type="hidden" name="credential_id" value="<?php echo esc_attr( $row['credential_id'] ); ?>">
 						<?php wp_nonce_field( $row['apply_form_action'] ); ?>

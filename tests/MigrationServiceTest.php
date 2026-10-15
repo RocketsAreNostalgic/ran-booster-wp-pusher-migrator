@@ -58,7 +58,8 @@ final class MigrationServiceTest extends TestCase {
 			$source->fingerprint(),
 			null,
 			$review,
-			'valid-apply-nonce'
+			'valid-apply-nonce',
+			null
 		);
 
 		self::assertTrue( $result->target_verified );
@@ -89,7 +90,8 @@ final class MigrationServiceTest extends TestCase {
 			$source->fingerprint(),
 			'bitbucket_profile',
 			'v1:' . str_repeat( 'b', 64 ),
-			'apply-nonce'
+			'apply-nonce',
+			null
 		);
 
 		self::assertSame( 'bb', $facade->candidate->provider_code );
@@ -122,7 +124,7 @@ final class MigrationServiceTest extends TestCase {
 		$service               = $this->service( $facade, $database );
 		$source                = $service->packages()[0];
 		$review                = $service->review( $source->id, $source->fingerprint(), null, 'nonce' );
-		$result                = $service->apply( $source->id, $source->fingerprint(), null, $review->fingerprint, 'nonce' );
+		$result                = $service->apply( $source->id, $source->fingerprint(), null, $review->fingerprint, 'nonce', null );
 
 		self::assertSame( 'managed', $review->action );
 		self::assertSame( 'unchanged', $result->status );
@@ -134,7 +136,7 @@ final class MigrationServiceTest extends TestCase {
 		$facade->apply_status    = 'blocked';
 		$service                 = $this->service( $facade, $database );
 		$source                  = $service->packages()[0];
-		$result                  = $service->apply( $source->id, $source->fingerprint(), null, $review->fingerprint, 'nonce' );
+		$result                  = $service->apply( $source->id, $source->fingerprint(), null, $review->fingerprint, 'nonce', null );
 		self::assertFalse( $service->cleanup( $source->id, $source->fingerprint(), $result ) );
 		self::assertCount( 1, $database->rows );
 	}
@@ -180,10 +182,12 @@ final class FakePortabilityFacade extends PortabilityFacade {
 		);
 	}
 
+	/** @param array<string,mixed>|null $provider_expectation Review context. */
 	public function apply(
 		PortabilityCandidate $candidate,
 		string $expected_fingerprint,
-		string $nonce
+		string $nonce,
+		?array $provider_expectation
 	): PortabilityApplyResult {
 		$this->candidate            = $candidate;
 		$this->expected_fingerprint = $expected_fingerprint;

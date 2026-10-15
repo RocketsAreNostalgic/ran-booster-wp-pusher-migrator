@@ -208,8 +208,9 @@ final readonly class MigrationRequestController {
 			}
 
 			$review_fingerprint            = $this->request_value( $request, 'review_fingerprint' );
-			$nonce                         = wp_create_nonce( $this->migration->nonce_action( 'apply', $source, $credential_id, $review_fingerprint ) );
-			$result                        = $this->migration->apply( $source->id, $source_fingerprint, $credential_id, $review_fingerprint, $nonce );
+			$provider_expectation          = $this->provider_expectation( $request );
+			$nonce                         = wp_create_nonce( $this->migration->nonce_action( 'apply', $source, $credential_id, $review_fingerprint, $provider_expectation ) );
+			$result                        = $this->migration->apply( $source->id, $source_fingerprint, $credential_id, $review_fingerprint, $nonce, $provider_expectation );
 			$removed                       = $result->target_verified && $this->migration->cleanup( $source->id, $source_fingerprint, $result );
 			$cleanup_pending               = $result->target_verified && ! $removed;
 			$outcome['apply']              = array(
@@ -226,6 +227,24 @@ final readonly class MigrationRequestController {
 			$outcome['kind']    = '' === $outcome['message'] ? 'unexpected_failure' : 'validation_failure';
 		}
 		return $outcome;
+	}
+
+	/**
+	 * Decode only the bounded transport; Core validates the selection contract.
+	 *
+	 * @param array<string,mixed> $request Submitted fields.
+	 * @return array<string,mixed>|null
+	 */
+	private function provider_expectation( array $request ): ?array {
+		$value = $request['provider_expectation'] ?? null;
+		if ( ! is_string( $value ) || strlen( $value ) > 1024 ) {
+			throw new RuntimeException( 'Refresh the WP Pusher migration review.' );
+		}
+		$decoded = json_decode( $value, false, 4 );
+		if ( JSON_ERROR_NONE !== json_last_error() || ( null !== $decoded && ! $decoded instanceof \stdClass ) ) {
+			throw new RuntimeException( 'Refresh the WP Pusher migration review.' );
+		}
+		return null === $decoded ? null : get_object_vars( $decoded );
 	}
 
 	/** @param list<WpPusherPackage> $packages */
