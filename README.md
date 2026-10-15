@@ -13,7 +13,7 @@ WP Pusher records have been adopted or migrated manually.
 - Finds retained GitHub and Bitbucket Cloud package rows from the exact
   supported WP Pusher schema.
 - Passes one unchanged source row at a time through RAN Booster's Portability
-  API 3 review and apply flow.
+  API 4 review and apply flow.
 - Adopts packages with deployment Disabled.
 - Removes a source row only after Core verifies the adopted target and the
   bridge confirms that the retained row is unchanged.
@@ -28,15 +28,16 @@ provider webhooks.
 - WordPress 7.0 or newer and PHP 8.2 or newer.
 - A single-site WordPress installation.
 - WP Pusher 3.0.13 installed but inactive.
-- A compatible RAN Booster release exposing Portability API 3 and Admin Interaction API 3.
+- A compatible RAN Booster release exposing Portability API 4 and Admin Interaction API 3.
 - For Bitbucket Cloud packages, the compatible RAN Booster Bitbucket Cloud
   add-on installed and active.
 - An existing replacement Booster credential profile for each private
   repository, including private Bitbucket repositories. The bridge never copies
   WP Pusher credentials.
 
-The automated released-host baseline is RAN Booster `v1.0.0-beta.31`,
-which supplies Portability API 3 and Admin Interaction API 3. Real-declaration
+The historical automated released-host baseline is RAN Booster `v1.0.0-beta.31`,
+which supplies Portability API 3 and Admin Interaction API 3 and cannot certify
+this API 4 candidate. A compatible immutable host remains a release prerequisite. Real-declaration
 analysis is separate from the installed migration acceptance gate: publication
 remains held until the exact candidate completes the checklist in `RELEASE.md`.
 `extra.ran-booster-core-certification` in `composer.json` records the exact tag
@@ -166,3 +167,16 @@ accepts upstream SCSS selector-check limitations and omits additional RAN
 custom-property value validators. Source selection, product-specific exceptions,
 build targets and existing quality/generated-asset gates remain repository-owned.
 This adoption does not authorize package publication or release/manual acceptance.
+
+## Destination-local review context
+
+This candidate forwards Core's exact `provider_expectation` from Review through
+both Apply transports and into Core's nonce scope and Apply call. It never
+constructs selection context from the currently active provider. Missing or
+malformed GitHub context requires a new review; Bitbucket carries JSON `null`.
+Import consent does not approve replacement-provider credential access.
+
+API 4 intentionally changes review fingerprints and nonce scopes; old API 2/3
+review evidence cannot authorize a new Apply. The historical comparison and
+published beta.10 acceptance record remain historical. Issue #73's manual hold
+is unchanged, and source qualification is not immutable-host certification.

@@ -70,7 +70,7 @@ cleanup. Source Quality and exact ZIP coverage do not certify an immutable host.
 analyzes the same production selection against its real declarations. Release
 candidate Quality and the existing shared Release Please caller require it;
 the caller binds that proof to the successful same-repository push/main Quality
-head. The selected immutable beta.31 tuple supplies both required API3 surfaces.
+head. The retained immutable beta.31 tuple supplied the historical API3 surfaces; it cannot certify this API4 candidate. A feature-bearing immutable host must be selected and qualified before release.
 Installed acceptance remains required.
 
 Core API constants are dynamic for the runtime compatibility guards;
@@ -129,7 +129,7 @@ standard/category/sniff-wide ignores, regardless of case. Actual-command negativ
 reject a camelCase inherited helper and a CLI variable. See `docs/migrator-owned-naming-inventory.md`.
 
 The Core `v1.0.0-beta.31` tuple records the automated released-host baseline.
-Canonical `composer check` still qualifies the independently pinned API3 source;
+Canonical `composer check` still qualifies the independently pinned API4 source;
 `composer analyze:certified` uses the actual immutable released Core declarations.
 Neither source CI nor that automated host gate replaces release #43's exact
 candidate installed-site acceptance.
@@ -245,3 +245,9 @@ assertions have proven non-null, narrows test-double returns to their actual
 values, preserves absent legacy-property checks via Reflection, and records
 expected exception assertions without tautological `assertTrue(true)` calls.
 Runtime source, public API, credentials/security fences and dependencies are unchanged.
+
+API 4 source inference includes the destination-local selection declarations.
+A cold disposable-copy analysis exceeded the prior 512 MiB PHP worker limit;
+the identical fixture passed at 1 GiB. Canonical analysis now allows 1 GiB,
+including the existing independent scope discovery. Level 8, worker scheduling,
+real-source separation, negative controls and all coverage gates are unchanged.

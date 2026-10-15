@@ -207,11 +207,11 @@ final class PluginLifecycleTest extends TestCase {
 	public static function incompatible_api_markers(): iterable {
 		$markers = array(
 			'old portability'     => array( 2, 3 ),
-			'future portability'  => array( 4, 3 ),
+			'future portability'  => array( 5, 3 ),
 			'missing portability' => array( null, 3 ),
-			'old interaction'     => array( 3, 2 ),
-			'future interaction'  => array( 3, 4 ),
-			'missing interaction' => array( 3, null ),
+			'old interaction'     => array( 4, 2 ),
+			'future interaction'  => array( 4, 4 ),
+			'missing interaction' => array( 4, null ),
 		);
 		foreach ( $markers as $label => $versions ) {
 			foreach ( self::facade_delivery_orders() as $order_label => [ $order ] ) {
@@ -262,7 +262,7 @@ final class PluginLifecycleTest extends TestCase {
 	private function define_compatible_apis(): void {
 		if ( ! defined( 'RAN_BOOSTER_PORTABILITY_API_VERSION' ) ) {
 			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- Supply the exact WordPress or Core capability constant consumed by the host-contract fixture.
-			define( 'RAN_BOOSTER_PORTABILITY_API_VERSION', 3 );
+			define( 'RAN_BOOSTER_PORTABILITY_API_VERSION', 4 );
 		}
 		if ( ! defined( 'RAN_BOOSTER_ADMIN_INTERACTION_API_VERSION' ) ) {
 			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- Supply the exact WordPress or Core capability constant consumed by the host-contract fixture.
@@ -300,10 +300,12 @@ final class LifecyclePortabilityFacade extends PortabilityFacade {
 		);
 	}
 
+	/** @param array<string,mixed>|null $provider_expectation Review context. */
 	public function apply(
 		PortabilityCandidate $candidate,
 		string $expected_fingerprint,
-		string $nonce
+		string $nonce,
+		?array $provider_expectation
 	): PortabilityApplyResult {
 		unset( $candidate, $expected_fingerprint, $nonce );
 		throw new RuntimeException( 'Lifecycle characterization does not execute migration.' );

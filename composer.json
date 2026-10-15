@@ -31,7 +31,7 @@
       "requires-php": "8.2",
       "booster-apis": {
         "required": {
-          "portability": 3,
+          "portability": 4,
           "admin-interaction": 3
         },
         "optional": {}
@@ -43,8 +43,8 @@
       "readiness": "public-release-required"
     },
     "ran-booster-core-source": {
-      "commit": "ae4de158e3ae02d99162b9b8d0babdc9269a36da",
-      "tree": "f5ad8aa484fbe63b7d966eeef96ae9afd5d78a94"
+      "commit": "82ba6dc59a5a2f8b4c185d4f1e6b1c43f466c706",
+      "tree": "fdb9fbd775d557c66d0be565cfbb3adcf9bbb957"
     }
   },
   "require": {
@@ -105,13 +105,13 @@
     "analyze:production": [
       "@analysis:setup",
       "@php scripts/check-analysis-coverage.php --source",
-      "phpstan analyze --configuration=phpstan.neon.dist --memory-limit=512M"
+      "phpstan analyze --configuration=phpstan.neon.dist --memory-limit=1G"
     ],
     "analyze:development": [
       "@analysis:setup",
       "@php scripts/check-analysis-coverage.php --development",
-      "phpstan analyze --configuration=phpstan-development.neon.dist --memory-limit=512M",
-      "phpstan analyze --configuration=phpstan-real-proofs.neon.dist --memory-limit=512M"
+      "phpstan analyze --configuration=phpstan-development.neon.dist --memory-limit=1G",
+      "phpstan analyze --configuration=phpstan-real-proofs.neon.dist --memory-limit=1G"
     ]
   },
   "config": {

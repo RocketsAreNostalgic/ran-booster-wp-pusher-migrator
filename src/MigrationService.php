@@ -10,7 +10,7 @@ use RAN\AddOn\Portability\PortabilityFacade;
 use RAN\AddOn\Portability\PortabilityReviewResult;
 use RuntimeException;
 
-/** Request-local adapter from one exact source row to Portability API 3. */
+/** Request-local adapter from one exact source row to Portability API 4. */
 final readonly class MigrationService {
 
 	public function __construct(
@@ -42,18 +42,21 @@ final readonly class MigrationService {
 
 	/**
 	 * Fresh-read and apply one unchanged reviewed source row through Core.
+	 *
+	 * @param array<string,mixed>|null $provider_expectation Exact review context.
 	 */
 	public function apply(
 		int $source_id,
 		string $expected_source_fingerprint,
 		?string $credential_id,
 		string $expected_review_fingerprint,
-		string $nonce
+		string $nonce,
+		?array $provider_expectation
 	): PortabilityApplyResult {
 		$source    = $this->unchanged_source( $source_id, $expected_source_fingerprint );
 		$candidate = $this->core_candidate( $this->candidates->candidate( $source, $credential_id ) );
 
-		return $this->portability->apply( $candidate, $expected_review_fingerprint, $nonce );
+		return $this->portability->apply( $candidate, $expected_review_fingerprint, $nonce, $provider_expectation );
 	}
 
 	public function cleanup(
@@ -70,15 +73,17 @@ final readonly class MigrationService {
 		);
 	}
 
+	/** @param array<string,mixed>|null $provider_expectation Exact review context. */
 	public function nonce_action(
 		string $operation,
 		WpPusherPackage $source,
 		?string $credential_id = null,
-		?string $expected_review_fingerprint = null
+		?string $expected_review_fingerprint = null,
+		?array $provider_expectation = null
 	): string {
 		$candidate = $this->core_candidate( $this->candidates->candidate( $source, $credential_id ) );
 
-		return $this->portability->nonce_action( $operation, $candidate, $expected_review_fingerprint );
+		return $this->portability->nonce_action( $operation, $candidate, $expected_review_fingerprint, $provider_expectation );
 	}
 
 	private function unchanged_source( int $source_id, string $expected_fingerprint ): WpPusherPackage {

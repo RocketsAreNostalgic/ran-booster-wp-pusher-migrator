@@ -5,9 +5,10 @@ Keep the WP Pusher 3.0.13 reader strict and read-only until Core has freshly
 verified a Disabled adopted target. Never import legacy credentials, enable
 deployment, contact providers, delete plugin files, or run WP Pusher uninstall.
 
-This source candidate uses Core Portability API 3 and Admin Interaction
-API 3 request-local boundaries. Automated released-host certification selects Core
-`v1.0.0-beta.31`; exact-candidate installed/manual acceptance remains required.
+This source candidate uses Core Portability API 4 and Admin Interaction
+API 3 request-local boundaries. The retained historical released-host tuple is Core
+`v1.0.0-beta.31` (Portability API 3); it does not certify this API 4 candidate.
+A compatible immutable host and exact-candidate installed/manual acceptance remain required.
 Core publishes no logging capability to this add-on.
 Do not duplicate Core identity, repository resolution, adoption, or
 package mutation logic.
