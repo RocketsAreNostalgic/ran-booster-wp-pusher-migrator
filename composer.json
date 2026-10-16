@@ -1,6 +1,6 @@
 {
   "name": "rockets-are-nostalgic/ran-booster-wp-pusher-migrator",
-  "description": "One-time WP Pusher 3.0.13 migration bridge for RAN Booster.",
+  "description": "One-time retained WP Pusher data migration bridge for RAN Booster.",
   "type": "wordpress-plugin",
   "license": "GPL-2.0-or-later",
   "support": {

@@ -80,7 +80,7 @@ final readonly class MigrationRequestController {
 				null,
 				null,
 				array(),
-				__( 'Booster could not read this WP Pusher installation safely. Check that WP Pusher 3.0.13 is installed and inactive, then try again.', 'ran-booster-wp-pusher-migrator' )
+				__( 'Booster could not read this WP Pusher installation safely. Check that WP Pusher is installed and inactive and its retained package data is compatible, then try again.', 'ran-booster-wp-pusher-migrator' )
 			);
 		}
 	}
