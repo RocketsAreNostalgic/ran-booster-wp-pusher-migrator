@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace RAN\BoosterWpPusherMigrator\Tests;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RAN\AddOn\Portability\PortabilityApplyResult;
 use RAN\AddOn\Portability\PortabilityCandidate;
@@ -13,6 +14,7 @@ use RAN\BoosterWpPusherMigrator\CandidateFactory;
 use RAN\BoosterWpPusherMigrator\MigrationService;
 use RAN\BoosterWpPusherMigrator\WpPusherSource;
 use RuntimeException;
+use InvalidArgumentException;
 
 final class MigrationServiceTest extends TestCase {
 
@@ -27,6 +29,98 @@ final class MigrationServiceTest extends TestCase {
 		self::assertSame( 'fixture/fixture.php', $facade->candidate?->identifier );
 		self::assertSame( 'valid-review-nonce', $facade->nonce );
 		self::assertSame( 'review:review', $service->nonce_action( 'review', $source ) );
+	}
+
+	#[DataProvider( 'compatible_version_provider' )]
+	public function test_compatible_seeded_data_can_be_reviewed_applied_and_cleaned_across_versions( string $version ): void {
+		$database = new FakeDatabase();
+		$facade   = new FakePortabilityFacade();
+		$service  = $this->service( $facade, $database, $version );
+		$source   = $service->packages()[0];
+		$review   = $service->review( $source->id, $source->fingerprint(), null, 'nonce' );
+		$result   = $service->apply( $source->id, $source->fingerprint(), null, $review->fingerprint, 'nonce', null );
+
+		self::assertTrue( $result->target_verified );
+		self::assertTrue( $service->cleanup( $source->id, $source->fingerprint(), $result ) );
+		self::assertSame( array(), $database->rows );
+	}
+
+	/** @return iterable<string, array{string}> */
+	public static function compatible_version_provider(): iterable {
+		yield 'earlier version with compatible seeded data' => array( '3.0.12' );
+		yield 'historical version with compatible seeded data' => array( '3.0.13' );
+		yield 'current version with compatible seeded data' => array( '3.0.18' );
+		yield 'different version with compatible seeded data' => array( '4.0.0' );
+	}
+
+	#[DataProvider( 'incompatible_data_provider' )]
+	public function test_review_rejects_incompatible_data_before_facade_or_mutation( string $drift ): void {
+		$database = new FakeDatabase();
+		$facade   = new FakePortabilityFacade();
+		$service  = $this->service( $facade, $database );
+		$source   = $service->packages()[0];
+		$this->change_retained_data( $database, $drift );
+		$rows = $database->rows;
+
+		try {
+			$service->review( $source->id, $source->fingerprint(), null, 'nonce' );
+			self::fail( 'Incompatible data reached review.' );
+		} catch ( RuntimeException | InvalidArgumentException ) {
+			self::assertNull( $facade->candidate );
+		}
+		self::assertSame( $rows, $database->rows );
+		self::assertStringNotContainsString( 'DELETE ', implode( ' ', $database->queries ) );
+	}
+
+	#[DataProvider( 'incompatible_data_provider' )]
+	public function test_apply_revalidates_data_changed_after_review_before_facade_or_mutation( string $drift ): void {
+		$database = new FakeDatabase();
+		$facade   = new FakePortabilityFacade();
+		$service  = $this->service( $facade, $database );
+		$source   = $service->packages()[0];
+		$review   = $service->review( $source->id, $source->fingerprint(), null, 'nonce' );
+		$this->change_retained_data( $database, $drift );
+		$rows              = $database->rows;
+		$facade->candidate = null;
+
+		try {
+			$service->apply( $source->id, $source->fingerprint(), null, $review->fingerprint, 'nonce', null );
+			self::fail( 'Incompatible data reached Apply.' );
+		} catch ( RuntimeException | InvalidArgumentException ) {
+			self::assertNull( $facade->candidate );
+		}
+		self::assertSame( $rows, $database->rows );
+		self::assertStringNotContainsString( 'DELETE ', implode( ' ', $database->queries ) );
+	}
+
+	/** @return iterable<string, array{string}> */
+	public static function incompatible_data_provider(): iterable {
+		foreach ( array( 'missing column', 'extra column', 'changed type', 'invalid record', 'changed record' ) as $drift ) {
+			yield $drift => array( $drift );
+		}
+	}
+
+	private function change_retained_data( FakeDatabase $database, string $drift ): void {
+		switch ( $drift ) {
+			case 'missing column':
+				array_pop( $database->schema );
+				break;
+			case 'extra column':
+				$database->schema[] = array(
+					'Field' => 'future',
+					'Type'  => 'int',
+				);
+				break;
+			case 'changed type':
+				$database->schema[0]['Type'] = 'bigint';
+				break;
+			case 'invalid record':
+				$database->rows[0]['subdirectory'] = '../secret';
+				break;
+			case 'changed record':
+				$database->rows[0]['branch'] = 'changed-after-review';
+				break;
+		}
 	}
 
 	public function test_rejects_changed_missing_and_malformed_source_before_facade(): void {
@@ -141,11 +235,11 @@ final class MigrationServiceTest extends TestCase {
 		self::assertCount( 1, $database->rows );
 	}
 
-	private function service( FakePortabilityFacade $facade, ?FakeDatabase $database = null ): MigrationService {
+	private function service( FakePortabilityFacade $facade, ?FakeDatabase $database = null, string $version = '3.0.18' ): MigrationService {
 		$database ??= new FakeDatabase();
 		$source     = new WpPusherSource(
 			$database,
-			static fn (): array => array( WpPusherSource::PLUGIN => array( 'Version' => '3.0.13' ) ),
+			static fn (): array => array( WpPusherSource::PLUGIN => array( 'Version' => $version ) ),
 			static fn (): array => array(),
 			static fn (): array => array(),
 			static fn (): bool => false

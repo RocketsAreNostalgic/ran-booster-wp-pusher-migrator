@@ -12,9 +12,10 @@ use RuntimeException;
 
 final class WpPusherSourceTest extends TestCase {
 
-	public function test_reads_only_exact_inactive_source(): void {
+	#[DataProvider( 'compatible_version_provider' )]
+	public function test_reads_validated_inactive_source_across_plugin_versions( string $version ): void {
 		$database = new FakeDatabase();
-		$source   = $this->source( $database );
+		$source   = $this->source( $database, $version );
 
 		$packages = $source->packages();
 
@@ -22,6 +23,44 @@ final class WpPusherSourceTest extends TestCase {
 		self::assertSame( 'fixture/fixture.php', $packages[0]->package );
 		self::assertMatchesRegularExpression( '/\Av1:[a-f0-9]{64}\z/', $packages[0]->fingerprint() );
 		self::assertStringContainsString( 'LIMIT 129', implode( ' ', $database->queries ) );
+	}
+
+	/** @return iterable<string, array{string}> */
+	public static function compatible_version_provider(): iterable {
+		yield 'earlier version with compatible seeded data' => array( '3.0.12' );
+		yield 'historical version with compatible seeded data' => array( '3.0.13' );
+		yield 'current version with compatible seeded data' => array( '3.0.18' );
+		yield 'different version with compatible seeded data' => array( '4.0.0' );
+	}
+
+	/** @param array<string, array<string, mixed>> $plugins */
+	#[DataProvider( 'invalid_plugin_metadata_provider' )]
+	public function test_requires_recognized_installed_plugin_before_reading_data( array $plugins ): void {
+		$database = new FakeDatabase();
+		$source   = new WpPusherSource(
+			$database,
+			static fn (): array => $plugins,
+			static fn (): array => array(),
+			static fn (): array => array(),
+			static fn (): bool => false
+		);
+
+		try {
+			$source->packages();
+			self::fail( 'Unrecognized installed WP Pusher metadata was accepted.' );
+		} catch ( RuntimeException $failure ) {
+			self::assertSame( 'An installed WP Pusher plugin with valid version metadata is required.', $failure->getMessage() );
+		}
+		self::assertSame( array(), $database->queries );
+	}
+
+	/** @return iterable<string, array{array<string, array<string, mixed>>}> */
+	public static function invalid_plugin_metadata_provider(): iterable {
+		yield 'not installed' => array( array() );
+		yield 'different basename' => array( array( 'other/wppusher.php' => array( 'Version' => '3.0.18' ) ) );
+		foreach ( array( null, '', '  ', 3018, false, array() ) as $index => $version ) {
+			yield 'invalid version ' . $index => array( array( WpPusherSource::PLUGIN => array( 'Version' => $version ) ) );
+		}
 	}
 
 	public function test_reports_option_names_without_reading_values(): void {
@@ -54,8 +93,6 @@ final class WpPusherSourceTest extends TestCase {
 
 	/** @return iterable<string, array{string, array<int, string>, array<string, int>, bool}> */
 	public static function unsupported_environment_provider(): iterable {
-		yield 'older version' => array( '3.0.12', array(), array(), false );
-		yield 'newer version' => array( '3.0.14', array(), array(), false );
 		yield 'site active' => array( '3.0.13', array( WpPusherSource::PLUGIN ), array(), false );
 		yield 'network active' => array( '3.0.13', array(), array( WpPusherSource::PLUGIN => 1 ), false );
 		yield 'multisite' => array( '3.0.13', array(), array(), true );
@@ -291,7 +328,7 @@ final class WpPusherSourceTest extends TestCase {
 	 */
 	private function source(
 		object $database,
-		string $version = '3.0.13',
+		string $version = '3.0.18',
 		array $active = array(),
 		array $network_active = array(),
 		bool $multisite = false

@@ -7,12 +7,10 @@ namespace RAN\BoosterWpPusherMigrator;
 use Closure;
 use RuntimeException;
 
-/** Exact-version WP Pusher source and package-record cleanup boundary. */
+/** Validated retained WP Pusher data and package-record cleanup boundary. */
 final class WpPusherSource {
 
 	public const PLUGIN = 'wppusher/wppusher.php';
-
-	private const VERSION = '3.0.13';
 
 	private const COLUMNS = array(
 		'id'           => 'mediumint',
@@ -192,10 +190,11 @@ final class WpPusherSource {
 			throw new RuntimeException( 'WP Pusher migration supports single-site WordPress only.' );
 		}
 		$plugins = ( $this->plugins )();
-		if ( ! isset( $plugins[ self::PLUGIN ]['Version'] )
-			|| self::VERSION !== $plugins[ self::PLUGIN ]['Version'] ) {
-			throw new RuntimeException( 'Only retained WP Pusher 3.0.13 data is supported.' );
+		$version = $plugins[ self::PLUGIN ]['Version'] ?? null;
+		if ( ! is_string( $version ) || '' === trim( $version ) ) {
+			throw new RuntimeException( 'An installed WP Pusher plugin with valid version metadata is required.' );
 		}
+		// Plugin versions identify the installation; schema and records determine compatibility.
 		if ( in_array( self::PLUGIN, ( $this->active_plugins )(), true )
 			|| array_key_exists( self::PLUGIN, ( $this->network_active_plugins )() ) ) {
 			throw new RuntimeException( 'Deactivate WP Pusher before assessing retained packages.' );

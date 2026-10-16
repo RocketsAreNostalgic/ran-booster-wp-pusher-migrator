@@ -123,7 +123,7 @@ final class PluginLifecycleTest extends TestCase {
 		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Isolated registered-flow fixture.
 		$GLOBALS['wpdb']                                        = new LifecycleDatabase();
 		$GLOBALS['ran_booster_wp_pusher_migrator_test_plugins'] = array(
-			'wppusher/wppusher.php' => array( 'Version' => '3.0.13' ),
+			'wppusher/wppusher.php' => array( 'Version' => '3.0.18' ),
 			'fixture/fixture.php'   => array( 'Name' => 'Fixture Plugin' ),
 		);
 		$first_portability                                      = new LifecyclePortabilityFacade();

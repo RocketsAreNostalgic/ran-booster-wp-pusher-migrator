@@ -66,7 +66,7 @@ result of each item on the release pull request before merge.
    Logging API, in an isolated disposable single-site WordPress installation.
    For Bitbucket coverage, also install the compatible released RAN Booster
    Bitbucket Cloud add-on.
-4. Exercise inactive and active WP Pusher, wrong version/schema, unsupported
+4. Exercise inactive and active WP Pusher, missing installation, unsupported schema or malformed records, unsupported
    providers, public/private plugin and theme rows, public Bitbucket adoption,
    private Bitbucket adoption with an existing replacement Booster credential
    profile, Bitbucket with the add-on missing or incompatible, stale
