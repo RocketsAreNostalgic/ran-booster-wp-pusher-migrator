@@ -32,12 +32,20 @@ activates Migrator through WordPress and checks composition in a fresh process.
 It never activates WP Pusher or runs its uninstall routine. No fixture creates
 fake WP Pusher plugin headers or substitutes metadata.
 
-The caller supplies the retained WP Pusher 3.0.13 ZIP with SHA-256
-`4f1533b9b946afdf9d699ea54279ea236b7e25f3d3fc9182bb53cec295a52208`, previously
-recorded in `docs/installed-candidate-load-order-proof.md`. This repository does
-not contain the ZIP or an acquisition URL. Its absence blocks actual setup.
-The Migrator ZIP must pass the repository archive verifier against source
-`4bc2e216104c66c6c01c4a6f228aa9ae85a7197a` (PR 75). Both installed trees must
+The caller supplies the official WP Pusher 3.0.18 ZIP with SHA-256
+`245b029e3ad0758ac817be0a8af715efd03c143fc66aadb1527abdec0daa681c`.
+On 16 October 2026 the official download page <https://wppusher.com/download/>
+linked <https://dashboard.wppusher.com/download/latest>. That URL is mutable:
+verify the digest and `wppusher/wppusher.php` header version before using it.
+The wrapper checks both before installation. Historical 3.0.13 provenance and
+proofs remain unchanged in the separate historical lane.
+The Migrator ZIP must pass the repository archive verifier against compatibility
+source `61b5a798e252c6780a78e1a41c9a208cdd6065f7` (PR 78), replacing the old
+PR 75 archive. Its rebuilt ZIP SHA-256 is
+`a9485d801d57a50ab0c8c51e69699fe6f9711d5314ac8123c6306eb89ae0b28f`
+(22,820 bytes); two builds from the exact source produced identical bytes.
+This is a source-candidate artifact, not a release or immutable-host certification.
+Both installed trees must
 match the verified input archives on every invocation. The wrapper is mandatory;
 direct `eval-file` of the PHP helper is not archive qualification.
 
@@ -76,3 +84,26 @@ refusal before credentials/provider I/O, unchanged retained source row and
 unchanged Core management/sidecar state, followed by successful cleanup only
 after a freshly verified Disabled target. PR 75's immutable Core certification
 and Migrator manual acceptance hold remain independent requirements.
+
+## What the current evidence establishes
+
+Fresh official 3.0.18 archive inspection found the same ten columns/types in
+`Pusher/Storage/Database.php`, plugin file/type 1 and theme stylesheet/type 2 in
+the storage repositories, empty branch to `master` in `Pusher/Git/Repository.php`,
+and the same ten option names in `uninstall.php`. Its static database version
+is still `1.0`; no persisted schema-version option was found. The reader checks
+the actual schema and each record independently of that declaration or plugin
+version. Seeded unit tests exercise the supported retained-data subset across
+3.0.12, 3.0.13, 3.0.18 and a different major version; these are synthetic metadata
+cases, not qualification of those upstream releases.
+
+`seed` deliberately creates retained rows rather than running WP Pusher's own
+activation/installation path. Thus archive/source inspection, seeded-row tests
+and guarded helper execution must be reported separately from actual upstream
+installation and connected HTTP migration. The latter belong to integration's
+final tuple and remain outstanding until executed.
+
+Existing conservative limits remain: integer display widths other than the
+reader's supported spelling may reject a database schema; a noncanonical
+subdirectory with a trailing slash may fail exact unchanged-row cleanup after
+normalization. Neither is permission to broaden schema admission or deletion.
