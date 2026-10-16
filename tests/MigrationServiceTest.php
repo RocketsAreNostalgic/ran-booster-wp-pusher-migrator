@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace RAN\BoosterWpPusherMigrator\Tests;
 
 use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\DataProviderExternal;
 use PHPUnit\Framework\TestCase;
 use RAN\AddOn\Portability\PortabilityApplyResult;
 use RAN\AddOn\Portability\PortabilityCandidate;
@@ -32,7 +31,7 @@ final class MigrationServiceTest extends TestCase {
 		self::assertSame( 'review:review', $service->nonce_action( 'review', $source ) );
 	}
 
-	#[DataProviderExternal( WpPusherSourceTest::class, 'compatible_version_provider' )]
+	#[DataProvider( 'compatible_version_provider' )]
 	public function test_compatible_seeded_data_can_be_reviewed_applied_and_cleaned_across_versions( string $version ): void {
 		$database = new FakeDatabase();
 		$facade   = new FakePortabilityFacade();
@@ -44,6 +43,14 @@ final class MigrationServiceTest extends TestCase {
 		self::assertTrue( $result->target_verified );
 		self::assertTrue( $service->cleanup( $source->id, $source->fingerprint(), $result ) );
 		self::assertSame( array(), $database->rows );
+	}
+
+	/** @return iterable<string, array{string}> */
+	public static function compatible_version_provider(): iterable {
+		yield 'earlier version with compatible seeded data' => array( '3.0.12' );
+		yield 'historical version with compatible seeded data' => array( '3.0.13' );
+		yield 'current version with compatible seeded data' => array( '3.0.18' );
+		yield 'different version with compatible seeded data' => array( '4.0.0' );
 	}
 
 	#[DataProvider( 'incompatible_data_provider' )]
