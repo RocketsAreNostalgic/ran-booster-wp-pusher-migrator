@@ -42,7 +42,7 @@ proofs remain unchanged in the separate historical lane.
 The Migrator ZIP must pass the repository archive verifier against compatibility
 source `ef225f13134bbca33bf910fd1ed5941f42ec9c46` (PR 80), replacing the old
 PR 75 archive. Its rebuilt ZIP SHA-256 is
-`a09a4123c1025bb583fa1e95eff7cd778e7e7a08654df0469992b7d1c27c195b`
+`005df2efc9a999b2e99b69d5c63eb3f62a40fed61db0477442894d8bb2dd6163`
 (22,842 bytes); two builds from the exact source produced identical bytes.
 This is a source-candidate artifact, not a release or immutable-host certification.
 Both installed trees must
