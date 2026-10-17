@@ -40,10 +40,10 @@ verify the digest and `wppusher/wppusher.php` header version before using it.
 The wrapper checks both before installation. Historical 3.0.13 provenance and
 proofs remain unchanged in the separate historical lane.
 The Migrator ZIP must pass the repository archive verifier against compatibility
-source `1823347da7f651341567278ccfe1bc644d728d43` (PR 78), replacing the old
+source `ef225f13134bbca33bf910fd1ed5941f42ec9c46` (PR 80), replacing the old
 PR 75 archive. Its rebuilt ZIP SHA-256 is
-`f94c5a348ea7fff4b30c934e86b014aa83f26c2596b1aa7e4f3b8eb912b761f0`
-(22,820 bytes); two builds from the exact source produced identical bytes.
+`a09a4123c1025bb583fa1e95eff7cd778e7e7a08654df0469992b7d1c27c195b`
+(22,842 bytes); two builds from the exact source produced identical bytes.
 This is a source-candidate artifact, not a release or immutable-host certification.
 Both installed trees must
 match the verified input archives on every invocation. The wrapper is mandatory;
