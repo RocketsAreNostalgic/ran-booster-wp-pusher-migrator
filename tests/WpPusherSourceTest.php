@@ -121,6 +121,35 @@ final class WpPusherSourceTest extends TestCase {
 		self::assertCount( 1, $this->source( $database )->packages() );
 	}
 
+	public function test_accepts_maria_db_integer_display_widths(): void {
+		$database = new FakeDatabase();
+		foreach ( array( 4, 5, 6, 8 ) as $index ) {
+			$database->schema[ $index ]['Type'] = 'int(11)';
+		}
+
+		self::assertCount( 1, $this->source( $database )->packages() );
+		self::assertTrue( $this->source( $database )->supported_package_table_present() );
+	}
+
+	#[DataProvider( 'unsupported_integer_type_provider' )]
+	public function test_rejects_changed_integer_semantics( string $type ): void {
+		$database                    = new FakeDatabase();
+		$database->schema[4]['Type'] = $type;
+
+		$this->expectException( RuntimeException::class );
+		$this->source( $database )->packages();
+	}
+
+	/** @return iterable<string, array{string}> */
+	public static function unsupported_integer_type_provider(): iterable {
+		yield 'unsigned' => array( 'int(11) unsigned' );
+		yield 'zerofill' => array( 'int(11) unsigned zerofill' );
+		yield 'smaller integer' => array( 'smallint(6)' );
+		yield 'larger integer' => array( 'bigint(20)' );
+		yield 'text' => array( 'varchar(11)' );
+		yield 'malformed' => array( 'int(11) garbage' );
+	}
+
 	public function test_reports_only_an_exact_supported_retained_package_table(): void {
 		$database = new FakeDatabase();
 		self::assertTrue( $this->source( $database )->supported_package_table_present() );
