@@ -23,7 +23,7 @@ archive=${RAN_MIGRATOR_ARCHIVE:?}
 pusher_archive=${RAN_MIGRATOR_WP_PUSHER_ARCHIVE:?}
 [[ -f "$archive" && ! -L "$archive" && -f "$pusher_archive" && ! -L "$pusher_archive" ]] || fail 'Regular caller-provided archives are required.'
 [[ "$(sha256sum "$pusher_archive" | cut -d' ' -f1)" == 245b029e3ad0758ac817be0a8af715efd03c143fc66aadb1527abdec0daa681c ]] || fail 'WP Pusher archive differs from verified official 3.0.18 fixture.'
-bash "$source_dir/scripts/verify-release.sh" "$archive" 1823347da7f651341567278ccfe1bc644d728d43
+bash "$source_dir/scripts/verify-release.sh" "$archive" ef225f13134bbca33bf910fd1ed5941f42ec9c46
 scratch=$(mktemp -d)
 trap 'rm -rf -- "$scratch"' EXIT
 unzip -q "$archive" -d "$scratch/migrator"
