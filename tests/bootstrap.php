@@ -148,3 +148,10 @@ require_once __DIR__ . '/fixtures/PortabilityApi.php';
 require_once __DIR__ . '/fixtures/AdminInteractionApi.php';
 require_once dirname( __DIR__ ) . '/src/Autoloader.php';
 \RAN\BoosterWpPusherMigrator\Autoloader::register();
+
+/** @param mixed $value JSON value. */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Exact WordPress JSON helper used by the view.
+function wp_json_encode( mixed $value ): string|false {
+	// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- WordPress helper fixture delegates to PHP.
+	return json_encode( $value );
+}

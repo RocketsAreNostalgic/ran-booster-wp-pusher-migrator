@@ -336,12 +336,14 @@ foreach ( $ran_booster_wp_pusher_migrator_expected_files as $ran_booster_wp_push
 $ran_booster_wp_pusher_migrator_plugin = $ran_booster_wp_pusher_migrator_actual_files[ RAN_BOOSTER_WP_PUSHER_MIGRATOR_PACKAGE_ROOT . 'src/Plugin.php' ] ?? '';
 $ran_booster_wp_pusher_migrator_source = $ran_booster_wp_pusher_migrator_actual_files[ RAN_BOOSTER_WP_PUSHER_MIGRATOR_PACKAGE_ROOT . 'src/WpPusherSource.php' ] ?? '';
 if ( ! str_contains( $ran_booster_wp_pusher_migrator_plugin, 'RAN_BOOSTER_PORTABILITY_API_VERSION' )
-	|| ! preg_match( '/REQUIRED_PORTABILITY_API_VERSION\s*=\s*3/', $ran_booster_wp_pusher_migrator_plugin )
+	|| ! preg_match( '/REQUIRED_PORTABILITY_API_VERSION\s*=\s*4/', $ran_booster_wp_pusher_migrator_plugin )
 	|| ! preg_match( '/REQUIRED_ADMIN_INTERACTION_API_VERSION\s*=\s*3/', $ran_booster_wp_pusher_migrator_plugin )
 	|| ! str_contains( $ran_booster_wp_pusher_migrator_plugin, "'ran_booster_portability_ready'" )
 	|| ! str_contains( $ran_booster_wp_pusher_migrator_plugin, "'ran_booster_admin_interaction_ready'" )
 	|| str_contains( implode( '', $ran_booster_wp_pusher_migrator_actual_files ), 'LoggingFacade' )
-	|| ! str_contains( $ran_booster_wp_pusher_migrator_source, "private const VERSION = '3.0.13';" ) ) {
+	|| ! str_contains( $ran_booster_wp_pusher_migrator_source, 'private const COLUMNS = array(' )
+	|| ! str_contains( $ran_booster_wp_pusher_migrator_source, '$this->assert_package_table_schema( $table );' )
+	|| ! str_contains( $ran_booster_wp_pusher_migrator_source, 'WpPusherPackage::from_row(' ) ) {
 	ran_booster_wp_pusher_migrator_fail( 'Archive does not preserve the Migrator source and Core API boundaries.' );
 }
 foreach ( array_keys( $ran_booster_wp_pusher_migrator_actual_files ) as $ran_booster_wp_pusher_migrator_name ) {

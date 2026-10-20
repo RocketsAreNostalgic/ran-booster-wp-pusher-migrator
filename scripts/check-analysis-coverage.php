@@ -28,13 +28,13 @@ try {
 		|| ( $ran_booster_wp_pusher_migrator_manifest['scripts']['analyze:development'] ?? null ) !== array(
 			'@analysis:setup',
 			'@php scripts/check-analysis-coverage.php --development',
-			'phpstan analyze --configuration=phpstan-development.neon.dist --memory-limit=512M',
-			'phpstan analyze --configuration=phpstan-real-proofs.neon.dist --memory-limit=512M',
+			'phpstan analyze --configuration=phpstan-development.neon.dist --memory-limit=1G',
+			'phpstan analyze --configuration=phpstan-real-proofs.neon.dist --memory-limit=1G',
 		)
 		|| ( $ran_booster_wp_pusher_migrator_manifest['scripts']['analyze:production'] ?? null ) !== array(
 			'@analysis:setup',
 			'@php scripts/check-analysis-coverage.php --source',
-			'phpstan analyze --configuration=phpstan.neon.dist --memory-limit=512M',
+			'phpstan analyze --configuration=phpstan.neon.dist --memory-limit=1G',
 		) ) {
 		throw new RuntimeException( 'Review coverage discovery when the canonical analyze command changes.' );
 	}
@@ -70,7 +70,7 @@ try {
 		// PHPStan cannot analyze its PHAR-prefixed Symfony names (class.prefixed),
 		// while unscoped names are absent. Reflect only this existing locked call;
 		// native parameter checks still apply to every argument and the result is checked.
-		$ran_booster_wp_pusher_migrator_inception = $ran_booster_wp_pusher_migrator_begin->invoke( null, $ran_booster_wp_pusher_migrator_input, $ran_booster_wp_pusher_migrator_output, array(), '512M', null, array( $ran_booster_wp_pusher_migrator_root ), $ran_booster_wp_pusher_migrator_root . '/' . $ran_booster_wp_pusher_migrator_configuration, null, null, false, false, null, null, false );
+		$ran_booster_wp_pusher_migrator_inception = $ran_booster_wp_pusher_migrator_begin->invoke( null, $ran_booster_wp_pusher_migrator_input, $ran_booster_wp_pusher_migrator_output, array(), '1G', null, array( $ran_booster_wp_pusher_migrator_root ), $ran_booster_wp_pusher_migrator_root . '/' . $ran_booster_wp_pusher_migrator_configuration, null, null, false, false, null, null, false );
 		// @phpstan-ignore phpstanApi.class (Verify the locked CLI discovery result; requalify this internal adapter on PHPStan upgrades.)
 		if ( ! $ran_booster_wp_pusher_migrator_inception instanceof PHPStan\Command\InceptionResult ) {
 			throw new RuntimeException( 'Review changed PHPStan discovery result type.' );

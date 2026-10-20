@@ -45,7 +45,7 @@ require $ran_booster_wp_pusher_migrator_root . '/src/Autoloader.php';
 require $ran_booster_wp_pusher_migrator_root . '/tests/WpPusherSourceTest.php';
 
 $ran_booster_wp_pusher_migrator_candidate = 'candidate' === $ran_booster_wp_pusher_migrator_mode;
-expect( PortabilityFacade::API_VERSION === ( $ran_booster_wp_pusher_migrator_candidate ? 3 : 2 ), 'Unexpected Portability API generation.' );
+expect( PortabilityFacade::API_VERSION === ( $ran_booster_wp_pusher_migrator_candidate ? 4 : 2 ), 'Unexpected Portability API generation.' );
 $ran_booster_wp_pusher_migrator_array_method = $ran_booster_wp_pusher_migrator_candidate ? 'to_array' : 'toArray';
 $ran_booster_wp_pusher_migrator_nonce_method = $ran_booster_wp_pusher_migrator_candidate ? 'nonce_action' : 'nonceAction';
 $ran_booster_wp_pusher_migrator_resolved     = $ran_booster_wp_pusher_migrator_candidate ? 'from_resolved' : 'fromResolved';
@@ -54,15 +54,31 @@ $ran_booster_wp_pusher_migrator_verified     = $ran_booster_wp_pusher_migrator_c
 $ran_booster_wp_pusher_migrator_facade                  = new class() extends PortabilityFacade {
 	public string $resolved_method = '';
 	public int $calls              = 0;
+	/** @var array<string,mixed>|null */
+	public ?array $provider_expectation = null;
 
 	public function review( PortabilityCandidate $candidate, string $nonce ): PortabilityReviewResult {
 		unset( $nonce );
 		++$this->calls;
-		return PortabilityReviewResult::{$this->resolved_method}( $candidate, 'adopt', 'none', 'Ready to adopt.', 'fixture-identity', false );
+		return PortabilityReviewResult::{$this->resolved_method}(
+			$candidate,
+			'adopt',
+			'none',
+			'Ready to adopt.',
+			'fixture-identity',
+			false,
+			PortabilityFacade::API_VERSION >= 4 ? array(
+				'provider_code'              => 'gh',
+				'selection_generation'       => 7,
+				'implementation_fingerprint' => str_repeat( 'a', 64 ),
+			) : null
+		);
 	}
 
-	public function apply( PortabilityCandidate $candidate, string $expected_fingerprint, string $nonce ): PortabilityApplyResult {
+	/** @param array<string,mixed>|null $provider_expectation Exact review context. */
+	public function apply( PortabilityCandidate $candidate, string $expected_fingerprint, string $nonce, ?array $provider_expectation = null ): PortabilityApplyResult {
 		unset( $candidate, $expected_fingerprint, $nonce );
+		$this->provider_expectation = $provider_expectation;
 		++$this->calls;
 		return new PortabilityApplyResult( 'adopted', 'none', 'Adopted.', true );
 	}
@@ -71,7 +87,7 @@ $ran_booster_wp_pusher_migrator_facade->resolved_method = $ran_booster_wp_pusher
 $ran_booster_wp_pusher_migrator_database                = new \RAN\BoosterWpPusherMigrator\Tests\FakeDatabase();
 $ran_booster_wp_pusher_migrator_source                  = new WpPusherSource(
 	$ran_booster_wp_pusher_migrator_database,
-	static fn (): array => array( WpPusherSource::PLUGIN => array( 'Version' => '3.0.13' ) ),
+	static fn (): array => array( WpPusherSource::PLUGIN => array( 'Version' => '3.0.18' ) ),
 	static fn (): array => array(),
 	static fn (): array => array(),
 	static fn (): bool => false
@@ -80,19 +96,45 @@ $ran_booster_wp_pusher_migrator_factory                 = new CandidateFactory( 
 $ran_booster_wp_pusher_migrator_service                 = new MigrationService( $ran_booster_wp_pusher_migrator_source, $ran_booster_wp_pusher_migrator_factory, $ran_booster_wp_pusher_migrator_facade );
 $ran_booster_wp_pusher_migrator_package                 = $ran_booster_wp_pusher_migrator_service->packages()[0];
 $ran_booster_wp_pusher_migrator_review                  = $ran_booster_wp_pusher_migrator_service->review( 1, $ran_booster_wp_pusher_migrator_package->fingerprint(), null, 'nonce' );
-$ran_booster_wp_pusher_migrator_result                  = $ran_booster_wp_pusher_migrator_service->apply( 1, $ran_booster_wp_pusher_migrator_package->fingerprint(), null, $ran_booster_wp_pusher_migrator_review->fingerprint, 'nonce' );
-// @phpstan-ignore property.notFound (Paired immutable baseline API 2 uses targetVerified; the candidate API 3 uses target_verified. Both generations run in the existing behavior proof.)
+$ran_booster_wp_pusher_migrator_result                  = $ran_booster_wp_pusher_migrator_service->apply( 1, $ran_booster_wp_pusher_migrator_package->fingerprint(), null, $ran_booster_wp_pusher_migrator_review->fingerprint, 'nonce', $ran_booster_wp_pusher_migrator_candidate ? $ran_booster_wp_pusher_migrator_review->provider_expectation : null );
+// @phpstan-ignore property.notFound (Paired immutable baseline API 2 uses targetVerified; the candidate API 4 uses target_verified. Both generations run in the existing behavior proof.)
 expect( $ran_booster_wp_pusher_migrator_result->{$ran_booster_wp_pusher_migrator_verified}, 'Real result property was not consumed.' );
 
+if ( $ran_booster_wp_pusher_migrator_candidate ) {
+	$ran_booster_wp_pusher_migrator_expectation = $ran_booster_wp_pusher_migrator_review->provider_expectation;
+	expect( $ran_booster_wp_pusher_migrator_expectation === $ran_booster_wp_pusher_migrator_facade->provider_expectation, 'Exact reviewed context was not forwarded to Apply.' );
+	$ran_booster_wp_pusher_migrator_nonce                           = $ran_booster_wp_pusher_migrator_service->nonce_action( 'apply', $ran_booster_wp_pusher_migrator_package, null, $ran_booster_wp_pusher_migrator_review->fingerprint, $ran_booster_wp_pusher_migrator_expectation );
+	$ran_booster_wp_pusher_migrator_changed                         = $ran_booster_wp_pusher_migrator_expectation;
+	$ran_booster_wp_pusher_migrator_changed['selection_generation'] = 8;
+	expect( $ran_booster_wp_pusher_migrator_nonce !== $ran_booster_wp_pusher_migrator_service->nonce_action( 'apply', $ran_booster_wp_pusher_migrator_package, null, $ran_booster_wp_pusher_migrator_review->fingerprint, $ran_booster_wp_pusher_migrator_changed ), 'Selection changes reused the Apply nonce scope.' );
+	foreach ( array(
+		null,
+		array(),
+		array( 'provider_code' => 'gh' ),
+		array(
+			'provider_code'              => 'gh',
+			'selection_generation'       => '7',
+			'implementation_fingerprint' => str_repeat( 'a', 64 ),
+		),
+	) as $ran_booster_wp_pusher_migrator_invalid ) {
+		try {
+			$ran_booster_wp_pusher_migrator_service->nonce_action( 'apply', $ran_booster_wp_pusher_migrator_package, null, $ran_booster_wp_pusher_migrator_review->fingerprint, $ran_booster_wp_pusher_migrator_invalid );
+			throw new RuntimeException( 'Malformed GitHub context reached Apply.' );
+		} catch ( \InvalidArgumentException ) {
+			expect( 2 === $ran_booster_wp_pusher_migrator_facade->calls, 'Malformed context reached the facade.' );
+		}
+	}
+}
+
 $ran_booster_wp_pusher_migrator_evidence = array(
-	// @phpstan-ignore method.notFound (Paired immutable API 2 baseline retains the legacy spelling; the API 3 candidate spelling is checked by the existing real-generation behavior proof.)
+	// @phpstan-ignore method.notFound (Paired immutable API 2 baseline retains the legacy spelling; the API 4 candidate spelling is checked by the existing real-generation behavior proof.)
 	'candidate'          => $ran_booster_wp_pusher_migrator_review->candidate->{$ran_booster_wp_pusher_migrator_array_method}(),
 	'source_fingerprint' => $ran_booster_wp_pusher_migrator_package->fingerprint(),
 	'review_fingerprint' => $ran_booster_wp_pusher_migrator_review->fingerprint,
-	// @phpstan-ignore method.notFound (Paired immutable API 2 baseline retains the legacy spelling; the API 3 candidate spelling is checked by the existing real-generation behavior proof.)
+	// @phpstan-ignore method.notFound (Paired immutable API 2 baseline retains the legacy spelling; the API 4 candidate spelling is checked by the existing real-generation behavior proof.)
 	'review_nonce'       => $ran_booster_wp_pusher_migrator_service->{$ran_booster_wp_pusher_migrator_nonce_method}( 'review', $ran_booster_wp_pusher_migrator_package ),
-	// @phpstan-ignore method.notFound (Paired immutable API 2 baseline retains the legacy spelling; the API 3 candidate spelling is checked by the existing real-generation behavior proof.)
-	'apply_nonce'        => $ran_booster_wp_pusher_migrator_service->{$ran_booster_wp_pusher_migrator_nonce_method}( 'apply', $ran_booster_wp_pusher_migrator_package, null, $ran_booster_wp_pusher_migrator_review->fingerprint ),
+	// @phpstan-ignore method.notFound (Paired immutable API 2 baseline retains the legacy spelling; the API 4 candidate spelling is checked by the existing real-generation behavior proof.)
+	'apply_nonce'        => $ran_booster_wp_pusher_migrator_service->{$ran_booster_wp_pusher_migrator_nonce_method}( 'apply', $ran_booster_wp_pusher_migrator_package, null, $ran_booster_wp_pusher_migrator_review->fingerprint, $ran_booster_wp_pusher_migrator_candidate ? $ran_booster_wp_pusher_migrator_review->provider_expectation : null ),
 	'apply'              => array( $ran_booster_wp_pusher_migrator_result->status, $ran_booster_wp_pusher_migrator_result->reason, $ran_booster_wp_pusher_migrator_result->message ),
 );
 $ran_booster_wp_pusher_migrator_refusal  = new PortabilityApplyResult( 'blocked', 'forbidden', 'Refused.', false );

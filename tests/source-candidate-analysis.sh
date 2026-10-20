@@ -23,5 +23,5 @@ foreach ([
 }
 file_put_contents($argv[1], $config);
 ' "$configuration"
-php vendor/bin/phpstan analyze --configuration="$configuration" --memory-limit=512M --no-progress
+php vendor/bin/phpstan analyze --configuration="$configuration" --memory-limit=1G --no-progress
 printf 'SOURCE-ONLY analysis passed for Core %s; released-host certification remains separate.\n' "$RAN_MIGRATOR_SOURCE_CORE_SHA"

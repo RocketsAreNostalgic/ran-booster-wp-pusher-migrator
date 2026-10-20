@@ -44,6 +44,41 @@ final class PluginAdminPostTest extends TestCase {
 		parent::tearDown();
 	}
 
+	public function test_malformed_expectation_transport_never_reaches_apply_or_cleanup(): void {
+		foreach ( array( null, array(), '', '[]', '"gh"', '{', str_repeat( ' ', 1025 ) ) as $value ) {
+			$database    = new AdminPostDatabase();
+			$portability = new AdminPostPortabilityFacade();
+			$this->connect( $database, $portability, new AdminPostInteractionSpy() );
+			$source                        = $this->source_package( $database );
+			$_POST                         = $this->apply_request( $source, 'v1:' . str_repeat( 'a', 64 ) );
+			$_POST['provider_expectation'] = $value;
+			ob_start();
+			$this->controller->render_panel();
+			$output = (string) ob_get_clean();
+			self::assertStringContainsString( 'Refresh the WP Pusher migration review.', $output );
+			self::assertSame( 0, $portability->apply_calls );
+			self::assertCount( 1, $database->rows );
+		}
+	}
+
+	public function test_exact_expectation_transport_is_forwarded_without_selection_lookup(): void {
+		$database    = new AdminPostDatabase();
+		$portability = new AdminPostPortabilityFacade();
+		$this->connect( $database, $portability, new AdminPostInteractionSpy() );
+		$source                        = $this->source_package( $database );
+		$expectation                   = array(
+			'provider_code'              => 'gh',
+			'selection_generation'       => 42,
+			'implementation_fingerprint' => str_repeat( 'b', 64 ),
+		);
+		$_POST                         = $this->apply_request( $source, 'v1:' . str_repeat( 'a', 64 ) );
+		$_POST['provider_expectation'] = wp_json_encode( $expectation );
+		ob_start();
+		$this->controller->render_panel();
+		ob_end_clean();
+		self::assertSame( $expectation, $portability->provider_expectation );
+	}
+
 	public function test_operation_capability_and_purpose_nonce_precede_source_inventory(): void {
 		$database    = new AdminPostDatabase();
 		$portability = new AdminPostPortabilityFacade();
@@ -494,7 +529,7 @@ final class PluginAdminPostTest extends TestCase {
 	): void {
 		$source           = new WpPusherSource(
 			$database,
-			static fn (): array => array( WpPusherSource::PLUGIN => array( 'Version' => '3.0.13' ) ),
+			static fn (): array => array( WpPusherSource::PLUGIN => array( 'Version' => '3.0.18' ) ),
 			static fn (): array => array(),
 			static fn (): array => array(),
 			static fn (): bool => false
@@ -510,7 +545,7 @@ final class PluginAdminPostTest extends TestCase {
 	private function source_package( AdminPostDatabase $database ): WpPusherPackage {
 		$source = new WpPusherSource(
 			$database,
-			static fn (): array => array( WpPusherSource::PLUGIN => array( 'Version' => '3.0.13' ) ),
+			static fn (): array => array( WpPusherSource::PLUGIN => array( 'Version' => '3.0.18' ) ),
 			static fn (): array => array(),
 			static fn (): array => array(),
 			static fn (): bool => false
@@ -542,6 +577,7 @@ final class PluginAdminPostTest extends TestCase {
 			'source_id'                             => (string) $source->id,
 			'source_fingerprint'                    => $source->fingerprint(),
 			'review_fingerprint'                    => $review_fingerprint,
+			'provider_expectation'                  => 'null',
 			'credential_id'                         => $credential_id,
 			'_wpnonce'                              => 'ran-booster-wp-pusher-migrator-apply-v1',
 		);
@@ -588,6 +624,9 @@ final class AdminPostInteractionSpy implements AdminInteractionFacade, Transport
 // phpcs:ignore Generic.Files.OneObjectStructurePerFile.MultipleFound -- Colocated test double belongs to this fixture load unit; unrelated declarations remain checked.
 final class AdminPostPortabilityFacade extends PortabilityFacade {
 
+	/** @var array<string,mixed>|null */
+	public ?array $provider_expectation = null;
+
 	public int $review_calls                   = 0;
 	public int $apply_calls                    = 0;
 	public string $reviewed_source_fingerprint = '';
@@ -615,13 +654,16 @@ final class AdminPostPortabilityFacade extends PortabilityFacade {
 		);
 	}
 
+	/** @param array<string,mixed>|null $provider_expectation Review context. */
 	public function apply(
 		PortabilityCandidate $candidate,
 		string $expected_fingerprint,
-		string $nonce
+		string $nonce,
+		?array $provider_expectation
 	): PortabilityApplyResult {
 		unset( $nonce );
 		++$this->apply_calls;
+		$this->provider_expectation        = $provider_expectation;
 		$this->candidate                   = $candidate;
 		$this->expected_review_fingerprint = $expected_fingerprint;
 
