@@ -69,14 +69,24 @@ submit that ID itself. This helper never reads or imports legacy credentials,
 creates secrets, or selects a credential automatically.
 
 The helper checks the real `admin_post_ran_booster_wp_pusher_migrator_package`
-hook is registered against Core Portability API 4.
+hook contains the installed `MigrationRequestController::handle_admin_post`
+callback against Core Portability API 4. An unrelated callback does not establish
+Migrator composition.
 
 `cleanup` requires the fixture ownership option and deletes only an unchanged
 exact fixture row through the source reader's `delete_exact`. A row already
 removed by the real successful Apply is accepted. Changed rows are preserved
-and cause refusal. No phase drops a table, removes other rows, changes retained
+and cause refusal. Cleanup requires the supported source table to remain present
+and reads back an empty inventory before releasing ownership. An absent fixture
+ID alongside another row, a missing table, or failed ownership-option deletion
+is a failure, not successful cleanup evidence. No phase drops a table, removes other rows, changes retained
 WP Pusher options, deletes plugin files or alters Core management state. The
 empty table remains for the owning driver's whole-site disposal.
+
+These additional proof checks are a new helper revision. Historical Core runs
+that consumed frozen helper `1a159eb2f51dc77c4e053ff784e655d27538b9a7`
+retain their original scope. Consumer owners must explicitly review and qualify
+a new helper pin; this change does not silently update their provenance.
 
 Source/static checks do not establish installed acceptance. The outstanding
 proof is the connected real HTTP review, provider A-to-B switch, stale Apply
