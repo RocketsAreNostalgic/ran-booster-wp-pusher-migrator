@@ -215,7 +215,11 @@ final class WpPusherSource {
 				throw new RuntimeException( 'The retained WP Pusher package schema is unsupported.' );
 			}
 			$type                       = strtolower( $column['Type'] );
-			$actual[ $column['Field'] ] = 'mediumint(9)' === $type ? 'mediumint' : $type;
+			$actual[ $column['Field'] ] = match ( $type ) {
+				'mediumint(9)' => 'mediumint',
+				'int(11)'      => 'int',
+				default        => $type,
+			};
 		}
 		if ( self::COLUMNS !== $actual ) {
 			throw new RuntimeException( 'The retained WP Pusher package schema is unsupported.' );
