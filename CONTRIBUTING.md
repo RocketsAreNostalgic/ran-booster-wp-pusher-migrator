@@ -5,8 +5,8 @@ for a reproducible defect or to discuss a bounded change before opening a pull
 request. Do not use a public issue or pull request for a vulnerability; follow
 [SECURITY.md](SECURITY.md) instead.
 
-Keep the bridge removable and limited to WP Pusher 3.0.13. Changes must preserve
-its read-only source inspection, exact Core API guards, Disabled adoption,
+Keep the bridge removable and limited to the supported retained WP Pusher schema
+and record semantics. Changes must preserve its read-only source inspection, exact Core API guards, Disabled adoption,
 fresh verification before source-row deletion, and refusal to import credentials
 or contact providers.
 

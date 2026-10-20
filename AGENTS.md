@@ -1,7 +1,7 @@
 # RAN Booster WP Pusher Migrator
 
 This is a removable, one-source migration bridge, not a second package manager.
-Keep the WP Pusher 3.0.13 reader strict and read-only until Core has freshly
+Keep the retained WP Pusher schema and record reader strict and read-only until Core has freshly
 verified a Disabled adopted target. Never import legacy credentials, enable
 deployment, contact providers, delete plugin files, or run WP Pusher uninstall.
 

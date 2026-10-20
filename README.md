@@ -1,7 +1,7 @@
 # RAN Booster WP Pusher Migrator
 
 RAN Booster WP Pusher Migrator is a free, temporary bridge for moving supported
-plugin and theme records from an inactive WP Pusher 3.0.13 installation into
+plugin and theme records from an inactive WP Pusher installation into
 RAN Booster.
 
 This is Beta software for an administrator completing a one-time migration. It
@@ -27,13 +27,20 @@ provider webhooks.
 
 - WordPress 7.0 or newer and PHP 8.2 or newer.
 - A single-site WordPress installation.
-- WP Pusher 3.0.13 installed but inactive.
+- WP Pusher installed but inactive, with supported retained schema and records.
 - A compatible RAN Booster release exposing Portability API 4 and Admin Interaction API 3.
 - For Bitbucket Cloud packages, the compatible RAN Booster Bitbucket Cloud
   add-on installed and active.
 - An existing replacement Booster credential profile for each private
   repository, including private Bitbucket repositories. The bridge never copies
   WP Pusher credentials.
+
+Compatibility follows the actual ten-column retained schema and validated record
+semantics, not an exact WP Pusher plugin version. The official 3.0.18 archive has
+been explicitly inspected and is pinned for the current installed fixture. Its
+database version declaration remains `1.0`; that declaration alone does not prove
+compatibility. Unsupported schema, row values or inventory are refused before
+adoption. This does not certify untested future WP Pusher versions.
 
 The historical automated released-host baseline is RAN Booster `v1.0.0-beta.31`,
 which supplies Portability API 3 and Admin Interaction API 3 and cannot certify

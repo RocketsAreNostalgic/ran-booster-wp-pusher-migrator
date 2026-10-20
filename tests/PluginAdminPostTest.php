@@ -529,7 +529,7 @@ final class PluginAdminPostTest extends TestCase {
 	): void {
 		$source           = new WpPusherSource(
 			$database,
-			static fn (): array => array( WpPusherSource::PLUGIN => array( 'Version' => '3.0.13' ) ),
+			static fn (): array => array( WpPusherSource::PLUGIN => array( 'Version' => '3.0.18' ) ),
 			static fn (): array => array(),
 			static fn (): array => array(),
 			static fn (): bool => false
@@ -545,7 +545,7 @@ final class PluginAdminPostTest extends TestCase {
 	private function source_package( AdminPostDatabase $database ): WpPusherPackage {
 		$source = new WpPusherSource(
 			$database,
-			static fn (): array => array( WpPusherSource::PLUGIN => array( 'Version' => '3.0.13' ) ),
+			static fn (): array => array( WpPusherSource::PLUGIN => array( 'Version' => '3.0.18' ) ),
 			static fn (): array => array(),
 			static fn (): array => array(),
 			static fn (): bool => false
