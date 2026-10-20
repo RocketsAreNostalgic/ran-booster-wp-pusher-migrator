@@ -341,7 +341,9 @@ if ( ! str_contains( $ran_booster_wp_pusher_migrator_plugin, 'RAN_BOOSTER_PORTAB
 	|| ! str_contains( $ran_booster_wp_pusher_migrator_plugin, "'ran_booster_portability_ready'" )
 	|| ! str_contains( $ran_booster_wp_pusher_migrator_plugin, "'ran_booster_admin_interaction_ready'" )
 	|| str_contains( implode( '', $ran_booster_wp_pusher_migrator_actual_files ), 'LoggingFacade' )
-	|| ! str_contains( $ran_booster_wp_pusher_migrator_source, "private const VERSION = '3.0.13';" ) ) {
+	|| ! str_contains( $ran_booster_wp_pusher_migrator_source, 'private const COLUMNS = array(' )
+	|| ! str_contains( $ran_booster_wp_pusher_migrator_source, '$this->assert_package_table_schema( $table );' )
+	|| ! str_contains( $ran_booster_wp_pusher_migrator_source, 'WpPusherPackage::from_row(' ) ) {
 	ran_booster_wp_pusher_migrator_fail( 'Archive does not preserve the Migrator source and Core API boundaries.' );
 }
 foreach ( array_keys( $ran_booster_wp_pusher_migrator_actual_files ) as $ran_booster_wp_pusher_migrator_name ) {

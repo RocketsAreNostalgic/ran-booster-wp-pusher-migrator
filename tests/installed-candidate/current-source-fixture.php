@@ -2,6 +2,7 @@
 
 // WP-CLI eval-file wraps this file; a strict_types declaration is not supported.
 
+use RAN\BoosterWpPusherMigrator\MigrationRequestController;
 use RAN\BoosterWpPusherMigrator\WpPusherPackage;
 use RAN\BoosterWpPusherMigrator\WpPusherSource;
 
@@ -10,6 +11,8 @@ if ( ! defined( 'WP_CLI' ) || ! WP_CLI || '1' !== getenv( 'RAN_MIGRATOR_PROOF_DI
 }
 
 function ran_booster_wp_pusher_migrator_current_boundary( bool $preflight = false ): void {
+	global $wp_filter;
+
 	$root = rtrim( ABSPATH, '/' );
 	if ( is_multisite() || realpath( $root ) !== $root || getenv( 'RAN_MIGRATOR_WORDPRESS_PATH' ) !== $root
 		|| WP_CONTENT_DIR !== $root . '/wp-content' || WP_PLUGIN_DIR !== WP_CONTENT_DIR . '/plugins'
@@ -29,9 +32,23 @@ function ran_booster_wp_pusher_migrator_current_boundary( bool $preflight = fals
 	if ( $preflight ) {
 		return;
 	}
+	$route_composed = false;
+	$hook           = $wp_filter['admin_post_ran_booster_wp_pusher_migrator_package'] ?? null;
+	if ( $hook instanceof WP_Hook ) {
+		foreach ( $hook->callbacks as $callbacks ) {
+			foreach ( $callbacks as $callback ) {
+				$handler = $callback['function'];
+				if ( is_array( $handler ) && ( $handler[0] ?? null ) instanceof MigrationRequestController
+					&& 'handle_admin_post' === ( $handler[1] ?? null ) ) {
+					$controller     = new ReflectionClass( $handler[0] );
+					$route_composed = WP_PLUGIN_DIR . '/ran-booster-wp-pusher-migrator/src/MigrationRequestController.php' === $controller->getFileName();
+				}
+			}
+		}
+	}
 	if ( ! is_plugin_active( 'ran-booster-wp-pusher-migrator/ran-booster-wp-pusher-migrator.php' )
 		|| is_plugin_active( WpPusherSource::PLUGIN )
-		|| ! has_action( 'admin_post_ran_booster_wp_pusher_migrator_package' )
+		|| ! $route_composed
 		|| ! defined( 'RAN_BOOSTER_PORTABILITY_API_VERSION' )
 		|| 4 !== constant( 'RAN_BOOSTER_PORTABILITY_API_VERSION' ) ) {
 		throw new RuntimeException( 'The actual API4 Migrator route must be composed and WP Pusher inactive.' );
@@ -97,10 +114,19 @@ function ran_booster_wp_pusher_migrator_current_run( string $phase ): array {
 		if ( $owner !== $expected->fingerprint() ) {
 			throw new RuntimeException( 'Cleanup requires this exact fixture ownership.' );
 		}
+		if ( ! $source->supported_package_table_present() || ( null === $found && array() !== $rows ) ) {
+			throw new RuntimeException( 'Cleanup refuses a missing source table or changed source inventory.' );
+		}
 		if ( null !== $found && ( ! hash_equals( $expected->fingerprint(), $found->fingerprint() ) || ! $source->delete_exact( $expected ) ) ) {
 			throw new RuntimeException( 'Cleanup refuses a changed source row.' );
 		}
-		delete_option( $ledger );
+		$readback = new WpPusherSource();
+		if ( ! $readback->supported_package_table_present() || array() !== $readback->packages() ) {
+			throw new RuntimeException( 'Cleanup readback requires the supported empty source table.' );
+		}
+		if ( ! delete_option( $ledger ) || null !== get_option( $ledger, null ) ) {
+			throw new RuntimeException( 'Could not release fixture ownership; retain it for diagnosis.' );
+		}
 		$found = null;
 	}
 	if ( 'seed' === $phase && ( null === $found || $found->fingerprint() !== $expected->fingerprint() ) ) {

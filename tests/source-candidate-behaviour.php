@@ -87,7 +87,7 @@ $ran_booster_wp_pusher_migrator_facade->resolved_method = $ran_booster_wp_pusher
 $ran_booster_wp_pusher_migrator_database                = new \RAN\BoosterWpPusherMigrator\Tests\FakeDatabase();
 $ran_booster_wp_pusher_migrator_source                  = new WpPusherSource(
 	$ran_booster_wp_pusher_migrator_database,
-	static fn (): array => array( WpPusherSource::PLUGIN => array( 'Version' => '3.0.13' ) ),
+	static fn (): array => array( WpPusherSource::PLUGIN => array( 'Version' => '3.0.18' ) ),
 	static fn (): array => array(),
 	static fn (): array => array(),
 	static fn (): bool => false

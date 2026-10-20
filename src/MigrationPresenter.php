@@ -194,7 +194,7 @@ final readonly class MigrationPresenter {
 				'The retained WP Pusher package inventory is unsupported.',
 				'The retained WP Pusher package inventory contains duplicates.',
 				'WP Pusher migration supports single-site WordPress only.',
-				'Only retained WP Pusher 3.0.13 data is supported.',
+				'An installed WP Pusher plugin with valid version metadata is required.',
 				'Deactivate WP Pusher before assessing retained packages.',
 				'The retained WP Pusher package schema is unsupported.',
 				'The WordPress database prefix is invalid.',
