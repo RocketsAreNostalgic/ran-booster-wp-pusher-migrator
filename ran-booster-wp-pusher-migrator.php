@@ -4,7 +4,7 @@
  * Plugin URI: https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator
  * Description: Migrates supported retained WP Pusher package ownership into RAN Booster.
  * x-release-please-start-version
- * Version: 0.1.0-beta.10
+ * Version: 0.1.0-beta.11
  * x-release-please-end
  * Requires at least: 7.0
  * Requires PHP: 8.2

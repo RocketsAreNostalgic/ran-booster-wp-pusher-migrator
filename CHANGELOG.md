@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.1.0-beta.11](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/compare/v0.1.0-beta.10...v0.1.0-beta.11) (2026-10-22)
+
+
+### Features
+
+* deliver reviewed API 4 WP Pusher migration ([#75](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/75)) ([fe148d4](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/fe148d4eb235464319d6f34b63623164b7d9a359))
+* forward destination-local provider expectation through API4 migration ([c22c1de](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/c22c1de51ef65d5fa43cf57b8c4fee7740a5cc97))
+
+
+### Bug Fixes
+
+* accept MariaDB signed integer display widths ([ef225f1](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/ef225f13134bbca33bf910fd1ed5941f42ec9c46))
+* accept MariaDB signed integer display widths ([#80](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/80)) ([d482f3c](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/d482f3ceae53ee92dffb264712689e37ae419191))
+* admit validated retained WP Pusher data across plugin versions ([61b5a79](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/61b5a798e252c6780a78e1a41c9a208cdd6065f7))
+* certify immutable Core beta 37 API 4 host ([#83](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/83)) ([f454f64](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/f454f649f8c816a81d15f62078102fb0bdabbb18))
+* consolidate retained WP Pusher compatibility ([#78](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/78)) ([714c6d0](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/714c6d0a60ea3126f8c8d2f88d642e2f5b17fa9c))
+
+
+### Miscellaneous Chores
+
+* refresh lock metadata for exact API4 source host pin ([4bc2e21](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/4bc2e216104c66c6c01c4a6f228aa9ae85a7197a))
+
 ## [0.1.0-beta.10](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/compare/v0.1.0-beta.9...v0.1.0-beta.10) (2026-10-09)
 
 
