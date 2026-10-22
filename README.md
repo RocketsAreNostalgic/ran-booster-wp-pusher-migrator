@@ -42,10 +42,10 @@ database version declaration remains `1.0`; that declaration alone does not prov
 compatibility. Unsupported schema, row values or inventory are refused before
 adoption. This does not certify untested future WP Pusher versions.
 
-The historical automated released-host baseline is RAN Booster `v1.0.0-beta.31`,
-which supplies Portability API 3 and Admin Interaction API 3 and cannot certify
-this API 4 candidate. A compatible immutable host remains a release prerequisite. Real-declaration
-analysis is separate from the installed migration acceptance gate: publication
+The automated released-host certification is RAN Booster `v1.0.0-beta.37`,
+which supplies Portability API 4 and Admin Interaction API 3. It verifies the
+real declarations for this API 4 candidate, while remaining separate from the
+installed migration acceptance gate: publication
 remains held until the exact candidate completes the checklist in `RELEASE.md`.
 `extra.ran-booster-core-certification` in `composer.json` records the exact tag
 and commit. Runtime compatibility still depends on the loaded API markers and

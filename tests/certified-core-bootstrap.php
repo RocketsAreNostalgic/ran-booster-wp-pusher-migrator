@@ -15,7 +15,7 @@ require_once dirname( __DIR__ ) . '/scripts/core-certification.php';
 // Discover actual certified declarations without loading Core or PHPUnit doubles.
 $ran_booster_wp_pusher_migrator_analysis_core = dirname( __DIR__ ) . '/vendor/ran-certified-core/source';
 if ( realpath( $ran_booster_wp_pusher_migrator_analysis_core ) !== command_output( array( 'git', '--no-replace-objects', '-C', $ran_booster_wp_pusher_migrator_analysis_core, 'rev-parse', '--show-toplevel' ) ) ) {
-	throw new RuntimeException( 'Analysis requires its own certified Core checkout. Run composer analysis:setup.' );
+	throw new RuntimeException( 'Analysis requires its own certified Core checkout. Run composer analyze:certified.' );
 }
 $ran_booster_wp_pusher_migrator_analysis_certification = read_core_certification( dirname( __DIR__ ) . '/composer.json' );
 assert_core_certification_checkout(
