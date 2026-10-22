@@ -118,10 +118,29 @@ not make internal methods a supported external API.
 
 `composer.json` is the sole machine-readable owner of the exact
 `extra.ran-booster-core-certification` tag/full-commit tuple. The current
-selected immutable release is RAN Booster `v1.0.0-beta.31`, whose source exposes
-Portability API 3 and Admin Interaction API 3 without a Logging facade.
+selected immutable release is RAN Booster `v1.0.0-beta.37`, whose source exposes
+Portability API 4 and Admin Interaction API 3 without a Logging facade.
 
-The current automated released-host evidence (3 October 2026) is:
+The current automated released-host evidence (21 October 2026) is:
+
+- GitHub release ID `420074596`, published and immutable;
+- asset `ran-booster-1.0.0-beta.37.zip`;
+- asset size `4,488,786` bytes;
+- downloaded asset digest
+  `sha256:9b2938cec363dde405a8eeae122dd797e6f0272febca414d8c4e4a0a1e97a0f0`;
+- release/tag target and archive source identity: the exact certification commit
+  owned by `composer.json`;
+- source tree `c884618125450ef2c1ac30e249b3e222fcbf9a4f`.
+
+This is the current automated released-host certification. It does not relabel
+the earlier automated or installed evidence, and it does not complete the
+manual release gate.
+
+### Historical automated released-host evidence
+
+The prior automated released-host certification selected Core
+`v1.0.0-beta.31`, exposing Portability API 3 and Admin Interaction API 3
+without a Logging facade. Its retained publication record is:
 
 - GitHub release ID `402608343`, published and immutable;
 - plugin ZIP asset ID `608190187`;
@@ -129,12 +148,10 @@ The current automated released-host evidence (3 October 2026) is:
 - asset size `4,036,850` bytes;
 - downloaded asset digest
   `sha256:cf0ebbd306fa9086a9f885974f490b0cacb4a172c20f6b290dde13d2f3a7b2c5`;
-- release/tag target and archive source identity: the exact certification commit
-  owned by `composer.json`;
 - source tree `3ca9f410de65a1c513494dded1793fcf9b05d01a`.
 
-This replaces the historical beta.22/API2 automated baseline. It does not
-relabel the earlier installed evidence or complete the manual release gate.
+That historical API 3 record remains separate from the current beta.37/API4
+certification and from every installed acceptance record.
 
 The historical Phase 0 installed proof used the then-current beta.14 Core
 artifact at source commit
@@ -154,11 +171,11 @@ and a checked-out Core whose HEAD or tag resolution contradicts the tuple.
 Quality checks out the certified commit and proves that its exact tag resolves
 to that commit before checking the two real facade constants and ready actions.
 
-The current beta.31 tuple records automated released-host certification only. The earlier disposable
+The current beta.37 tuple records automated released-host certification only. The earlier disposable
 [installed candidate and load-order proof](installed-candidate-load-order-proof.md)
 retained the exact Phase 0 Migrator candidate ZIP and installed it beside the
 historical beta.14 Core artifact and an inactive WP Pusher 3.0.13 fixture. It is
-not installed-runtime evidence for the current beta.31 certification or the
+not installed-runtime evidence for the current beta.37 certification or the
 next Migrator release candidate.
 
 ## Pre-M1 lifecycle characterization

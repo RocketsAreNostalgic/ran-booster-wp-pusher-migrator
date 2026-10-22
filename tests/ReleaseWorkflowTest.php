@@ -16,7 +16,7 @@ final class ReleaseWorkflowTest extends TestCase {
 			self::assertIsString( $document );
 			self::assertStringContainsString( (string) $tuple['tag'], $document );
 			self::assertStringNotContainsString( (string) $tuple['commit'], $document );
-			self::assertStringContainsString( 'Portability API 3', $document );
+			self::assertStringContainsString( 'Portability API 4', $document );
 			self::assertStringContainsString( 'Admin Interaction API 3', $document );
 			self::assertStringContainsString( 'installed', strtolower( $document ) );
 		}
@@ -153,7 +153,7 @@ final class ReleaseWorkflowTest extends TestCase {
 		self::assertIsString( $release );
 
 		self::assertStringContainsString( 'Do not merge a Release Please pull request until this gate is complete', $release );
-		self::assertStringContainsString( 'Portability API 3 and Admin Interaction API 3', $release );
+		self::assertStringContainsString( 'Portability API 4 and Admin Interaction API 3', $release );
 		self::assertStringContainsString( 'disposable single-site WordPress installation', $release );
 		self::assertStringContainsString( 'Record the exact candidate SHA', $release );
 		self::assertStringContainsString( 'does not by itself satisfy items 3–5 for a new candidate', $release );

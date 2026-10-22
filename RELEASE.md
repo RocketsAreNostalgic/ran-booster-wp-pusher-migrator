@@ -21,12 +21,12 @@ The repository-local contract remains:
 - require the plugin header, package manifest, and Release Please manifest to
   agree on the version;
 - verify the exact certified RAN Booster Core tag/commit and its Portability API
-  3 and Admin Interaction API 3 surfaces;
+  4 and Admin Interaction API 3 surfaces;
 - retain the repository-specific installed/manual migration evidence required
   by the product.
 
 The automated released-host certification selects immutable Booster
-`v1.0.0-beta.31` with Portability API 3 and Admin Interaction API 3.
+`v1.0.0-beta.37` with Portability API 4 and Admin Interaction API 3.
 The sole machine-readable tag/full-commit tuple is
 `extra.ran-booster-core-certification` in `composer.json`. This automated
 certification is not a runtime Core pin and does not replace the installed-site
@@ -49,7 +49,7 @@ ZIP SHA-256, certified Booster tag, date, disposable-site identity, and the
 result of each item on the release pull request before merge.
 
 1. Run `composer analyze:certified` against the matching immutable Core. The
-   selected beta.31 tuple supplies Portability3 / Admin Interaction3. Changing
+   selected beta.37 tuple supplies Portability4 / Admin Interaction3. Changing
    this tuple requires a genuine immutable release and fresh automated proof;
    items 3–5 remain the separate owner-verified installed acceptance gate.
    Both release-candidate Quality and the
@@ -62,7 +62,7 @@ result of each item on the release pull request before merge.
    `ran-booster-wp-pusher-migrator/` root and no tests, tools, workflows,
    scripts, dependency directories, or repository metadata.
 3. Install that exact ZIP beside the certified released Booster generation
-   exposing **Portability API 3 and Admin Interaction API 3**, with no add-on
+   exposing **Portability API 4 and Admin Interaction API 3**, with no add-on
    Logging API, in an isolated disposable single-site WordPress installation.
    For Bitbucket coverage, also install the compatible released RAN Booster
    Bitbucket Cloud add-on.

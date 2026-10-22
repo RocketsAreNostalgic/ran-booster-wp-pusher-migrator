@@ -70,7 +70,7 @@ cleanup. Source Quality and exact ZIP coverage do not certify an immutable host.
 analyzes the same production selection against its real declarations. Release
 candidate Quality and the existing shared Release Please caller require it;
 the caller binds that proof to the successful same-repository push/main Quality
-head. The retained immutable beta.31 tuple supplied the historical API3 surfaces; it cannot certify this API4 candidate. A feature-bearing immutable host must be selected and qualified before release.
+head. The immutable beta.37 tuple supplies the current Portability API4 and Admin Interaction API3 surfaces. It qualifies this automated released-host gate only; the exact candidate still requires the separate installed acceptance gate before release.
 Installed acceptance remains required.
 
 Core API constants are dynamic for the runtime compatibility guards;
@@ -128,7 +128,7 @@ exceptions; a token-aware regression prohibits all disable/enable spans and
 standard/category/sniff-wide ignores, regardless of case. Actual-command negative controls
 reject a camelCase inherited helper and a CLI variable. See `docs/migrator-owned-naming-inventory.md`.
 
-The Core `v1.0.0-beta.31` tuple records the automated released-host baseline.
+The Core `v1.0.0-beta.37` tuple records the automated released-host baseline.
 Canonical `composer check` still qualifies the independently pinned API4 source;
 `composer analyze:certified` uses the actual immutable released Core declarations.
 Neither source CI nor that automated host gate replaces release #43's exact
