@@ -20,7 +20,6 @@ defined( 'ABSPATH' ) || exit;
 ?>
 <section class="ran-booster-portability__flow ran-booster-wp-pusher-migrator" id="ran-booster-portability-wp-pusher" aria-labelledby="ran-booster-portability-wp-pusher-heading" hidden>
 	<header class="ran-booster-portability__flow-header">
-		<p class="ran-booster-portability__eyebrow ran-booster-eyebrow"><?php esc_html_e( 'Migration', 'ran-booster-wp-pusher-migrator' ); ?></p>
 		<h3 id="ran-booster-portability-wp-pusher-heading" tabindex="-1"><?php esc_html_e( 'Migrate from WP Pusher', 'ran-booster-wp-pusher-migrator' ); ?></h3>
 		<p><?php esc_html_e( 'Move each package into Booster and check the result before continuing. Migrated packages start with automatic deployments turned off.', 'ran-booster-wp-pusher-migrator' ); ?></p>
 	</header>
