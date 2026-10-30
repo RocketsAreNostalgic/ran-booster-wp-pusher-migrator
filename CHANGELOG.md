@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.0-beta.12](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/compare/v0.1.0-beta.11...v0.1.0-beta.12) (2026-10-30)
+
+
+### Bug Fixes
+
+* **admin:** remove redundant migration eyebrow ([#87](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/87)) ([902b419](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/902b419dbfa0da16131bd5597b58f6e4e65c017b))
+
 ## [0.1.0-beta.11](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/compare/v0.1.0-beta.10...v0.1.0-beta.11) (2026-10-22)
 
 
