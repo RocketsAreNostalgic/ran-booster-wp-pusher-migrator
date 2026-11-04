@@ -37,6 +37,24 @@ final readonly class MigrationRequestController {
 		add_action( 'ran_booster_overview_render_migration_prompt', array( $this, 'render_overview_prompt' ), 20 );
 		add_action( 'admin_post_' . self::ADMIN_POST_ACTION, array( $this, 'handle_admin_post' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ), 20 );
+		add_filter( 'ran_booster_documentation_sections_before_about', array( $this, 'documentation_sections' ), 10, 3 );
+	}
+
+	/**
+	 * @param list<array<string, mixed>> $sections Existing documentation contributions.
+	 * @return list<array<string, mixed>>
+	 */
+	public function documentation_sections( array $sections, string $documentation_url, string $scope ): array {
+		unset( $documentation_url );
+		$sections[] = array(
+			'id'      => 'ran-booster-wp-pusher-migration',
+			'summary' => __( 'Migrate from WP Pusher', 'ran-booster-wp-pusher-migrator' ),
+			'content' => function () use ( $scope ): void {
+				$this->presenter->render_documentation( $scope );
+			},
+			'open'    => false,
+		);
+		return $sections;
 	}
 
 	public function render_mode(): void {
