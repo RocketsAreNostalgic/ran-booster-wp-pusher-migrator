@@ -22,6 +22,12 @@ function add_action( string $hook, callable|array|string $callback, int $priorit
 	);
 }
 
+/** @param callable|array{class-string,string}|string $callback */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- WordPress filter stand-in shares the hook registry.
+function add_filter( string $hook, callable|array|string $callback, int $priority = 10, int $accepted_args = 1 ): void {
+	add_action( $hook, $callback, $priority, $accepted_args );
+}
+
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- The WordPress stand-in must retain the exact global function name called by the code under test.
 function esc_html( mixed $value ): string {
 	return htmlspecialchars( (string) $value, ENT_QUOTES, 'UTF-8' );
@@ -46,13 +52,17 @@ function esc_html__( string $value, string $domain = '' ): string {
 
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- The WordPress stand-in must retain the exact global function name called by the code under test.
 function esc_html_e( string $value, string $domain = '' ): void {
-	unset( $domain );
+	if ( isset( $GLOBALS['ran_booster_wp_pusher_migrator_test_translations'] ) ) {
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_translations'][] = $domain;
+	}
 	echo esc_html( $value );
 }
 
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- The WordPress stand-in must retain the exact global function name called by the code under test.
 function __( string $value, string $domain = '' ): string {
-	unset( $domain );
+	if ( isset( $GLOBALS['ran_booster_wp_pusher_migrator_test_translations'] ) ) {
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_translations'][] = $domain;
+	}
 
 	return $value;
 }

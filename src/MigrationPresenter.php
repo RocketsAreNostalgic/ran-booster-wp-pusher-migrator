@@ -28,6 +28,11 @@ final readonly class MigrationPresenter {
 	) {
 	}
 
+	public function render_documentation( string $scope ): void {
+		$migration_url = 'network' === $scope ? '' : $this->migration_url();
+		require dirname( __DIR__ ) . '/views/documentation.php';
+	}
+
 	public function render_mode(): void {
 		require dirname( __DIR__ ) . '/views/migration-mode.php';
 	}
