@@ -254,7 +254,19 @@ final class WpPusherSource {
 		if ( ! is_callable( array( $this->database, 'get_var' ) ) ) {
 			throw new RuntimeException( 'The WP Pusher package table reader is unavailable.' );
 		}
-		return $table === $this->database->get_var( $sql );
+		$found = $this->database->get_var( $sql );
+		if ( $table === $found ) {
+			return true;
+		}
+		if ( ! is_string( $found ) || 0 !== strcasecmp( $table, $found ) ) {
+			return false;
+		}
+
+		return match ( $this->database->get_var( 'SELECT @@lower_case_table_names' ) ) {
+			1, '1' => strtolower( $table ) === $found,
+			2, '2' => true,
+			default => false,
+		};
 	}
 
 	/** @return array<string, array<string, mixed>> */
