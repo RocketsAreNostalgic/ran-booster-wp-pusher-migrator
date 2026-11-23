@@ -33,6 +33,23 @@ final class WpPusherSourceTest extends TestCase {
 		yield 'different version with compatible seeded data' => array( '4.0.0' );
 	}
 
+	public function test_accepts_folded_table_name_on_case_insensitive_server(): void {
+		$database                 = new FakeDatabase();
+		$database->prefix         = 'Wp_';
+		$database->reported_table = 'wp_wppusher_packages';
+		$database->table_mode     = '1';
+
+		self::assertCount( 1, $this->source( $database )->packages() );
+	}
+
+	public function test_ignores_differently_cased_table_on_case_sensitive_server(): void {
+		$database                 = new FakeDatabase();
+		$database->prefix         = 'Wp_';
+		$database->reported_table = 'wp_wppusher_packages';
+
+		self::assertSame( array(), $this->source( $database )->packages() );
+	}
+
 	/** @param array<string, array<string, mixed>> $plugins */
 	#[DataProvider( 'invalid_plugin_metadata_provider' )]
 	public function test_requires_recognized_installed_plugin_before_reading_data( array $plugins ): void {
@@ -389,8 +406,10 @@ final class FakeDatabase {
 
 	/** @var list<array<string, mixed>> */
 	public array $rows;
-	public int $affected_rows = 1;
-	public bool $table_exists = true;
+	public int $affected_rows      = 1;
+	public bool $table_exists      = true;
+	public ?string $reported_table = null;
+	public string $table_mode      = '0';
 
 	public function __construct() {
 		$types        = array(
@@ -453,7 +472,10 @@ final class FakeDatabase {
 	public function get_var( string $query ): string|int|null {
 		$this->queries[] = $query;
 		if ( str_starts_with( $query, 'SHOW TABLES' ) ) {
-			return $this->table_exists ? $this->prefix . 'wppusher_packages' : null;
+			return $this->table_exists ? ( $this->reported_table ?? $this->prefix . 'wppusher_packages' ) : null;
+		}
+		if ( 'SELECT @@lower_case_table_names' === $query ) {
+			return $this->table_mode;
 		}
 
 		return count( $this->rows );
