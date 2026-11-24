@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 namespace RAN\BoosterWpPusherMigrator\Tests;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RAN\AddOn\Portability\PortabilityApplyResult;
 use RAN\AddOn\Portability\PortabilityCandidate;
@@ -28,19 +29,23 @@ final class PluginAdminPostTest extends TestCase {
 	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Exact PHPUnit lifecycle override.
 	protected function setUp(): void {
 		parent::setUp();
+		$_GET  = array();
 		$_POST = array();
-		$GLOBALS['ran_booster_wp_pusher_migrator_test_can_manage']   = true;
-		$GLOBALS['ran_booster_wp_pusher_migrator_test_capabilities'] = array();
-		$GLOBALS['ran_booster_wp_pusher_migrator_test_events']       = array();
-		$GLOBALS['ran_booster_wp_pusher_migrator_test_plugins']      = array(
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_can_manage']      = true;
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_capabilities']    = array();
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_events']          = array();
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_enqueued_styles'] = array();
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_plugins']         = array(
 			'fixture/fixture.php' => array( 'Name' => 'Fixture Plugin' ),
 		);
 	}
 
 	// phpcs:ignore RANOwnedMethods.NamingConventions.ValidMethodName.NotSnakeCase -- Exact PHPUnit lifecycle override.
 	protected function tearDown(): void {
+		$_GET  = array();
 		$_POST = array();
-		$GLOBALS['ran_booster_wp_pusher_migrator_test_capabilities'] = array();
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_capabilities']    = array();
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_enqueued_styles'] = array();
 		parent::tearDown();
 	}
 
@@ -511,6 +516,86 @@ final class PluginAdminPostTest extends TestCase {
 		self::assertSame( 'unexpected_failure', $interaction->outcome?->kind() );
 		self::assertSame( 'We could not complete that request. Please try again.', $interaction->outcome->message() );
 		self::assertStringNotContainsString( 'SECRET-CANARY', (string) $interaction->outcome->message() );
+	}
+
+	/** @return iterable<string, array{mixed, array<string, mixed>, bool}> */
+	public static function enqueue_assets_cases(): iterable {
+		yield 'standalone transporter page without tab' => array(
+			'ran-booster_page_ran-booster-transporter',
+			array(),
+			true,
+		);
+		yield 'standalone transporter page with unrelated tab' => array(
+			'ran-booster_page_ran-booster-transporter',
+			array( 'tab' => 'settings' ),
+			true,
+		);
+		yield 'toplevel page without tab defaults to overview' => array(
+			'toplevel_page_ran-booster',
+			array(),
+			true,
+		);
+		yield 'toplevel page overview tab' => array(
+			'toplevel_page_ran-booster',
+			array( 'tab' => 'overview' ),
+			true,
+		);
+		yield 'toplevel page portability tab' => array(
+			'toplevel_page_ran-booster',
+			array( 'tab' => 'portability' ),
+			true,
+		);
+		yield 'toplevel page settings tab does not enqueue' => array(
+			'toplevel_page_ran-booster',
+			array( 'tab' => 'settings' ),
+			false,
+		);
+		yield 'unrelated admin hook does not enqueue' => array(
+			'plugins.php',
+			array( 'tab' => 'overview' ),
+			false,
+		);
+		yield 'unrelated booster submenu does not enqueue' => array(
+			'ran-booster_page_ran-booster-plugins',
+			array(),
+			false,
+		);
+		yield 'null hook does not enqueue' => array(
+			null,
+			array(),
+			false,
+		);
+		yield 'integer hook does not enqueue' => array(
+			123,
+			array(),
+			false,
+		);
+	}
+
+	/** @param array<string, mixed> $query */
+	#[DataProvider( 'enqueue_assets_cases' )]
+	public function test_enqueue_assets_loads_only_on_supported_admin_screens( mixed $hook, array $query, bool $expected_enqueued ): void {
+		$this->connect( new AdminPostDatabase(), new AdminPostPortabilityFacade(), new AdminPostInteractionSpy() );
+		$_GET = $query;
+
+		$this->controller->enqueue_assets( $hook );
+
+		$styles = $GLOBALS['ran_booster_wp_pusher_migrator_test_enqueued_styles'];
+		if ( ! $expected_enqueued ) {
+			self::assertSame( array(), $styles );
+			return;
+		}
+
+		$asset_path = dirname( __DIR__ ) . '/assets/wp-pusher-migrator.css';
+		self::assertCount( 1, $styles );
+		self::assertSame( 'ran-booster-wp-pusher-migrator', $styles[0]['handle'] );
+		self::assertSame(
+			'https://example.test/wp-content/plugins/ran-booster-wp-pusher-migrator/assets/wp-pusher-migrator.css',
+			$styles[0]['src']
+		);
+		self::assertSame( array( 'ran-booster-onboarding' ), $styles[0]['deps'] );
+		self::assertSame( (string) filemtime( $asset_path ), $styles[0]['ver'] );
+		self::assertSame( 'all', $styles[0]['media'] );
 	}
 
 	private function run_handler(): void {
