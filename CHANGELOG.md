@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.0-beta.12](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/compare/v0.1.0-beta.11...v0.1.0-beta.12) (2026-11-24)
+
+
+### Bug Fixes
+
+* **admin-ui:** enqueue Transporter CSS and enforce BEM ([#97](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/97)) ([7c020c8](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/7c020c850cb293bf902648c1525e8d861de04e5c))
+* **admin:** remove redundant migration eyebrow ([#87](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/87)) ([902b419](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/902b419dbfa0da16131bd5597b58f6e4e65c017b))
+* **migrator:** honor database table-name casing mode ([#95](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/95)) ([a22ed1c](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/a22ed1c309939f2f4e8cfe9dfb5c0e4b01347437))
+
 ## [0.1.0-beta.11](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/compare/v0.1.0-beta.10...v0.1.0-beta.11) (2026-10-22)
 
 
