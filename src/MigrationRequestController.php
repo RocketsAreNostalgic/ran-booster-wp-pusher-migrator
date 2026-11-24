@@ -60,27 +60,37 @@ final readonly class MigrationRequestController {
 		}
 
 		try {
-			$outcome  = $submitted ? $this->operation_outcome( $operation, $request ) : null;
-			$error    = null !== $outcome && 'success' !== $outcome['kind'] && null === $outcome['apply']
+			$outcome             = $submitted ? $this->operation_outcome( $operation, $request ) : null;
+			$error               = null !== $outcome && 'success' !== $outcome['kind'] && null === $outcome['apply']
 				? ( 'unexpected_failure' === $outcome['kind']
 					? __( 'Booster could not safely process this WP Pusher package. Reload Transporter and try again.', 'ran-booster-wp-pusher-migrator' )
 					: $outcome['message'] )
 				: '';
-			$packages = '' === $error ? $this->migration->packages() : array();
+			$inventory           = '' === $error ? $this->migration->inventory() : WpPusherInventory::empty_inventory();
+			$option_presence     = '' === $error && $inventory->is_installed() ? $this->source->option_presence() : array();
+			$apply               = $outcome['apply'] ?? null;
+			$apply_completed_all = null !== $apply
+				&& $apply['result']->target_verified
+				&& ! $apply['cleanup_pending']
+				&& $inventory->is_empty();
+			$info                = '' === $error && $inventory->is_empty() && ! $apply_completed_all
+				? $this->presenter->empty_inventory_message( $inventory )
+				: '';
 			$this->presenter->render_panel(
-				$packages,
+				$inventory->entries,
 				$outcome['review'] ?? null,
-				$outcome['apply'] ?? null,
-				'' === $error ? $this->source->option_presence() : array(),
-				$error
+				$apply,
+				$option_presence,
+				$error,
+				$info
 			);
-		} catch ( Throwable ) {
+		} catch ( Throwable $failure ) {
 			$this->presenter->render_panel(
 				array(),
 				null,
 				null,
 				array(),
-				__( 'Booster could not read this WP Pusher installation safely. Check that WP Pusher is installed and inactive and its retained package data is compatible, then try again.', 'ran-booster-wp-pusher-migrator' )
+				$this->presenter->source_error_message( $failure )
 			);
 		}
 	}
@@ -259,7 +269,7 @@ final readonly class MigrationRequestController {
 
 	private function migration_complete(): bool {
 		try {
-			return array() === $this->migration->packages();
+			return $this->migration->inventory()->is_empty();
 		} catch ( Throwable ) {
 			return false;
 		}

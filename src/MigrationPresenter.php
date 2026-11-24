@@ -33,25 +33,27 @@ final readonly class MigrationPresenter {
 	}
 
 	/**
-	 * @param list<WpPusherPackage> $packages
+	 * @param list<WpPusherPackage|WpPusherRejectedPackage>                 $entries
 	 * @param array{result:PortabilityApplyResult,cleanup_pending:bool}|null $apply
-	 * @param array<string, bool> $option_presence
+	 * @param array<string, bool>                                           $option_presence
 	 */
 	public function render_panel(
-		array $packages,
+		array $entries,
 		?PortabilityReviewResult $review,
 		?array $apply,
 		array $option_presence,
-		string $error
+		string $error,
+		string $info = ''
 	): void {
-		$rows                = $this->rows( $packages, $review );
+		$rows                = $this->rows( $entries, $review );
 		$has_error           = '' !== $error;
-		$legacy_data_present = ! $has_error && in_array( true, $option_presence, true );
+		$has_info            = ! $has_error && '' !== $info;
+		$legacy_data_present = ! $has_error && ! $has_info && in_array( true, $option_presence, true );
 		$apply_visible       = null !== $apply;
 		$apply_class         = $apply_visible && $apply['result']->target_verified ? 'notice-success' : 'notice-error';
 		$apply_message       = $apply['result']->message ?? '';
 		$cleanup_pending     = $apply['cleanup_pending'] ?? false;
-		$completion_visible  = array() === $rows;
+		$completion_visible  = ! $has_error && ! $has_info && array() === $rows;
 		$admin_interaction   = $this->admin_interaction;
 		$plugins_url         = admin_url( 'plugins.php' );
 		require dirname( __DIR__ ) . '/views/source-card.php';
@@ -62,16 +64,90 @@ final readonly class MigrationPresenter {
 		require dirname( __DIR__ ) . '/views/overview-prompt.php';
 	}
 
+	public function empty_inventory_message( WpPusherInventory $inventory ): string {
+		if ( WpPusherInventory::STATUS_NOT_INSTALLED === $inventory->status ) {
+			return __( 'No WP Pusher packages were detected. WP Pusher is not installed on this site.', 'ran-booster-wp-pusher-migrator' );
+		}
+
+		return __( 'No WP Pusher packages were detected.', 'ran-booster-wp-pusher-migrator' );
+	}
+
+	public function source_error_message( Throwable $failure ): string {
+		if ( ! $failure instanceof WpPusherSourceException ) {
+			return __( 'Booster could not read this WP Pusher installation safely. Reload Transporter and try again.', 'ran-booster-wp-pusher-migrator' );
+		}
+
+		return match ( $failure->reason ) {
+			WpPusherSourceException::REASON_MULTISITE => __( 'WP Pusher migration supports single-site WordPress only.', 'ran-booster-wp-pusher-migrator' ),
+			WpPusherSourceException::REASON_INVALID_PLUGIN_METADATA => __( 'WP Pusher is installed, but its version metadata is missing or invalid.', 'ran-booster-wp-pusher-migrator' ),
+			WpPusherSourceException::REASON_PLUGIN_ACTIVE => __( 'WP Pusher is still active. Deactivate WP Pusher before migrating retained packages.', 'ran-booster-wp-pusher-migrator' ),
+			WpPusherSourceException::REASON_UNSUPPORTED_SCHEMA => __( 'The retained WP Pusher package table schema is not supported.', 'ran-booster-wp-pusher-migrator' ),
+			WpPusherSourceException::REASON_INVENTORY_LIMIT_EXCEEDED => __( 'The retained WP Pusher package table contains more than 128 packages, which is not supported.', 'ran-booster-wp-pusher-migrator' ),
+			WpPusherSourceException::REASON_DUPLICATE_PACKAGES => __( 'The retained WP Pusher package table contains duplicate package records.', 'ran-booster-wp-pusher-migrator' ),
+			WpPusherSourceException::REASON_MALFORMED_PACKAGE_ROW => __( 'The retained WP Pusher package table contains a malformed package record.', 'ran-booster-wp-pusher-migrator' ),
+			WpPusherSourceException::REASON_DB_PREFIX_INVALID => __( 'Could not read WP Pusher data: the WordPress database prefix is unavailable or invalid (code: db_prefix_invalid).', 'ran-booster-wp-pusher-migrator' ),
+			WpPusherSourceException::REASON_DB_TABLE_READER_UNAVAILABLE => __( 'Could not read WP Pusher data: the database table reader is unavailable (code: db_table_reader_unavailable).', 'ran-booster-wp-pusher-migrator' ),
+			WpPusherSourceException::REASON_DB_SCHEMA_READER_UNAVAILABLE => __( 'Could not read WP Pusher data: the database schema reader is unavailable (code: db_schema_reader_unavailable).', 'ran-booster-wp-pusher-migrator' ),
+			WpPusherSourceException::REASON_DB_READER_UNAVAILABLE => __( 'Could not read WP Pusher data: the database package reader is unavailable (code: db_reader_unavailable).', 'ran-booster-wp-pusher-migrator' ),
+			WpPusherSourceException::REASON_DB_OPTION_READER_UNAVAILABLE => __( 'Could not read WP Pusher settings: the database option reader is unavailable (code: db_option_reader_unavailable).', 'ran-booster-wp-pusher-migrator' ),
+			WpPusherSourceException::REASON_DB_CLEANUP_UNAVAILABLE => __( 'Could not clean up the WP Pusher record: the database writer is unavailable (code: db_cleanup_unavailable).', 'ran-booster-wp-pusher-migrator' ),
+			WpPusherSourceException::REASON_DB_QUERY_FAILED => __( 'Could not access WP Pusher data: a database query failed (code: db_query_failed).', 'ran-booster-wp-pusher-migrator' ),
+			default => __( 'Booster could not read this WP Pusher installation safely. Reload Transporter and try again.', 'ran-booster-wp-pusher-migrator' ),
+		};
+	}
+
 	/**
-	 * @param list<WpPusherPackage> $packages
+	 * @param list<WpPusherPackage|WpPusherRejectedPackage> $entries
 	 * @return list<array<string, mixed>>
 	 */
-	private function rows( array $packages, ?PortabilityReviewResult $review ): array {
+	private function rows( array $entries, ?PortabilityReviewResult $review ): array {
 		$rows = array();
-		foreach ( $packages as $source ) {
-			$rows[] = $this->row( $source, null !== $review && $review->candidate->identifier === $source->package ? $review : null );
+		foreach ( $entries as $entry ) {
+			if ( $entry instanceof WpPusherRejectedPackage ) {
+				$rows[] = $this->rejected_row( $entry );
+				continue;
+			}
+			$rows[] = $this->row( $entry, null !== $review && $review->candidate->identifier === $entry->package ? $review : null );
 		}
 		return $rows;
+	}
+
+	/** @return array<string, mixed> */
+	public function rejected_row( WpPusherRejectedPackage $rejected ): array {
+		$status_message = match ( $rejected->reason ) {
+			WpPusherRejectedPackage::REASON_INVALID_SUBDIRECTORY => sprintf(
+				/* translators: %s: stored WP Pusher subdirectory value. */
+				__( "Can't migrate: subdirectory \"%s\" isn't a plain relative path.", 'ran-booster-wp-pusher-migrator' ),
+				$rejected->display_subdirectory()
+			),
+			default => __( 'This retained package is unsupported.', 'ran-booster-wp-pusher-migrator' ),
+		};
+
+		return array(
+			'package'              => $rejected->package,
+			'repository'           => $rejected->repository,
+			'migration_url'        => $this->migration_url(),
+			'form_action'          => self::FORM_ACTION,
+			'apply_form_action'    => self::APPLY_FORM_ACTION,
+			'admin_post_action'    => self::ADMIN_POST_ACTION,
+			'source_id'            => $rejected->id,
+			'source_fingerprint'   => '',
+			'private'              => false,
+			'review_fingerprint'   => '',
+			'provider_expectation' => 'null',
+			'credential_id'        => '',
+			'migration_complete'   => false,
+			'status_heading'       => __( 'Cannot adopt', 'ran-booster-wp-pusher-migrator' ),
+			'status_message'       => $status_message,
+			'status_strong'        => true,
+			'action'               => 'none',
+			'action_label'         => '',
+			'manage_url'           => '',
+			'manage_label'         => '',
+			'form_request'         => null,
+			'target_element_id'    => '',
+			'error_region_id'      => $this->error_region_id_for_identity( $rejected->type, $rejected->package ),
+		);
 	}
 
 	/** @return array<string, mixed> */
@@ -167,7 +243,11 @@ final readonly class MigrationPresenter {
 	}
 
 	private function error_region_id( WpPusherPackage $source ): string {
-		return 'ran-booster-wp-pusher-row-error-' . substr( hash( 'sha256', $source->type . ':' . $source->package ), 0, 32 );
+		return $this->error_region_id_for_identity( $source->type, $source->package );
+	}
+
+	private function error_region_id_for_identity( int $type, string $package ): string {
+		return 'ran-booster-wp-pusher-row-error-' . substr( hash( 'sha256', $type . ':' . $package ), 0, 32 );
 	}
 
 	private function migration_url(): string {
@@ -175,6 +255,9 @@ final readonly class MigrationPresenter {
 	}
 
 	public function failure_message( Throwable $failure ): ?string {
+		if ( $failure instanceof WpPusherSourceException ) {
+			return $this->source_error_message( $failure );
+		}
 		if ( ! $failure instanceof RuntimeException ) {
 			return null;
 		}
@@ -191,13 +274,6 @@ final readonly class MigrationPresenter {
 				'The Booster credential profile identifier is invalid.',
 				'The WP Pusher plugin is not installed.',
 				'The WP Pusher theme is not installed.',
-				'The retained WP Pusher package inventory is unsupported.',
-				'The retained WP Pusher package inventory contains duplicates.',
-				'WP Pusher migration supports single-site WordPress only.',
-				'An installed WP Pusher plugin with valid version metadata is required.',
-				'Deactivate WP Pusher before assessing retained packages.',
-				'The retained WP Pusher package schema is unsupported.',
-				'The WordPress database prefix is invalid.',
 			),
 			true
 		) ? $failure->getMessage() : null;

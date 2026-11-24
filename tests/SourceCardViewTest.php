@@ -14,6 +14,7 @@ use RAN\Admin\Interaction\TransporterRowAdminInteractionFacade;
 use RAN\BoosterWpPusherMigrator\CandidateFactory;
 use RAN\BoosterWpPusherMigrator\MigrationPresenter;
 use RAN\BoosterWpPusherMigrator\WpPusherPackage;
+use RAN\BoosterWpPusherMigrator\WpPusherRejectedPackage;
 use RuntimeException;
 
 final class SourceCardViewTest extends TestCase {
@@ -51,7 +52,9 @@ final class SourceCardViewTest extends TestCase {
 		);
 		$rows                = array( $this->row( $source, $candidate, $review ) );
 		$error               = '';
+		$info                = '';
 		$has_error           = false;
+		$has_info            = false;
 		$legacy_data_present = true;
 		$apply               = null;
 		$apply_visible       = false;
@@ -250,6 +253,65 @@ final class SourceCardViewTest extends TestCase {
 		);
 	}
 
+	public function test_informational_empty_state_renders_info_notice_without_error_or_completion(): void {
+		$output = $this->render_rows( array(), array(), 'No WP Pusher packages were detected.' );
+
+		self::assertStringContainsString( '<div class="notice notice-info inline"><p>No WP Pusher packages were detected.</p></div>', $output );
+		self::assertStringNotContainsString( 'notice-error', $output );
+		self::assertStringNotContainsString( 'completion-panel--visible', $output );
+		self::assertStringNotContainsString( 'ran-booster-wp-pusher-migrator__packages', $output );
+	}
+
+	public function test_rejected_subdirectory_row_renders_escaped_reason_alongside_valid_row(): void {
+		$interaction = new SourceCardInteractionSpy();
+		$presenter   = new MigrationPresenter(
+			new CandidateFactory(
+				static fn (): array => array( 'fixture/fixture.php' => array( 'Name' => 'Fixture Plugin' ) )
+			),
+			$interaction
+		);
+		$valid       = WpPusherPackage::from_row(
+			array(
+				'id'           => '1',
+				'package'      => 'fixture/fixture.php',
+				'repository'   => 'RocketsAreNostalgic/booster-fixture-plugin',
+				'branch'       => 'main',
+				'type'         => '1',
+				'status'       => '1',
+				'ptd'          => '0',
+				'host'         => 'gh',
+				'private'      => '0',
+				'subdirectory' => 'plugins/foo/',
+			)
+		);
+		$rejected    = new WpPusherRejectedPackage(
+			2,
+			'bad/bad.php',
+			'RocketsAreNostalgic/bad-plugin',
+			1,
+			'../<script>alert("x")</script>'
+		);
+
+		$this->interaction = $interaction;
+		$output            = $this->render_rows(
+			array(
+				$presenter->row( $valid, null ),
+				$presenter->rejected_row( $rejected ),
+			)
+		);
+
+		self::assertStringContainsString( '<code>fixture/fixture.php</code>', $output );
+		self::assertStringContainsString( '>Check</button>', $output );
+		self::assertStringContainsString( '<code>bad/bad.php</code>', $output );
+		self::assertStringContainsString( '<strong>Cannot adopt</strong>', $output );
+		self::assertStringContainsString(
+			'Can&#039;t migrate: subdirectory &quot;../&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;&quot; isn&#039;t a plain relative path.',
+			$output
+		);
+		self::assertStringNotContainsString( '<script', $output );
+		self::assertSame( array( 'wp-pusher:check-package' ), $interaction->rendered_operations );
+	}
+
 	private function render_public_package(
 		?string $review_action = null,
 		?SourceCardInteractionSpy $interaction = null,
@@ -308,16 +370,17 @@ final class SourceCardViewTest extends TestCase {
 	 * @param list<array<string, mixed>> $rows
 	 * @param array<string, bool>        $option_presence
 	 */
-	private function render_rows( array $rows, array $option_presence = array() ): string {
+	private function render_rows( array $rows, array $option_presence = array(), string $info = '' ): string {
 		$error               = '';
 		$has_error           = false;
-		$legacy_data_present = in_array( true, $option_presence, true );
+		$has_info            = '' !== $info;
+		$legacy_data_present = ! $has_info && in_array( true, $option_presence, true );
 		$apply               = null;
 		$apply_visible       = false;
 		$apply_class         = 'notice-error';
 		$apply_message       = '';
 		$cleanup_pending     = false;
-		$completion_visible  = array() === $rows;
+		$completion_visible  = ! $has_info && array() === $rows;
 		$plugins_url         = 'https://example.test/wp-admin/plugins.php';
 		$admin_interaction   = $this->interaction ?? new SourceCardInteractionSpy();
 

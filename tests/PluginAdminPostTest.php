@@ -598,6 +598,194 @@ final class PluginAdminPostTest extends TestCase {
 		self::assertSame( 'all', $styles[0]['media'] );
 	}
 
+	public function test_render_panel_shows_informational_notice_when_wp_pusher_is_absent(): void {
+		$database = new AdminPostDatabase();
+		$this->connect_custom( $database, new AdminPostPortabilityFacade(), new AdminPostInteractionSpy(), array() );
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_events'] = array();
+
+		ob_start();
+		$this->controller->render_panel();
+		$output = (string) ob_get_clean();
+
+		self::assertStringContainsString( 'notice-info', $output );
+		self::assertStringContainsString( 'No WP Pusher packages were detected. WP Pusher is not installed on this site.', $output );
+		self::assertStringNotContainsString( 'notice-error', $output );
+		self::assertStringNotContainsString( 'completion-panel--visible', $output );
+		self::assertNotContains( 'database', $GLOBALS['ran_booster_wp_pusher_migrator_test_events'] );
+	}
+
+	public function test_render_panel_shows_informational_notice_when_inactive_with_no_packages(): void {
+		foreach ( array( false, true ) as $table_exists ) {
+			$database               = new AdminPostDatabase();
+			$database->table_exists = $table_exists;
+			$database->rows         = array();
+			$this->connect( $database, new AdminPostPortabilityFacade(), new AdminPostInteractionSpy() );
+
+			ob_start();
+			$this->controller->render_panel();
+			$output = (string) ob_get_clean();
+
+			self::assertStringContainsString( 'notice-info', $output );
+			self::assertStringContainsString( 'No WP Pusher packages were detected.', $output );
+			self::assertStringNotContainsString( 'notice-error', $output );
+			self::assertStringNotContainsString( 'completion-panel--visible', $output );
+		}
+	}
+
+	public function test_render_panel_maps_each_distinct_read_failure_to_its_own_fixed_message(): void {
+		// Active plugin.
+		$this->connect_custom(
+			new AdminPostDatabase(),
+			new AdminPostPortabilityFacade(),
+			new AdminPostInteractionSpy(),
+			array( WpPusherSource::PLUGIN => array( 'Version' => '3.0.18' ) ),
+			array( WpPusherSource::PLUGIN )
+		);
+		$active_output = $this->capture_panel();
+		self::assertStringContainsString( 'notice-error', $active_output );
+		self::assertStringContainsString( 'WP Pusher is still active. Deactivate WP Pusher before migrating retained packages.', $active_output );
+		self::assertStringNotContainsString( '(code:', $active_output );
+
+		// Multisite.
+		$this->connect_custom(
+			new AdminPostDatabase(),
+			new AdminPostPortabilityFacade(),
+			new AdminPostInteractionSpy(),
+			array( WpPusherSource::PLUGIN => array( 'Version' => '3.0.18' ) ),
+			array(),
+			array(),
+			true
+		);
+		$multisite_output = $this->capture_panel();
+		self::assertStringContainsString( 'notice-error', $multisite_output );
+		self::assertStringContainsString( 'WP Pusher migration supports single-site WordPress only.', $multisite_output );
+		self::assertStringNotContainsString( '(code:', $multisite_output );
+
+		// Invalid plugin version metadata.
+		$this->connect_custom(
+			new AdminPostDatabase(),
+			new AdminPostPortabilityFacade(),
+			new AdminPostInteractionSpy(),
+			array( WpPusherSource::PLUGIN => array( 'Version' => '' ) )
+		);
+		$metadata_output = $this->capture_panel();
+		self::assertStringContainsString( 'notice-error', $metadata_output );
+		self::assertStringContainsString( 'WP Pusher is installed, but its version metadata is missing or invalid.', $metadata_output );
+		self::assertStringNotContainsString( '(code:', $metadata_output );
+
+		// Unsupported schema.
+		$schema_database                     = new AdminPostDatabase();
+		$schema_database->unsupported_schema = true;
+		$this->connect( $schema_database, new AdminPostPortabilityFacade(), new AdminPostInteractionSpy() );
+		$schema_output = $this->capture_panel();
+		self::assertStringContainsString( 'notice-error', $schema_output );
+		self::assertStringContainsString( 'The retained WP Pusher package table schema is not supported.', $schema_output );
+		self::assertStringNotContainsString( '(code:', $schema_output );
+
+		// Duplicate retained rows.
+		$dup_database       = new AdminPostDatabase();
+		$dup_database->rows = array(
+			AdminPostDatabase::fixture_row(),
+			array_merge( AdminPostDatabase::fixture_row(), array( 'id' => '2' ) ),
+		);
+		$this->connect( $dup_database, new AdminPostPortabilityFacade(), new AdminPostInteractionSpy() );
+		$dup_output = $this->capture_panel();
+		self::assertStringContainsString( 'notice-error', $dup_output );
+		self::assertStringContainsString( 'The retained WP Pusher package table contains duplicate package records.', $dup_output );
+		self::assertStringNotContainsString( '(code:', $dup_output );
+
+		// Database reader unavailable (closed reason + code).
+		$no_reader = new class() {
+			public string $prefix = 'wp_';
+		};
+		$this->connect_custom( $no_reader, new AdminPostPortabilityFacade(), new AdminPostInteractionSpy() );
+		$db_reader_output = $this->capture_panel();
+		self::assertStringContainsString( 'notice-error', $db_reader_output );
+		self::assertStringContainsString( '(code: db_table_reader_unavailable)', $db_reader_output );
+
+		// Option reader unavailable (closed reason + code).
+		$no_options = new class() extends AdminPostDatabase {
+			public function __construct() {
+				parent::__construct();
+				unset( $this->options );
+			}
+		};
+		$this->connect_custom( $no_options, new AdminPostPortabilityFacade(), new AdminPostInteractionSpy() );
+		$option_reader_output = $this->capture_panel();
+		self::assertStringContainsString( 'notice-error', $option_reader_output );
+		self::assertStringContainsString( '(code: db_option_reader_unavailable)', $option_reader_output );
+
+		// Database query failure: closed reason + code, never SQL text.
+		$sql_error_database             = new AdminPostDatabase();
+		$sql_error_database->last_error = "SQLSTATE[42S02]: Table 'secret_db.wp_wppusher_packages' doesn't exist in SELECT `id` FROM `wp_wppusher_packages`";
+		$this->connect( $sql_error_database, new AdminPostPortabilityFacade(), new AdminPostInteractionSpy() );
+		$sql_output = $this->capture_panel();
+		self::assertStringContainsString( 'notice-error', $sql_output );
+		self::assertStringContainsString( '(code: db_query_failed)', $sql_output );
+		self::assertStringNotContainsString( 'SQLSTATE', $sql_output );
+		self::assertStringNotContainsString( 'SELECT', $sql_output );
+		self::assertStringNotContainsString( 'secret_db', $sql_output );
+	}
+
+	public function test_native_apply_of_last_package_shows_completion_panel_instead_of_empty_info(): void {
+		$database    = new AdminPostDatabase();
+		$portability = new AdminPostPortabilityFacade();
+		$interaction = new AdminPostInteractionSpy();
+		$this->connect( $database, $portability, $interaction );
+		$source = $this->source_package( $database );
+		$_POST  = $this->apply_request( $source, 'v1:' . str_repeat( 'a', 64 ) );
+
+		$output = $this->capture_panel();
+
+		self::assertSame( array(), $database->rows );
+		self::assertStringContainsString( 'completion-panel--visible', $output );
+		self::assertStringContainsString( 'Migration complete!', $output );
+		self::assertStringNotContainsString( 'notice-info', $output );
+	}
+
+	public function test_panel_lists_valid_and_rejected_subdirectory_rows_and_keeps_completion_off_while_rejected_remains(): void {
+		$database                     = new AdminPostDatabase();
+		$valid_row                    = AdminPostDatabase::fixture_row();
+		$valid_row['subdirectory']    = 'plugins/foo/';
+		$rejected_row                 = AdminPostDatabase::fixture_row();
+		$rejected_row['id']           = '2';
+		$rejected_row['package']      = 'bad/bad.php';
+		$rejected_row['subdirectory'] = '../<script>alert(1)</script>';
+		$database->rows               = array( $valid_row, $rejected_row );
+		$portability                  = new AdminPostPortabilityFacade();
+		$interaction                  = new AdminPostInteractionSpy();
+		$this->connect( $database, $portability, $interaction );
+
+		$panel = $this->capture_panel();
+		self::assertStringContainsString( '<code>fixture/fixture.php</code>', $panel );
+		self::assertStringContainsString( '>Check</button>', $panel );
+		self::assertStringContainsString( '<code>bad/bad.php</code>', $panel );
+		self::assertStringContainsString(
+			'Can&#039;t migrate: subdirectory &quot;../&lt;script&gt;alert(1)&lt;/script&gt;&quot; isn&#039;t a plain relative path.',
+			$panel
+		);
+		self::assertStringNotContainsString( '<script', $panel );
+		self::assertStringNotContainsString( 'notice-error', $panel );
+
+		// Adopting the valid trailing-slash row cleans up only the valid row and keeps completion off.
+		$source = $this->source_package( $database );
+		$_POST  = $this->apply_request( $source, 'v1:' . str_repeat( 'a', 64 ) );
+		$this->run_handler();
+
+		self::assertSame( 'plugins/foo', $portability->candidate?->subdirectory );
+		self::assertCount( 1, $database->rows );
+		self::assertSame( 'bad/bad.php', $database->rows[0]['package'] );
+		self::assertStringContainsString( '>Settings</a>', $interaction->fragment );
+		self::assertStringNotContainsString( 'data-ran-booster-wp-pusher-migration-complete', $interaction->fragment );
+	}
+
+	private function capture_panel(): string {
+		ob_start();
+		$this->controller->render_panel();
+
+		return (string) ob_get_clean();
+	}
+
 	private function run_handler(): void {
 		try {
 			$this->controller->handle_admin_post();
@@ -612,19 +800,37 @@ final class PluginAdminPostTest extends TestCase {
 		AdminPostPortabilityFacade $portability,
 		AdminPostInteractionSpy $interaction
 	): void {
-		$source           = new WpPusherSource(
+		$this->connect_custom( $database, $portability, $interaction );
+	}
+
+	/**
+	 * @param array<string, array<string, mixed>>|null $plugins
+	 * @param array<int, string>                       $active_plugins
+	 * @param array<string, mixed>                     $network_active_plugins
+	 */
+	private function connect_custom(
+		object $database,
+		AdminPostPortabilityFacade $portability,
+		AdminPostInteractionSpy $interaction,
+		?array $plugins = null,
+		array $active_plugins = array(),
+		array $network_active_plugins = array(),
+		bool $multisite = false
+	): void {
+		$installed_plugins = $plugins ?? array( WpPusherSource::PLUGIN => array( 'Version' => '3.0.18' ) );
+		$source            = new WpPusherSource(
 			$database,
-			static fn (): array => array( WpPusherSource::PLUGIN => array( 'Version' => '3.0.18' ) ),
-			static fn (): array => array(),
-			static fn (): array => array(),
-			static fn (): bool => false
+			static fn (): array => $installed_plugins,
+			static fn (): array => $active_plugins,
+			static fn (): array => $network_active_plugins,
+			static fn (): bool => $multisite
 		);
-		$factory          = new CandidateFactory(
+		$factory           = new CandidateFactory(
 			static fn (): array => array( 'fixture/fixture.php' => array( 'Name' => 'Fixture Plugin' ) )
 		);
-		$service          = new MigrationService( $source, $factory, $portability );
-		$presenter        = new MigrationPresenter( $factory, $interaction );
-		$this->controller = new MigrationRequestController( $service, $source, $presenter, $interaction );
+		$service           = new MigrationService( $source, $factory, $portability );
+		$presenter         = new MigrationPresenter( $factory, $interaction );
+		$this->controller  = new MigrationRequestController( $service, $source, $presenter, $interaction );
 	}
 
 	private function source_package( AdminPostDatabase $database ): WpPusherPackage {
@@ -762,15 +968,18 @@ final class AdminPostPortabilityFacade extends PortabilityFacade {
 }
 
 // phpcs:ignore Generic.Files.OneObjectStructurePerFile.MultipleFound -- Colocated test double belongs to this fixture load unit; unrelated declarations remain checked.
-final class AdminPostDatabase {
+class AdminPostDatabase {
 
-	public string $prefix  = 'wp_';
-	public string $options = 'wp_options';
+	public string $prefix     = 'wp_';
+	public string $options    = 'wp_options';
+	public string $last_error = '';
 
 	/** @var list<array<string, mixed>> */
 	public array $rows;
 	public int $delete_result                     = 1;
 	public bool $fail_inventory_read_after_delete = false;
+	public bool $table_exists                     = true;
+	public bool $unsupported_schema               = false;
 	/** @var array<int|string, mixed> Variadic arguments retain named keys too. */
 	private array $prepared_values = array();
 	private bool $deleted          = false;
@@ -795,10 +1004,10 @@ final class AdminPostDatabase {
 		);
 	}
 
-	public function get_var( string $query ): string|int {
+	public function get_var( string $query ): string|int|null {
 		$GLOBALS['ran_booster_wp_pusher_migrator_test_events'][] = 'database';
 		if ( str_starts_with( $query, 'SHOW TABLES' ) ) {
-			return 'wp_wppusher_packages';
+			return $this->table_exists ? 'wp_wppusher_packages' : null;
 		}
 
 		return count( $this->rows );
@@ -814,6 +1023,15 @@ final class AdminPostDatabase {
 			throw new RuntimeException( 'Inventory readback failed.' );
 		}
 		if ( str_starts_with( $query, 'SHOW COLUMNS' ) ) {
+			if ( $this->unsupported_schema ) {
+				return array(
+					array(
+						'Field' => 'id',
+						'Type'  => 'bigint',
+					),
+				);
+			}
+
 			return array(
 				array(
 					'Field' => 'id',
@@ -879,16 +1097,46 @@ final class AdminPostDatabase {
 		$GLOBALS['ran_booster_wp_pusher_migrator_test_events'][] = 'database';
 		if ( str_starts_with( $query, 'DELETE FROM `wp_wppusher_packages`' )
 			&& 1 === $this->delete_result ) {
-			$source_id     = (string) ( $this->prepared_values[0] ?? '' );
-			$this->rows    = array_values(
-				array_filter(
-					$this->rows,
-					static fn ( array $row ): bool => $source_id !== (string) $row['id']
-				)
-			);
-			$this->deleted = true;
+			$matched   = 0;
+			$remaining = array();
+			foreach ( $this->rows as $row ) {
+				if ( $this->row_matches_delete( $query, $row ) ) {
+					++$matched;
+					continue;
+				}
+				$remaining[] = $row;
+			}
+			$this->rows    = $remaining;
+			$this->deleted = $matched > 0;
+
+			return $matched;
 		}
 
 		return $this->delete_result;
+	}
+
+	/** @param array<string, mixed> $row */
+	private function row_matches_delete( string $query, array $row ): bool {
+		$values = $this->prepared_values;
+		if ( (string) ( $row['id'] ?? '' ) !== (string) ( $values[0] ?? '' )
+			|| (string) ( $row['package'] ?? '' ) !== (string) ( $values[1] ?? '' )
+			|| (string) ( $row['repository'] ?? '' ) !== (string) ( $values[2] ?? '' )
+			|| (string) ( $row['branch'] ?? '' ) !== (string) ( $values[3] ?? '' )
+			|| (string) ( $row['type'] ?? '' ) !== (string) ( $values[4] ?? '' )
+			|| (string) ( $row['status'] ?? '' ) !== (string) ( $values[5] ?? '' )
+			|| (string) ( $row['ptd'] ?? '' ) !== (string) ( $values[6] ?? '' )
+			|| (string) ( $row['host'] ?? '' ) !== (string) ( $values[7] ?? '' )
+			|| (string) ( $row['private'] ?? '' ) !== (string) ( $values[8] ?? '' ) ) {
+			return false;
+		}
+		if ( str_contains( $query, '`subdirectory` IS NULL' ) ) {
+			return null === ( $row['subdirectory'] ?? null );
+		}
+
+		if ( array_key_exists( 9, $values ) && ( $row['subdirectory'] ?? null ) === $values[9] ) {
+			return true;
+		}
+
+		return false;
 	}
 }

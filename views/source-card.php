@@ -3,8 +3,10 @@
  * Retained WP Pusher source review.
  *
  * @var string $error
+ * @var string $info
  * @var list<array<string,mixed>> $rows Complete passive row display models.
  * @var bool                $has_error
+ * @var bool                $has_info
  * @var bool                $legacy_data_present
  * @var bool                $apply_visible
  * @var string              $apply_class
@@ -26,6 +28,8 @@ defined( 'ABSPATH' ) || exit;
 
 	<?php if ( $has_error ) { ?>
 		<div class="notice notice-error inline"><p><?php echo esc_html( $error ); ?></p></div>
+	<?php } elseif ( $has_info ) { ?>
+		<div class="notice notice-info inline"><p><?php echo esc_html( $info ); ?></p></div>
 	<?php } else { ?>
 		<?php if ( $apply_visible ) { ?>
 			<div class="notice <?php echo esc_attr( $apply_class ); ?> inline">

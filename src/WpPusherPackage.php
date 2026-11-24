@@ -28,6 +28,9 @@ final readonly class WpPusherPackage {
 			throw new InvalidArgumentException( 'The WP Pusher package row is malformed.' );
 		}
 
+		$raw_subdirectory = $row['subdirectory'];
+		$subdirectory     = self::subdirectory( $raw_subdirectory );
+
 		return new self(
 			self::positive_integer( $row['id'] ),
 			self::bounded_string( $row['package'] ),
@@ -38,9 +41,65 @@ final readonly class WpPusherPackage {
 			self::boolean_integer( $row['ptd'] ),
 			self::one_of_strings( $row['host'], array( 'gh', 'bb', 'gl' ) ),
 			self::boolean_integer( $row['private'] ),
-			self::subdirectory( $row['subdirectory'] )
+			$subdirectory,
+			is_string( $raw_subdirectory ) ? $raw_subdirectory : null
 		);
 	}
+
+	/**
+	 * Build a rejected-row record when a retained row is valid in every field
+	 * except its stored subdirectory string.
+	 *
+	 * @param array<string, mixed> $row
+	 */
+	public static function rejected_subdirectory_row( array $row ): ?WpPusherRejectedPackage {
+		$expected = array(
+			'id',
+			'package',
+			'repository',
+			'branch',
+			'type',
+			'status',
+			'ptd',
+			'host',
+			'private',
+			'subdirectory',
+		);
+		if ( array_keys( $row ) !== $expected || ! is_string( $row['subdirectory'] ) ) {
+			return null;
+		}
+
+		try {
+			$id         = self::positive_integer( $row['id'] );
+			$package    = self::bounded_string( $row['package'] );
+			$repository = self::repository( $row['repository'] );
+			self::bounded_string( $row['branch'], true );
+			$type = self::one_of_integers( $row['type'], array( 1, 2 ) );
+			self::boolean_integer( $row['status'] );
+			self::boolean_integer( $row['ptd'] );
+			self::one_of_strings( $row['host'], array( 'gh', 'bb', 'gl' ) );
+			self::boolean_integer( $row['private'] );
+		} catch ( InvalidArgumentException ) {
+			return null;
+		}
+
+		try {
+			self::subdirectory( $row['subdirectory'] );
+
+			return null;
+		} catch ( InvalidArgumentException ) {
+			return new WpPusherRejectedPackage(
+				$id,
+				$package,
+				$repository,
+				$type,
+				$row['subdirectory'],
+				WpPusherRejectedPackage::REASON_INVALID_SUBDIRECTORY
+			);
+		}
+	}
+
+	public ?string $raw_subdirectory;
 
 	public function __construct(
 		public int $id,
@@ -52,8 +111,10 @@ final readonly class WpPusherPackage {
 		public int $ptd,
 		public string $host,
 		public int $is_private,
-		public ?string $subdirectory
+		public ?string $subdirectory,
+		?string $raw_subdirectory = null
 	) {
+		$this->raw_subdirectory = $raw_subdirectory ?? $subdirectory;
 	}
 
 	public function fingerprint(): string {
@@ -79,7 +140,7 @@ final readonly class WpPusherPackage {
 			'ptd'          => $this->ptd,
 			'host'         => $this->host,
 			'private'      => $this->is_private,
-			'subdirectory' => $this->subdirectory,
+			'subdirectory' => $this->raw_subdirectory,
 		);
 	}
 
@@ -144,13 +205,16 @@ final readonly class WpPusherPackage {
 		if ( '' === $path ) {
 			return '';
 		}
-		if ( str_starts_with( $path, '/' )
-			|| str_contains( $path, '\\' )
-			|| in_array( '..', explode( '/', $path ), true )
-			|| 1 !== preg_match( '/\A[A-Za-z0-9._\/-]+\z/D', $path ) ) {
+		if ( 1 !== preg_match( '/\A[A-Za-z0-9._-]+(?:\/[A-Za-z0-9._-]+)*\/?\z/D', $path ) ) {
 			throw new InvalidArgumentException( 'The WP Pusher subdirectory is invalid.' );
 		}
 
-		return trim( $path, '/' );
+		$normalized = str_ends_with( $path, '/' ) ? substr( $path, 0, -1 ) : $path;
+		$segments   = explode( '/', $normalized );
+		if ( in_array( '.', $segments, true ) || in_array( '..', $segments, true ) ) {
+			throw new InvalidArgumentException( 'The WP Pusher subdirectory is invalid.' );
+		}
+
+		return $normalized;
 	}
 }
