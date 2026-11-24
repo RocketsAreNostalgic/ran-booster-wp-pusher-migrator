@@ -8,7 +8,12 @@
 		"*.xml"
 	],
 	"rules": {
-		"selector-class-pattern": null,
+		"selector-class-pattern": [
+			"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?:__[a-z][a-z0-9]*(?:-[a-z0-9]+)*)?(?:--[a-z][a-z0-9]*(?:-[a-z0-9]+)*)?$",
+			{
+				"message": "Expected class selector to match lowercase BEM (block, block__element, block--modifier, or block__element--modifier)"
+			}
+		],
 		"rule-empty-line-before": [
 			"always-multi-line",
 			{
