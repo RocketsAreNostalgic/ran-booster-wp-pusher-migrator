@@ -111,6 +111,31 @@ function admin_url( string $path = '' ): string {
 }
 
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- The WordPress stand-in must retain the exact global function name called by the code under test.
+function plugins_url( string $path = '', string $plugin = '' ): string {
+	unset( $plugin );
+
+	return 'https://example.test/wp-content/plugins/ran-booster-wp-pusher-migrator/' . ltrim( $path, '/' );
+}
+
+/** @param list<string> $deps */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- The WordPress stand-in must retain the exact global function name called by the code under test.
+function wp_enqueue_style(
+	string $handle,
+	string $src = '',
+	array $deps = array(),
+	string|bool|null $ver = false,
+	string $media = 'all'
+): void {
+	$GLOBALS['ran_booster_wp_pusher_migrator_test_enqueued_styles'][] = array(
+		'handle' => $handle,
+		'src'    => $src,
+		'deps'   => $deps,
+		'ver'    => $ver,
+		'media'  => $media,
+	);
+}
+
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- The WordPress stand-in must retain the exact global function name called by the code under test.
 function get_option( string $option, mixed $default_value = false ): mixed {
 	unset( $option );
 

@@ -100,16 +100,16 @@ final readonly class MigrationRequestController {
 	}
 
 	public function enqueue_assets( mixed $hook ): void {
-		if ( 'toplevel_page_ran-booster' !== $hook ) {
-			return;
-		}
-
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only allowlisted navigation state.
-		$tab = isset( $_GET['tab'] ) && is_string( $_GET['tab'] )
+		if ( 'toplevel_page_ran-booster' === $hook ) {
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only allowlisted navigation state.
-			? sanitize_key( wp_unslash( $_GET['tab'] ) )
-			: 'overview';
-		if ( ! in_array( $tab, array( 'overview', 'portability' ), true ) ) {
+			$tab = isset( $_GET['tab'] ) && is_string( $_GET['tab'] )
+				// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only allowlisted navigation state.
+				? sanitize_key( wp_unslash( $_GET['tab'] ) )
+				: 'overview';
+			if ( ! in_array( $tab, array( 'overview', 'portability' ), true ) ) {
+				return;
+			}
+		} elseif ( 'ran-booster_page_ran-booster-transporter' !== $hook ) {
 			return;
 		}
 
