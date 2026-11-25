@@ -251,6 +251,48 @@ jobs:
           bash scripts/verify-release.sh "$archive" "$RAN_SOURCE_SHA"
           composer analysis:coverage -- "$archive"
 
+  mysql-byte-exact-delete:
+    name: MySQL byte-exact delete
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: wp_pusher_migrator_proof
+          MYSQL_USER: proof
+          MYSQL_PASSWORD: proof
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uproof -pproof"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: '8.2'
+          extensions: pdo_mysql
+          coverage: none
+
+      - name: Prove byte-exact delete_exact() against real MySQL 8.4
+        env:
+          MYSQL_HOST: 127.0.0.1
+          MYSQL_PORT: '3306'
+          MYSQL_DATABASE: wp_pusher_migrator_proof
+          MYSQL_USER: proof
+          MYSQL_PASSWORD: proof
+        run: php tests/mysql-byte-exact-delete-proof.php
+
   terminal-quality:
     name: quality
     if: ${{ always() && (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') }}
@@ -259,6 +301,7 @@ jobs:
       - runtime-archive
       - core-contract
       - quality
+      - mysql-byte-exact-delete
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -268,9 +311,11 @@ jobs:
           RAN_RUNTIME_ARCHIVE_RESULT: ${{ needs['runtime-archive'].result }}
           RAN_CORE_CONTRACT_RESULT: ${{ needs['core-contract'].result }}
           RAN_REPOSITORY_QUALITY_RESULT: ${{ needs.quality.result }}
+          RAN_MYSQL_PROOF_RESULT: ${{ needs['mysql-byte-exact-delete'].result }}
         run: |
           set -euo pipefail
           test "$RAN_BASELINE_RESULT" = success
           test "$RAN_RUNTIME_ARCHIVE_RESULT" = success
           test "$RAN_CORE_CONTRACT_RESULT" = success
           test "$RAN_REPOSITORY_QUALITY_RESULT" = success
+          test "$RAN_MYSQL_PROOF_RESULT" = success

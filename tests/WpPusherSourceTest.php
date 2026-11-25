@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace RAN\BoosterWpPusherMigrator\Tests;
 
+use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use RAN\BoosterWpPusherMigrator\WpPusherInventory;
 use RAN\BoosterWpPusherMigrator\WpPusherPackage;
+use RAN\BoosterWpPusherMigrator\WpPusherRejectedPackage;
 use RAN\BoosterWpPusherMigrator\WpPusherSource;
+use RAN\BoosterWpPusherMigrator\WpPusherSourceException;
 use RuntimeException;
 
 final class WpPusherSourceTest extends TestCase {
@@ -51,6 +55,35 @@ final class WpPusherSourceTest extends TestCase {
 	}
 
 	/** @param array<string, array<string, mixed>> $plugins */
+	#[DataProvider( 'absent_plugin_provider' )]
+	public function test_absent_plugin_reports_not_installed_without_reading_database( array $plugins ): void {
+		$database = new FakeDatabase();
+		$source   = new WpPusherSource(
+			$database,
+			static fn (): array => $plugins,
+			static fn (): array => array(),
+			static fn (): array => array(),
+			static fn (): bool => false
+		);
+
+		$inventory = $source->inventory();
+
+		self::assertSame( WpPusherInventory::STATUS_NOT_INSTALLED, $inventory->status );
+		self::assertFalse( $inventory->is_installed() );
+		self::assertTrue( $inventory->is_empty() );
+		self::assertSame( array(), $source->packages() );
+		self::assertFalse( $source->supported_package_table_present() );
+		self::assertFalse( $source->option_presence()['gh_token'] );
+		self::assertSame( array(), $database->queries );
+	}
+
+	/** @return iterable<string, array{array<string, array<string, mixed>>}> */
+	public static function absent_plugin_provider(): iterable {
+		yield 'not installed' => array( array() );
+		yield 'different basename' => array( array( 'other/wppusher.php' => array( 'Version' => '3.0.18' ) ) );
+	}
+
+	/** @param array<string, array<string, mixed>> $plugins */
 	#[DataProvider( 'invalid_plugin_metadata_provider' )]
 	public function test_requires_recognized_installed_plugin_before_reading_data( array $plugins ): void {
 		$database = new FakeDatabase();
@@ -65,7 +98,9 @@ final class WpPusherSourceTest extends TestCase {
 		try {
 			$source->packages();
 			self::fail( 'Unrecognized installed WP Pusher metadata was accepted.' );
-		} catch ( RuntimeException $failure ) {
+		} catch ( WpPusherSourceException $failure ) {
+			self::assertSame( WpPusherSourceException::REASON_INVALID_PLUGIN_METADATA, $failure->reason );
+			self::assertFalse( $failure->is_database_error );
 			self::assertSame( 'An installed WP Pusher plugin with valid version metadata is required.', $failure->getMessage() );
 		}
 		self::assertSame( array(), $database->queries );
@@ -73,11 +108,25 @@ final class WpPusherSourceTest extends TestCase {
 
 	/** @return iterable<string, array{array<string, array<string, mixed>>}> */
 	public static function invalid_plugin_metadata_provider(): iterable {
-		yield 'not installed' => array( array() );
-		yield 'different basename' => array( array( 'other/wppusher.php' => array( 'Version' => '3.0.18' ) ) );
 		foreach ( array( null, '', '  ', 3018, false, array() ) as $index => $version ) {
 			yield 'invalid version ' . $index => array( array( WpPusherSource::PLUGIN => array( 'Version' => $version ) ) );
 		}
+	}
+
+	public function test_inactive_plugin_with_missing_or_empty_table_reports_empty_inventory(): void {
+		$no_table               = new FakeDatabase();
+		$no_table->table_exists = false;
+		$inventory              = $this->source( $no_table )->inventory();
+		self::assertSame( WpPusherInventory::STATUS_EMPTY, $inventory->status );
+		self::assertTrue( $inventory->is_installed() );
+		self::assertTrue( $inventory->is_empty() );
+
+		$empty_table       = new FakeDatabase();
+		$empty_table->rows = array();
+		$inventory         = $this->source( $empty_table )->inventory();
+		self::assertSame( WpPusherInventory::STATUS_EMPTY, $inventory->status );
+		self::assertTrue( $inventory->is_installed() );
+		self::assertTrue( $inventory->is_empty() );
 	}
 
 	public function test_reports_option_names_without_reading_values(): void {
@@ -181,19 +230,217 @@ final class WpPusherSourceTest extends TestCase {
 	}
 
 	public function test_rejects_malformed_rows_and_inventory_over_bound(): void {
-		$malformed                          = new FakeDatabase();
-		$malformed->rows[0]['subdirectory'] = '../secret';
+		$malformed                        = new FakeDatabase();
+		$malformed->rows[0]['repository'] = 'not-a-repo';
 		try {
 			$this->source( $malformed )->packages();
 			self::fail( 'Malformed row was accepted.' );
-		} catch ( \InvalidArgumentException ) {
-			self::addToAssertionCount( 1 );
+		} catch ( WpPusherSourceException $failure ) {
+			self::assertSame( WpPusherSourceException::REASON_MALFORMED_PACKAGE_ROW, $failure->reason );
+			self::assertFalse( $failure->is_database_error );
 		}
 
 		$over_bound       = new FakeDatabase();
 		$over_bound->rows = array_fill( 0, 129, $over_bound->rows[0] );
-		$this->expectException( RuntimeException::class );
-		$this->source( $over_bound )->packages();
+		try {
+			$this->source( $over_bound )->packages();
+			self::fail( 'Over-bound inventory was accepted.' );
+		} catch ( WpPusherSourceException $failure ) {
+			self::assertSame( WpPusherSourceException::REASON_INVENTORY_LIMIT_EXCEEDED, $failure->reason );
+			self::assertFalse( $failure->is_database_error );
+		}
+	}
+
+	/** @return iterable<string, array{string}> */
+	public static function invalid_subdirectory_provider(): iterable {
+		yield 'parent traversal' => array( '../x' );
+		yield 'leading slash' => array( '/x' );
+		yield 'backslash' => array( 'a\\b' );
+		yield 'double slash' => array( 'a//b' );
+		yield 'dot segment' => array( './x' );
+		yield 'nested dot segment' => array( 'a/./b' );
+		yield 'trailing double slash' => array( 'plugins/foo//' );
+	}
+
+	#[DataProvider( 'invalid_subdirectory_provider' )]
+	public function test_isolates_invalid_subdirectory_row_while_keeping_valid_rows_migratable( string $invalid_subdirectory ): void {
+		$database       = new FakeDatabase();
+		$bad_row        = array_merge(
+			$database->rows[0],
+			array(
+				'id'           => '1',
+				'package'      => 'bad/bad.php',
+				'subdirectory' => $invalid_subdirectory,
+			)
+		);
+		$good_row       = array_merge(
+			$database->rows[0],
+			array(
+				'id'           => '2',
+				'package'      => 'good/good.php',
+				'subdirectory' => 'plugins/foo/',
+			)
+		);
+		$database->rows = array( $bad_row, $good_row );
+
+		$inventory = $this->source( $database )->inventory();
+
+		self::assertSame( WpPusherInventory::STATUS_HAS_PACKAGES, $inventory->status );
+		self::assertCount( 2, $inventory->entries );
+		self::assertInstanceOf( WpPusherRejectedPackage::class, $inventory->entries[0] );
+		self::assertSame( 'bad/bad.php', $inventory->entries[0]->package );
+		self::assertSame( $invalid_subdirectory, $inventory->entries[0]->raw_subdirectory );
+		self::assertSame( WpPusherRejectedPackage::REASON_INVALID_SUBDIRECTORY, $inventory->entries[0]->reason );
+		self::assertInstanceOf( WpPusherPackage::class, $inventory->entries[1] );
+		self::assertSame( 'good/good.php', $inventory->entries[1]->package );
+		self::assertSame( 'plugins/foo', $inventory->entries[1]->subdirectory );
+		self::assertSame( 'plugins/foo/', $inventory->entries[1]->raw_subdirectory );
+		self::assertCount( 1, $inventory->packages() );
+		self::assertCount( 1, $inventory->rejected() );
+
+		$this->expectException( InvalidArgumentException::class );
+		WpPusherPackage::from_row( $bad_row );
+	}
+
+	public function test_duplicate_identity_check_still_applies_across_valid_and_rejected_rows(): void {
+		$database       = new FakeDatabase();
+		$rejected_row   = array_merge(
+			$database->rows[0],
+			array(
+				'id'           => '1',
+				'subdirectory' => '../x',
+			)
+		);
+		$duplicate_row  = array_merge(
+			$database->rows[0],
+			array(
+				'id'           => '2',
+				'subdirectory' => null,
+			)
+		);
+		$database->rows = array( $rejected_row, $duplicate_row );
+
+		try {
+			$this->source( $database )->inventory();
+			self::fail( 'Duplicate identity across rejected and valid row was accepted.' );
+		} catch ( WpPusherSourceException $failure ) {
+			self::assertSame( WpPusherSourceException::REASON_DUPLICATE_PACKAGES, $failure->reason );
+			self::assertFalse( $failure->is_database_error );
+		}
+	}
+
+	/** @return iterable<string, array{string, string}> */
+	public static function stored_subdirectory_cleanup_provider(): iterable {
+		yield 'trailing slash' => array( 'plugins/foo/', 'plugins/foo' );
+		yield 'no trailing slash' => array( 'plugins/foo', 'plugins/foo' );
+		yield 'empty string' => array( '', '' );
+	}
+
+	#[DataProvider( 'stored_subdirectory_cleanup_provider' )]
+	public function test_delete_exact_matches_raw_stored_subdirectory_and_rejects_mutated_row(
+		string $stored_subdirectory,
+		string $normalized_subdirectory
+	): void {
+		$database                          = new FakeDatabase();
+		$database->rows[0]['subdirectory'] = $stored_subdirectory;
+		$source                            = $this->source( $database );
+		$package                           = $source->packages()[0];
+
+		self::assertSame( $normalized_subdirectory, $package->subdirectory );
+		self::assertSame( $stored_subdirectory, $package->raw_subdirectory );
+		self::assertSame( $stored_subdirectory, $package->to_array()['subdirectory'] );
+		self::assertSame( $package->fingerprint(), WpPusherPackage::from_row( $package->to_array() )->fingerprint() );
+
+		// Mutate the stored row before cleanup: exact match must not delete it.
+		$database->rows[0]['subdirectory'] = $stored_subdirectory . 'mutated';
+		self::assertFalse( $source->delete_exact( $package ) );
+		self::assertCount( 1, $database->rows );
+		self::assertSame( $stored_subdirectory, $database->last_prepared_values[9] ?? null );
+
+		// Restore exact stored value: exact match deletes the row.
+		$database->rows[0]['subdirectory'] = $stored_subdirectory;
+		self::assertTrue( $source->delete_exact( $package ) );
+		self::assertSame( array(), $database->rows );
+
+		$sql = implode( ' ', $database->queries );
+		self::assertStringContainsString( 'CAST( `package` AS BINARY ) = CAST( %s AS BINARY )', $sql );
+		self::assertStringContainsString( 'CAST( `repository` AS BINARY ) = CAST( %s AS BINARY )', $sql );
+		self::assertStringContainsString( 'CAST( `branch` AS BINARY ) = CAST( %s AS BINARY )', $sql );
+		self::assertStringContainsString( 'CAST( `host` AS BINARY ) = CAST( %s AS BINARY )', $sql );
+		self::assertStringContainsString( 'CAST( `subdirectory` AS BINARY ) = CAST( %s AS BINARY )', $sql );
+	}
+
+	/** @return iterable<string, array{string, string}> */
+	public static function byte_exact_delete_mismatch_provider(): iterable {
+		yield 'subdirectory case change' => array( 'subdirectory', 'plugins/Foo/' );
+		yield 'subdirectory trailing space' => array( 'subdirectory', 'plugins/foo/ ' );
+		yield 'package case change' => array( 'package', 'Fixture/fixture.php' );
+		yield 'repository case change' => array( 'repository', 'RocketsAreNostalgic/Booster-Fixture-Plugin' );
+		yield 'branch case change' => array( 'branch', 'Main' );
+		yield 'host case change' => array( 'host', 'GH' );
+	}
+
+	#[DataProvider( 'byte_exact_delete_mismatch_provider' )]
+	public function test_delete_exact_uses_binary_casts_and_rejects_case_or_space_mutations(
+		string $column,
+		string $mutated_value
+	): void {
+		$database                          = new FakeDatabase();
+		$database->rows[0]['subdirectory'] = 'plugins/foo/';
+		$source                            = $this->source( $database );
+		$package                           = $source->packages()[0];
+
+		$database->rows[0][ $column ] = $mutated_value;
+
+		self::assertFalse( $source->delete_exact( $package ) );
+		self::assertCount( 1, $database->rows );
+		self::assertSame( $mutated_value, $database->rows[0][ $column ] );
+
+		$sql = implode( ' ', $database->queries );
+		self::assertStringContainsString( 'CAST( `package` AS BINARY ) = CAST( %s AS BINARY )', $sql );
+		self::assertStringContainsString( 'CAST( `repository` AS BINARY ) = CAST( %s AS BINARY )', $sql );
+		self::assertStringContainsString( 'CAST( `branch` AS BINARY ) = CAST( %s AS BINARY )', $sql );
+		self::assertStringContainsString( 'CAST( `host` AS BINARY ) = CAST( %s AS BINARY )', $sql );
+		self::assertStringContainsString( 'CAST( `subdirectory` AS BINARY ) = CAST( %s AS BINARY )', $sql );
+	}
+
+	public function test_database_query_errors_report_closed_code_without_sql_text(): void {
+		$database             = new FakeDatabase();
+		$database->last_error = "You have an error in your SQL syntax near 'SELECT `id` FROM `wp_wppusher_packages`'";
+
+		try {
+			$this->source( $database )->inventory();
+			self::fail( 'Database last_error was ignored.' );
+		} catch ( WpPusherSourceException $failure ) {
+			self::assertSame( WpPusherSourceException::REASON_DB_QUERY_FAILED, $failure->reason );
+			self::assertTrue( $failure->is_database_error );
+			self::assertStringNotContainsString( 'SELECT', $failure->getMessage() );
+			self::assertStringNotContainsString( 'wppusher_packages', $failure->getMessage() );
+		}
+
+		$throwing = new class() {
+			public string $prefix = 'wp_';
+
+			public function prepare( string $query, mixed ...$values ): string {
+				unset( $query, $values );
+				throw new RuntimeException( 'SQLSTATE[42000]: SELECT * FROM wp_wppusher_packages WHERE id = 1' );
+			}
+
+			public function get_var( string $query ): mixed {
+				unset( $query );
+				return null;
+			}
+		};
+
+		try {
+			$this->source( $throwing )->inventory();
+			self::fail( 'Thrown database exception was ignored.' );
+		} catch ( WpPusherSourceException $failure ) {
+			self::assertSame( WpPusherSourceException::REASON_DB_QUERY_FAILED, $failure->reason );
+			self::assertTrue( $failure->is_database_error );
+			self::assertStringNotContainsString( 'SQLSTATE', $failure->getMessage() );
+			self::assertStringNotContainsString( 'SELECT', $failure->getMessage() );
+		}
 	}
 
 	public function test_deletes_only_exact_unchanged_row_and_preserves_null_distinction(): void {
@@ -249,7 +496,7 @@ final class WpPusherSourceTest extends TestCase {
 		$proxy->calls = array();
 		self::assertTrue( $source->delete_exact( $package ) );
 		self::assertSame( array( 'prepare', 'query' ), $proxy->calls );
-		self::assertStringContainsString( '`branch` = %s', implode( ' ', $inner->queries ) );
+		self::assertStringContainsString( 'CAST( `branch` AS BINARY ) = CAST( %s AS BINARY )', implode( ' ', $inner->queries ) );
 		self::assertSame( array(), $inner->rows );
 	}
 
@@ -392,11 +639,15 @@ final class WpPusherSourceTest extends TestCase {
 // phpcs:ignore Generic.Files.OneObjectStructurePerFile.MultipleFound -- Colocated test double belongs to this fixture load unit; unrelated declarations remain checked.
 final class FakeDatabase {
 
-	public string $prefix  = 'wp_';
-	public string $options = 'wp_options';
+	public string $prefix     = 'wp_';
+	public string $options    = 'wp_options';
+	public string $last_error = '';
 
 	/** @var list<string> */
 	public array $queries = array();
+
+	/** @var array<int|string, mixed> */
+	public array $last_prepared_values = array();
 
 	/** @var list<string> */
 	public array $option_names = array();
@@ -457,7 +708,8 @@ final class FakeDatabase {
 	}
 
 	public function prepare( string $query, mixed ...$values ): string {
-		$this->queries[] = $query . ' :: ' . count( $values );
+		$this->last_prepared_values = $values;
+		$this->queries[]            = $query . ' :: ' . count( $values );
 
 		return $query;
 	}
@@ -484,9 +736,45 @@ final class FakeDatabase {
 	public function query( string $query ): int {
 		$this->queries[] = $query;
 		if ( str_starts_with( $query, 'DELETE FROM `wp_wppusher_packages`' ) && 1 === $this->affected_rows ) {
-			$this->rows = array();
+			$matched   = 0;
+			$remaining = array();
+			foreach ( $this->rows as $row ) {
+				if ( $this->row_matches_delete( $query, $row ) ) {
+					++$matched;
+					continue;
+				}
+				$remaining[] = $row;
+			}
+			$this->rows = $remaining;
+
+			return $matched;
 		}
 
 		return $this->affected_rows;
+	}
+
+	/** @param array<string, mixed> $row */
+	private function row_matches_delete( string $query, array $row ): bool {
+		$values = $this->last_prepared_values;
+		if ( (string) ( $row['id'] ?? '' ) !== (string) ( $values[0] ?? '' )
+			|| (string) ( $row['package'] ?? '' ) !== (string) ( $values[1] ?? '' )
+			|| (string) ( $row['repository'] ?? '' ) !== (string) ( $values[2] ?? '' )
+			|| (string) ( $row['branch'] ?? '' ) !== (string) ( $values[3] ?? '' )
+			|| (string) ( $row['type'] ?? '' ) !== (string) ( $values[4] ?? '' )
+			|| (string) ( $row['status'] ?? '' ) !== (string) ( $values[5] ?? '' )
+			|| (string) ( $row['ptd'] ?? '' ) !== (string) ( $values[6] ?? '' )
+			|| (string) ( $row['host'] ?? '' ) !== (string) ( $values[7] ?? '' )
+			|| (string) ( $row['private'] ?? '' ) !== (string) ( $values[8] ?? '' ) ) {
+			return false;
+		}
+		if ( str_contains( $query, '`subdirectory` IS NULL' ) ) {
+			return null === ( $row['subdirectory'] ?? null );
+		}
+
+		if ( array_key_exists( 9, $values ) && ( $row['subdirectory'] ?? null ) === $values[9] ) {
+			return true;
+		}
+
+		return false;
 	}
 }
