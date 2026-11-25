@@ -54,7 +54,7 @@ function esc_html_e( string $value, string $domain = '' ): void {
 function __( string $value, string $domain = '' ): string {
 	unset( $domain );
 
-	return $value;
+	return $GLOBALS['ran_booster_wp_pusher_migrator_test_translations'][ $value ] ?? $value;
 }
 
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- The WordPress stand-in must retain the exact global function name called by the code under test.

@@ -14,6 +14,7 @@ use RAN\Admin\Interaction\TransporterRowAdminInteractionFacade;
 use RAN\BoosterWpPusherMigrator\CandidateFactory;
 use RAN\BoosterWpPusherMigrator\MigrationPresenter;
 use RAN\BoosterWpPusherMigrator\WpPusherPackage;
+use RAN\BoosterWpPusherMigrator\WpPusherRejectedPackage;
 use RuntimeException;
 
 final class SourceCardViewTest extends TestCase {
@@ -51,13 +52,16 @@ final class SourceCardViewTest extends TestCase {
 		);
 		$rows                = array( $this->row( $source, $candidate, $review ) );
 		$error               = '';
+		$info                = '';
 		$has_error           = false;
+		$has_info            = false;
 		$legacy_data_present = true;
 		$apply               = null;
 		$apply_visible       = false;
 		$apply_class         = 'notice-error';
 		$apply_message       = '';
 		$cleanup_pending     = false;
+		$cleanup_error       = '';
 		$completion_visible  = false;
 		$plugins_url         = 'https://example.test/wp-admin/plugins.php';
 		$admin_interaction   = $this->interaction;
@@ -250,6 +254,146 @@ final class SourceCardViewTest extends TestCase {
 		);
 	}
 
+	public function test_informational_empty_state_renders_info_notice_without_error_or_completion(): void {
+		$output = $this->render_rows( array(), array(), 'No WP Pusher packages were detected.' );
+
+		self::assertStringContainsString( '<div class="notice notice-info inline"><p>No WP Pusher packages were detected.</p></div>', $output );
+		self::assertStringNotContainsString( 'notice-error', $output );
+		self::assertStringNotContainsString( 'completion-panel--visible', $output );
+		self::assertStringNotContainsString( 'ran-booster-wp-pusher-migrator__packages', $output );
+	}
+
+	public function test_rejected_subdirectory_row_renders_escaped_reason_alongside_valid_row(): void {
+		$interaction = new SourceCardInteractionSpy();
+		$presenter   = new MigrationPresenter(
+			new CandidateFactory(
+				static fn (): array => array( 'fixture/fixture.php' => array( 'Name' => 'Fixture Plugin' ) )
+			),
+			$interaction
+		);
+		$valid       = WpPusherPackage::from_row(
+			array(
+				'id'           => '1',
+				'package'      => 'fixture/fixture.php',
+				'repository'   => 'RocketsAreNostalgic/booster-fixture-plugin',
+				'branch'       => 'main',
+				'type'         => '1',
+				'status'       => '1',
+				'ptd'          => '0',
+				'host'         => 'gh',
+				'private'      => '0',
+				'subdirectory' => 'plugins/foo/',
+			)
+		);
+		$rejected    = new WpPusherRejectedPackage(
+			2,
+			'bad/bad.php',
+			'RocketsAreNostalgic/bad-plugin',
+			1,
+			'../<script>alert("x")</script>'
+		);
+
+		$this->interaction = $interaction;
+		$output            = $this->render_rows(
+			array(
+				$presenter->row( $valid, null ),
+				$presenter->rejected_row( $rejected ),
+			)
+		);
+
+		self::assertStringContainsString( '<code>fixture/fixture.php</code>', $output );
+		self::assertStringContainsString( '>Check</button>', $output );
+		self::assertStringContainsString( '<code>bad/bad.php</code>', $output );
+		self::assertStringContainsString( '<strong>Cannot adopt</strong>', $output );
+		self::assertStringContainsString(
+			'Can&#039;t migrate: subdirectory &quot;../&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;&quot; isn&#039;t a plain relative path.',
+			$output
+		);
+		self::assertStringNotContainsString( '<script', $output );
+		self::assertSame( array( 'wp-pusher:check-package' ), $interaction->rendered_operations );
+	}
+
+	public function test_rejected_multibyte_subdirectory_truncates_on_utf8_boundary_and_retains_reason(): void {
+		$presenter = new MigrationPresenter(
+			new CandidateFactory(
+				static fn (): array => array( 'fixture/fixture.php' => array( 'Name' => 'Fixture Plugin' ) )
+			),
+			new SourceCardInteractionSpy()
+		);
+		$cases     = array(
+			'two_byte_straddle'   => array(
+				'raw'      => str_repeat( 'é', 128 ),
+				'expected' => str_repeat( 'é', 127 ),
+			),
+			'three_byte_straddle' => array(
+				'raw'      => 'a' . str_repeat( 'あ', 86 ),
+				'expected' => 'a' . str_repeat( 'あ', 84 ),
+			),
+			'four_byte_straddle'  => array(
+				'raw'      => str_repeat( '🚀', 64 ),
+				'expected' => str_repeat( '🚀', 63 ),
+			),
+			'invalid_utf8_bytes'  => array(
+				'raw'      => "../\xFFbad",
+				'expected' => '../bad',
+			),
+		);
+
+		foreach ( $cases as $name => $case ) {
+			$rejected = new WpPusherRejectedPackage(
+				2,
+				'bad/bad.php',
+				'RocketsAreNostalgic/bad-plugin',
+				1,
+				$case['raw']
+			);
+			$display  = $rejected->display_subdirectory();
+
+			self::assertSame( $case['expected'], $display, $name );
+			self::assertLessThanOrEqual( 255, strlen( $display ), $name );
+			self::assertSame( 1, preg_match( '//u', $display ), $name );
+
+			$row    = $presenter->rejected_row( $rejected );
+			$output = $this->render_rows( array( $row ) );
+
+			self::assertStringContainsString( '<strong>Cannot adopt</strong>', $output, $name );
+			self::assertStringContainsString(
+				'Can&#039;t migrate: subdirectory &quot;' . $case['expected'] . '&quot; isn&#039;t a plain relative path.',
+				$output,
+				$name
+			);
+		}
+	}
+
+	public function test_verified_apply_and_cleanup_error_remain_visible_even_with_panel_read_error(): void {
+		$rows                = array();
+		$error               = 'Could not access WP Pusher data: a database query failed (code: db_query_failed).';
+		$info                = '';
+		$has_error           = true;
+		$has_info            = false;
+		$legacy_data_present = false;
+		$apply_visible       = true;
+		$apply_class         = 'notice-success';
+		$apply_message       = 'Imported.';
+		$cleanup_pending     = true;
+		$cleanup_error       = 'Could not access <WP Pusher> data (code: db_query_failed).';
+		$completion_visible  = false;
+		$plugins_url         = 'https://example.test/wp-admin/plugins.php';
+		$admin_interaction   = new SourceCardInteractionSpy();
+
+		ob_start();
+		require dirname( __DIR__ ) . '/views/source-card.php';
+		$output = (string) ob_get_clean();
+
+		self::assertStringContainsString( 'class="notice notice-success inline"', $output );
+		self::assertStringContainsString( 'Imported.', $output );
+		self::assertStringContainsString( 'The package is safely stored in Booster, but its old WP Pusher record remains.', $output );
+		self::assertStringContainsString( 'Could not access &lt;WP Pusher&gt; data (code: db_query_failed).', $output );
+		self::assertStringContainsString( 'class="notice notice-error inline"', $output );
+		self::assertStringContainsString( 'Could not access WP Pusher data: a database query failed (code: db_query_failed).', $output );
+		self::assertStringNotContainsString( 'completion-panel--visible', $output );
+	}
+
 	private function render_public_package(
 		?string $review_action = null,
 		?SourceCardInteractionSpy $interaction = null,
@@ -308,16 +452,18 @@ final class SourceCardViewTest extends TestCase {
 	 * @param list<array<string, mixed>> $rows
 	 * @param array<string, bool>        $option_presence
 	 */
-	private function render_rows( array $rows, array $option_presence = array() ): string {
+	private function render_rows( array $rows, array $option_presence = array(), string $info = '' ): string {
 		$error               = '';
 		$has_error           = false;
-		$legacy_data_present = in_array( true, $option_presence, true );
+		$has_info            = '' !== $info;
+		$legacy_data_present = ! $has_info && in_array( true, $option_presence, true );
 		$apply               = null;
 		$apply_visible       = false;
 		$apply_class         = 'notice-error';
 		$apply_message       = '';
 		$cleanup_pending     = false;
-		$completion_visible  = array() === $rows;
+		$cleanup_error       = '';
+		$completion_visible  = ! $has_info && array() === $rows;
 		$plugins_url         = 'https://example.test/wp-admin/plugins.php';
 		$admin_interaction   = $this->interaction ?? new SourceCardInteractionSpy();
 

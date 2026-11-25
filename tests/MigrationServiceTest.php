@@ -235,6 +235,54 @@ final class MigrationServiceTest extends TestCase {
 		self::assertCount( 1, $database->rows );
 	}
 
+	/** @return iterable<string, array{string, string}> */
+	public static function subdirectory_migration_provider(): iterable {
+		yield 'trailing slash' => array( 'plugins/foo/', 'plugins/foo' );
+		yield 'no trailing slash' => array( 'plugins/foo', 'plugins/foo' );
+	}
+
+	#[DataProvider( 'subdirectory_migration_provider' )]
+	public function test_migrates_normalized_subdirectory_and_cleans_up_raw_stored_value(
+		string $stored_subdirectory,
+		string $expected_candidate_subdirectory
+	): void {
+		$database                          = new FakeDatabase();
+		$database->rows[0]['subdirectory'] = $stored_subdirectory;
+		$facade                            = new FakePortabilityFacade();
+		$service                           = $this->service( $facade, $database );
+		$source                            = $service->packages()[0];
+
+		$review = $service->review( $source->id, $source->fingerprint(), null, 'review-nonce' );
+		self::assertSame( $expected_candidate_subdirectory, $facade->candidate?->subdirectory );
+
+		$result = $service->apply( $source->id, $source->fingerprint(), null, $review->fingerprint, 'apply-nonce', null );
+		self::assertSame( $expected_candidate_subdirectory, $facade->candidate->subdirectory );
+		self::assertTrue( $result->target_verified );
+
+		self::assertTrue( $service->cleanup( $source->id, $source->fingerprint(), $result ) );
+		self::assertSame( array(), $database->rows );
+	}
+
+	public function test_cleanup_refuses_row_whose_stored_subdirectory_changed_between_inventory_and_cleanup(): void {
+		$database                          = new FakeDatabase();
+		$database->rows[0]['subdirectory'] = 'plugins/foo/';
+		$facade                            = new FakePortabilityFacade();
+		$service                           = $this->service( $facade, $database );
+		$source                            = $service->packages()[0];
+		$verified                          = new PortabilityApplyResult( 'adopted', 'adopted', 'Adopted.', true );
+
+		// Removing the trailing slash changes the stored column; cleanup must not delete it.
+		$database->rows[0]['subdirectory'] = 'plugins/foo';
+
+		try {
+			$service->cleanup( $source->id, $source->fingerprint(), $verified );
+			self::fail( 'Changed stored subdirectory was cleaned up.' );
+		} catch ( RuntimeException $failure ) {
+			self::assertSame( 'The WP Pusher package changed. Review it again.', $failure->getMessage() );
+		}
+		self::assertCount( 1, $database->rows );
+	}
+
 	private function service( FakePortabilityFacade $facade, ?FakeDatabase $database = null, string $version = '3.0.18' ): MigrationService {
 		$database ??= new FakeDatabase();
 		$source     = new WpPusherSource(

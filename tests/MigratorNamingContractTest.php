@@ -13,12 +13,18 @@ use ReflectionClass;
 
 final class MigratorNamingContractTest extends TestCase {
 	public function test_owned_declarations_preserve_completed_naming_scope(): void {
-		foreach ( array( 'Autoloader', 'CandidateFactory', 'MigrationPresenter', 'MigrationRequestController', 'MigrationService', 'Plugin', 'WpPusherPackage', 'WpPusherSource' ) as $name ) {
+		foreach ( array( 'Autoloader', 'CandidateFactory', 'MigrationPresenter', 'MigrationRequestController', 'MigrationService', 'Plugin', 'WpPusherInventory', 'WpPusherPackage', 'WpPusherRejectedPackage', 'WpPusherSource', 'WpPusherSourceException' ) as $name ) {
 			$class = new ReflectionClass( 'RAN\\BoosterWpPusherMigrator\\' . $name );
 			foreach ( $class->getProperties() as $property ) {
+				if ( $property->getDeclaringClass()->getName() !== $class->getName() ) {
+					continue;
+				}
 				self::assertMatchesRegularExpression( '/\A[a-z_][a-z0-9_]*\z/', $property->getName() );
 			}
 			foreach ( $class->getMethods() as $method ) {
+				if ( $method->getDeclaringClass()->getName() !== $class->getName() ) {
+					continue;
+				}
 				self::assertMatchesRegularExpression( '/\A[a-z_][a-z0-9_]*\z/', $method->getName() );
 				foreach ( $method->getParameters() as $parameter ) {
 					self::assertMatchesRegularExpression( '/\A[a-z_][a-z0-9_]*\z/', $parameter->getName() );

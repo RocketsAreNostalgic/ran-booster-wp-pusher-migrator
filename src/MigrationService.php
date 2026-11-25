@@ -25,6 +25,10 @@ final readonly class MigrationService {
 		return $this->source->packages();
 	}
 
+	public function inventory(): WpPusherInventory {
+		return $this->source->inventory();
+	}
+
 	/**
 	 * Fresh-read and review one unchanged source row through Core.
 	 */

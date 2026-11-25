@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace RAN\BoosterWpPusherMigrator;
 
 use Closure;
-use RuntimeException;
+use InvalidArgumentException;
+use Throwable;
 
 /** Validated retained WP Pusher data and package-record cleanup boundary. */
 final class WpPusherSource {
@@ -76,67 +77,101 @@ final class WpPusherSource {
 
 	/** @return list<WpPusherPackage> */
 	public function packages(): array {
-		$this->assert_supported();
+		return $this->inventory()->packages();
+	}
+
+	public function inventory(): WpPusherInventory {
+		if ( ! $this->is_supported_installation() ) {
+			return WpPusherInventory::not_installed();
+		}
 		if ( ! $this->package_table_exists() ) {
-			return array();
+			return WpPusherInventory::empty_inventory();
 		}
 		$table = $this->table();
 		$this->assert_package_table_schema( $table );
 
 		$columns = implode( '`, `', array_keys( self::COLUMNS ) );
 		if ( ! is_callable( array( $this->database, 'get_results' ) ) ) {
-			throw new RuntimeException( 'The WP Pusher database reader is unavailable.' );
+			throw WpPusherSourceException::db_reader_unavailable();
 		}
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Exact validated table and constant column allowlist.
-		$rows = $this->database->get_results( "SELECT `{$columns}` FROM `{$table}` ORDER BY `id` ASC LIMIT 129", ARRAY_A );
-		if ( ! is_array( $rows ) || count( $rows ) > 128 ) {
-			throw new RuntimeException( 'The retained WP Pusher package inventory is unsupported.' );
+		try {
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Exact validated table and constant column allowlist.
+			$rows = $this->database->get_results( "SELECT `{$columns}` FROM `{$table}` ORDER BY `id` ASC LIMIT 129", ARRAY_A );
+		} catch ( Throwable $failure ) {
+			throw WpPusherSourceException::db_query_failed( $failure );
+		}
+		$this->assert_no_database_error();
+		if ( ! is_array( $rows ) ) {
+			throw WpPusherSourceException::db_query_failed();
+		}
+		if ( count( $rows ) > 128 ) {
+			throw WpPusherSourceException::inventory_limit_exceeded();
 		}
 
-		$packages = array();
-		$seen     = array();
+		$entries = array();
+		$seen    = array();
 		foreach ( $rows as $row ) {
-			$package  = WpPusherPackage::from_row( is_array( $row ) ? $row : array() );
-			$identity = $package->type . ':' . $package->package;
+			$row_data = is_array( $row ) ? $row : array();
+			try {
+				$entry = WpPusherPackage::from_row( $row_data );
+			} catch ( InvalidArgumentException $failure ) {
+				$entry = WpPusherPackage::rejected_subdirectory_row( $row_data );
+				if ( null === $entry ) {
+					throw WpPusherSourceException::malformed_package_row( $failure );
+				}
+			}
+			$identity = $entry->type . ':' . $entry->package;
 			if ( isset( $seen[ $identity ] ) ) {
-				throw new RuntimeException( 'The retained WP Pusher package inventory contains duplicates.' );
+				throw WpPusherSourceException::duplicate_packages();
 			}
 			$seen[ $identity ] = true;
-			$packages[]        = $package;
+			$entries[]         = $entry;
 		}
 
-		return $packages;
+		return WpPusherInventory::from_entries( $entries );
 	}
 
 	/** @return array<string, bool> */
 	public function option_presence(): array {
-		$this->assert_supported();
+		if ( ! $this->is_supported_installation() ) {
+			return array_fill_keys( self::OPTIONS, false );
+		}
 		$getter_accessible = is_callable( array( $this->database, '__get' ) );
 		$getter_declared   = method_exists( $this->database, '__get' );
 		if ( ! array_key_exists( 'options', get_object_vars( $this->database ) )
 			&& ( ! $getter_declared || ! $getter_accessible ) ) {
-			throw new RuntimeException( 'The WordPress options table is unavailable.' );
+			throw WpPusherSourceException::db_option_reader_unavailable( 'The WordPress options table is unavailable.' );
 		}
 		/** @var object{options: mixed} $database Public or magic property reads retain their actual values. */
 		$database      = $this->database;
 		$options_table = (string) $database->options;
 		$placeholders  = implode( ', ', array_fill( 0, count( self::OPTIONS ), '%s' ) );
 		if ( ! is_callable( array( $this->database, 'prepare' ) ) ) {
-			throw new RuntimeException( 'The WP Pusher option reader is unavailable.' );
+			throw WpPusherSourceException::db_option_reader_unavailable();
 		}
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Exact wpdb options table and generated placeholders.
-		$sql = $this->database->prepare( "SELECT `option_name` FROM `{$options_table}` WHERE `option_name` IN ({$placeholders})", ...self::OPTIONS );
 		if ( ! is_callable( array( $this->database, 'get_col' ) ) ) {
-			throw new RuntimeException( 'The WP Pusher option reader is unavailable.' );
+			throw WpPusherSourceException::db_option_reader_unavailable();
 		}
-		$names = $this->database->get_col( $sql );
-		$found = is_array( $names ) ? array_fill_keys( array_intersect( self::OPTIONS, $names ), true ) : array();
+		try {
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Exact wpdb options table and generated placeholders.
+			$sql   = $this->database->prepare( "SELECT `option_name` FROM `{$options_table}` WHERE `option_name` IN ({$placeholders})", ...self::OPTIONS );
+			$names = $this->database->get_col( $sql );
+		} catch ( Throwable $failure ) {
+			throw WpPusherSourceException::db_query_failed( $failure );
+		}
+		$this->assert_no_database_error();
+		if ( ! is_array( $names ) ) {
+			throw WpPusherSourceException::db_query_failed();
+		}
+		$found = array_fill_keys( array_intersect( self::OPTIONS, $names ), true );
 
 		return array_map( static fn ( string $name ): bool => isset( $found[ $name ] ), array_combine( self::OPTIONS, self::OPTIONS ) );
 	}
 
 	public function supported_package_table_present(): bool {
-		$this->assert_supported();
+		if ( ! $this->is_supported_installation() ) {
+			return false;
+		}
 		if ( ! $this->package_table_exists() ) {
 			return false;
 		}
@@ -149,16 +184,25 @@ final class WpPusherSource {
 
 	private function assert_package_table_schema( string $table ): void {
 		if ( ! is_callable( array( $this->database, 'get_results' ) ) ) {
-			throw new RuntimeException( 'The WP Pusher schema reader is unavailable.' );
+			throw WpPusherSourceException::db_schema_reader_unavailable();
 		}
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Exact validated table derived from wpdb prefix.
-		$schema = $this->database->get_results( "SHOW COLUMNS FROM `{$table}`", ARRAY_A );
-		$this->assert_schema( is_array( $schema ) ? $schema : array() );
+		try {
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Exact validated table derived from wpdb prefix.
+			$schema = $this->database->get_results( "SHOW COLUMNS FROM `{$table}`", ARRAY_A );
+		} catch ( Throwable $failure ) {
+			throw WpPusherSourceException::db_query_failed( $failure );
+		}
+		$this->assert_no_database_error();
+		if ( ! is_array( $schema ) ) {
+			throw WpPusherSourceException::db_query_failed();
+		}
+		$this->assert_schema( $schema );
 	}
 
+	/** @phpstan-impure */
 	public function delete_exact( WpPusherPackage $expected ): bool {
 		$table  = $this->table();
-		$query  = "DELETE FROM `{$table}` WHERE `id` = %d AND `package` = %s AND `repository` = %s AND `branch` = %s AND `type` = %d AND `status` = %d AND `ptd` = %d AND `host` = %s AND `private` = %d";
+		$query  = "DELETE FROM `{$table}` WHERE `id` = %d AND CAST( `package` AS BINARY ) = CAST( %s AS BINARY ) AND CAST( `repository` AS BINARY ) = CAST( %s AS BINARY ) AND CAST( `branch` AS BINARY ) = CAST( %s AS BINARY ) AND `type` = %d AND `status` = %d AND `ptd` = %d AND CAST( `host` AS BINARY ) = CAST( %s AS BINARY ) AND `private` = %d";
 		$values = array(
 			$expected->id,
 			$expected->package,
@@ -170,41 +214,53 @@ final class WpPusherSource {
 			$expected->host,
 			$expected->is_private,
 		);
-		if ( null === $expected->subdirectory ) {
+		if ( null === $expected->raw_subdirectory ) {
 			$query .= ' AND `subdirectory` IS NULL';
 		} else {
-			$query   .= ' AND `subdirectory` = %s';
-			$values[] = $expected->subdirectory;
+			$query   .= ' AND CAST( `subdirectory` AS BINARY ) = CAST( %s AS BINARY )';
+			$values[] = $expected->raw_subdirectory;
 		}
 
 		// PHP resolves the outer query method before evaluating its prepare argument.
 		if ( ! is_callable( array( $this->database, 'query' ) ) || ! is_callable( array( $this->database, 'prepare' ) ) ) {
-			throw new RuntimeException( 'The WP Pusher cleanup database is unavailable.' );
+			throw WpPusherSourceException::db_cleanup_unavailable();
 		}
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Prepared immediately from constant columns and exact values.
-		return 1 === $this->database->query( $this->database->prepare( $query, ...$values ) );
+		try {
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Prepared immediately from constant columns and exact values.
+			$affected = $this->database->query( $this->database->prepare( $query, ...$values ) );
+		} catch ( Throwable $failure ) {
+			throw WpPusherSourceException::db_query_failed( $failure );
+		}
+		$this->assert_no_database_error();
+
+		return 1 === $affected;
 	}
 
-	private function assert_supported(): void {
+	private function is_supported_installation(): bool {
 		if ( ( $this->multisite )() ) {
-			throw new RuntimeException( 'WP Pusher migration supports single-site WordPress only.' );
+			throw WpPusherSourceException::multisite();
 		}
 		$plugins = ( $this->plugins )();
+		if ( ! array_key_exists( self::PLUGIN, $plugins ) ) {
+			return false;
+		}
 		$version = $plugins[ self::PLUGIN ]['Version'] ?? null;
 		if ( ! is_string( $version ) || '' === trim( $version ) ) {
-			throw new RuntimeException( 'An installed WP Pusher plugin with valid version metadata is required.' );
+			throw WpPusherSourceException::invalid_plugin_metadata();
 		}
 		// Plugin versions identify the installation; schema and records determine compatibility.
 		if ( in_array( self::PLUGIN, ( $this->active_plugins )(), true )
 			|| array_key_exists( self::PLUGIN, ( $this->network_active_plugins )() ) ) {
-			throw new RuntimeException( 'Deactivate WP Pusher before assessing retained packages.' );
+			throw WpPusherSourceException::plugin_active();
 		}
+
+		return true;
 	}
 
 	/** @param array<mixed> $schema Database rows remain untrusted until validation. */
 	private function assert_schema( array $schema ): void {
 		if ( count( self::COLUMNS ) !== count( $schema ) ) {
-			throw new RuntimeException( 'The retained WP Pusher package schema is unsupported.' );
+			throw WpPusherSourceException::unsupported_schema();
 		}
 
 		$actual = array();
@@ -212,7 +268,7 @@ final class WpPusherSource {
 			if ( ! isset( $column['Field'], $column['Type'] )
 				|| ! is_string( $column['Field'] )
 				|| ! is_string( $column['Type'] ) ) {
-				throw new RuntimeException( 'The retained WP Pusher package schema is unsupported.' );
+				throw WpPusherSourceException::unsupported_schema();
 			}
 			$type                       = strtolower( $column['Type'] );
 			$actual[ $column['Field'] ] = match ( $type ) {
@@ -222,7 +278,7 @@ final class WpPusherSource {
 			};
 		}
 		if ( self::COLUMNS !== $actual ) {
-			throw new RuntimeException( 'The retained WP Pusher package schema is unsupported.' );
+			throw WpPusherSourceException::unsupported_schema();
 		}
 	}
 
@@ -231,13 +287,13 @@ final class WpPusherSource {
 		$getter_declared   = method_exists( $this->database, '__get' );
 		if ( ! array_key_exists( 'prefix', get_object_vars( $this->database ) )
 			&& ( ! $getter_declared || ! $getter_accessible ) ) {
-			throw new RuntimeException( 'The WordPress database prefix is invalid.' );
+			throw WpPusherSourceException::db_prefix_invalid();
 		}
 		/** @var object{prefix: mixed} $database Public or magic property reads retain their actual values. */
 		$database = $this->database;
 		$prefix   = (string) $database->prefix;
 		if ( '' === $prefix || 1 !== preg_match( '/\A[A-Za-z0-9_]+\z/D', $prefix ) ) {
-			throw new RuntimeException( 'The WordPress database prefix is invalid.' );
+			throw WpPusherSourceException::db_prefix_invalid();
 		}
 
 		return $prefix . 'wppusher_packages';
@@ -247,14 +303,18 @@ final class WpPusherSource {
 		$table = $this->table();
 		$like  = addcslashes( $table, '\\_%' );
 		if ( ! is_callable( array( $this->database, 'prepare' ) ) ) {
-			throw new RuntimeException( 'The WP Pusher package table reader is unavailable.' );
+			throw WpPusherSourceException::db_table_reader_unavailable();
 		}
-		$sql = $this->database->prepare( 'SHOW TABLES LIKE %s', $like );
-
 		if ( ! is_callable( array( $this->database, 'get_var' ) ) ) {
-			throw new RuntimeException( 'The WP Pusher package table reader is unavailable.' );
+			throw WpPusherSourceException::db_table_reader_unavailable();
 		}
-		$found = $this->database->get_var( $sql );
+		try {
+			$sql   = $this->database->prepare( 'SHOW TABLES LIKE %s', $like );
+			$found = $this->database->get_var( $sql );
+		} catch ( Throwable $failure ) {
+			throw WpPusherSourceException::db_query_failed( $failure );
+		}
+		$this->assert_no_database_error();
 		if ( $table === $found ) {
 			return true;
 		}
@@ -262,11 +322,32 @@ final class WpPusherSource {
 			return false;
 		}
 
-		return match ( $this->database->get_var( 'SELECT @@lower_case_table_names' ) ) {
+		try {
+			if ( ! is_callable( array( $this->database, 'get_var' ) ) ) {
+				throw WpPusherSourceException::db_table_reader_unavailable();
+			}
+			$mode = $this->database->get_var( 'SELECT @@lower_case_table_names' );
+		} catch ( WpPusherSourceException $failure ) {
+			throw $failure;
+		} catch ( Throwable $failure ) {
+			throw WpPusherSourceException::db_query_failed( $failure );
+		}
+		$this->assert_no_database_error();
+
+		return match ( $mode ) {
 			1, '1' => strtolower( $table ) === $found,
 			2, '2' => true,
 			default => false,
 		};
+	}
+
+	private function assert_no_database_error(): void {
+		$properties = get_object_vars( $this->database );
+		if ( array_key_exists( 'last_error', $properties )
+			&& is_string( $properties['last_error'] )
+			&& '' !== trim( $properties['last_error'] ) ) {
+			throw WpPusherSourceException::db_query_failed();
+		}
 	}
 
 	/** @return array<string, array<string, mixed>> */

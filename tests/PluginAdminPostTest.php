@@ -35,6 +35,7 @@ final class PluginAdminPostTest extends TestCase {
 		$GLOBALS['ran_booster_wp_pusher_migrator_test_capabilities']    = array();
 		$GLOBALS['ran_booster_wp_pusher_migrator_test_events']          = array();
 		$GLOBALS['ran_booster_wp_pusher_migrator_test_enqueued_styles'] = array();
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_translations']    = array();
 		$GLOBALS['ran_booster_wp_pusher_migrator_test_plugins']         = array(
 			'fixture/fixture.php' => array( 'Name' => 'Fixture Plugin' ),
 		);
@@ -46,6 +47,7 @@ final class PluginAdminPostTest extends TestCase {
 		$_POST = array();
 		$GLOBALS['ran_booster_wp_pusher_migrator_test_capabilities']    = array();
 		$GLOBALS['ran_booster_wp_pusher_migrator_test_enqueued_styles'] = array();
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_translations']    = array();
 		parent::tearDown();
 	}
 
@@ -598,6 +600,669 @@ final class PluginAdminPostTest extends TestCase {
 		self::assertSame( 'all', $styles[0]['media'] );
 	}
 
+	public function test_render_panel_shows_informational_notice_when_wp_pusher_is_absent(): void {
+		$database = new AdminPostDatabase();
+		$this->connect_custom( $database, new AdminPostPortabilityFacade(), new AdminPostInteractionSpy(), array() );
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_events'] = array();
+
+		ob_start();
+		$this->controller->render_panel();
+		$output = (string) ob_get_clean();
+
+		self::assertStringContainsString( 'notice-info', $output );
+		self::assertStringContainsString( 'No WP Pusher packages were detected. WP Pusher is not installed on this site.', $output );
+		self::assertStringNotContainsString( 'notice-error', $output );
+		self::assertStringNotContainsString( 'completion-panel--visible', $output );
+		self::assertNotContains( 'database', $GLOBALS['ran_booster_wp_pusher_migrator_test_events'] );
+	}
+
+	public function test_render_panel_shows_informational_notice_when_inactive_with_no_packages(): void {
+		foreach ( array( false, true ) as $table_exists ) {
+			$database               = new AdminPostDatabase();
+			$database->table_exists = $table_exists;
+			$database->rows         = array();
+			$this->connect( $database, new AdminPostPortabilityFacade(), new AdminPostInteractionSpy() );
+
+			ob_start();
+			$this->controller->render_panel();
+			$output = (string) ob_get_clean();
+
+			self::assertStringContainsString( 'notice-info', $output );
+			self::assertStringContainsString( 'No WP Pusher packages were detected.', $output );
+			self::assertStringNotContainsString( 'notice-error', $output );
+			self::assertStringNotContainsString( 'completion-panel--visible', $output );
+		}
+	}
+
+	public function test_render_panel_maps_each_distinct_read_failure_to_its_own_fixed_message(): void {
+		// Active plugin.
+		$this->connect_custom(
+			new AdminPostDatabase(),
+			new AdminPostPortabilityFacade(),
+			new AdminPostInteractionSpy(),
+			array( WpPusherSource::PLUGIN => array( 'Version' => '3.0.18' ) ),
+			array( WpPusherSource::PLUGIN )
+		);
+		$active_output = $this->capture_panel();
+		self::assertStringContainsString( 'notice-error', $active_output );
+		self::assertStringContainsString( 'WP Pusher is still active. Deactivate WP Pusher before migrating retained packages.', $active_output );
+		self::assertStringNotContainsString( '(code:', $active_output );
+
+		// Multisite.
+		$this->connect_custom(
+			new AdminPostDatabase(),
+			new AdminPostPortabilityFacade(),
+			new AdminPostInteractionSpy(),
+			array( WpPusherSource::PLUGIN => array( 'Version' => '3.0.18' ) ),
+			array(),
+			array(),
+			true
+		);
+		$multisite_output = $this->capture_panel();
+		self::assertStringContainsString( 'notice-error', $multisite_output );
+		self::assertStringContainsString( 'WP Pusher migration supports single-site WordPress only.', $multisite_output );
+		self::assertStringNotContainsString( '(code:', $multisite_output );
+
+		// Invalid plugin version metadata.
+		$this->connect_custom(
+			new AdminPostDatabase(),
+			new AdminPostPortabilityFacade(),
+			new AdminPostInteractionSpy(),
+			array( WpPusherSource::PLUGIN => array( 'Version' => '' ) )
+		);
+		$metadata_output = $this->capture_panel();
+		self::assertStringContainsString( 'notice-error', $metadata_output );
+		self::assertStringContainsString( 'WP Pusher is installed, but its version metadata is missing or invalid.', $metadata_output );
+		self::assertStringNotContainsString( '(code:', $metadata_output );
+
+		// Unsupported schema.
+		$schema_database                     = new AdminPostDatabase();
+		$schema_database->unsupported_schema = true;
+		$this->connect( $schema_database, new AdminPostPortabilityFacade(), new AdminPostInteractionSpy() );
+		$schema_output = $this->capture_panel();
+		self::assertStringContainsString( 'notice-error', $schema_output );
+		self::assertStringContainsString( 'The retained WP Pusher package table schema is not supported.', $schema_output );
+		self::assertStringNotContainsString( '(code:', $schema_output );
+
+		// Duplicate retained rows.
+		$dup_database       = new AdminPostDatabase();
+		$dup_database->rows = array(
+			AdminPostDatabase::fixture_row(),
+			array_merge( AdminPostDatabase::fixture_row(), array( 'id' => '2' ) ),
+		);
+		$this->connect( $dup_database, new AdminPostPortabilityFacade(), new AdminPostInteractionSpy() );
+		$dup_output = $this->capture_panel();
+		self::assertStringContainsString( 'notice-error', $dup_output );
+		self::assertStringContainsString( 'The retained WP Pusher package table contains duplicate package records.', $dup_output );
+		self::assertStringNotContainsString( '(code:', $dup_output );
+
+		// Database reader unavailable (closed reason + code).
+		$no_reader = new class() {
+			public string $prefix = 'wp_';
+		};
+		$this->connect_custom( $no_reader, new AdminPostPortabilityFacade(), new AdminPostInteractionSpy() );
+		$db_reader_output = $this->capture_panel();
+		self::assertStringContainsString( 'notice-error', $db_reader_output );
+		self::assertStringContainsString( '(code: db_table_reader_unavailable)', $db_reader_output );
+
+		// Option reader unavailable (closed reason + code).
+		$no_options = new class() extends AdminPostDatabase {
+			public function __construct() {
+				parent::__construct();
+				unset( $this->options );
+			}
+		};
+		$this->connect_custom( $no_options, new AdminPostPortabilityFacade(), new AdminPostInteractionSpy() );
+		$option_reader_output = $this->capture_panel();
+		self::assertStringContainsString( 'notice-error', $option_reader_output );
+		self::assertStringContainsString( '(code: db_option_reader_unavailable)', $option_reader_output );
+
+		// Database query failure: closed reason + code, never SQL text.
+		$sql_error_database             = new AdminPostDatabase();
+		$sql_error_database->last_error = "SQLSTATE[42S02]: Table 'secret_db.wp_wppusher_packages' doesn't exist in SELECT `id` FROM `wp_wppusher_packages`";
+		$this->connect( $sql_error_database, new AdminPostPortabilityFacade(), new AdminPostInteractionSpy() );
+		$sql_output = $this->capture_panel();
+		self::assertStringContainsString( 'notice-error', $sql_output );
+		self::assertStringContainsString( '(code: db_query_failed)', $sql_output );
+		self::assertStringNotContainsString( 'SQLSTATE', $sql_output );
+		self::assertStringNotContainsString( 'SELECT', $sql_output );
+		self::assertStringNotContainsString( 'secret_db', $sql_output );
+	}
+
+	public function test_native_apply_of_last_package_shows_completion_panel_instead_of_empty_info(): void {
+		$database    = new AdminPostDatabase();
+		$portability = new AdminPostPortabilityFacade();
+		$interaction = new AdminPostInteractionSpy();
+		$this->connect( $database, $portability, $interaction );
+		$source = $this->source_package( $database );
+		$_POST  = $this->apply_request( $source, 'v1:' . str_repeat( 'a', 64 ) );
+
+		$output = $this->capture_panel();
+
+		self::assertSame( array(), $database->rows );
+		self::assertStringContainsString( 'completion-panel--visible', $output );
+		self::assertStringContainsString( 'Migration complete!', $output );
+		self::assertStringNotContainsString( 'notice-info', $output );
+	}
+
+	public function test_panel_lists_valid_and_rejected_subdirectory_rows_and_keeps_completion_off_while_rejected_remains(): void {
+		$database                     = new AdminPostDatabase();
+		$valid_row                    = AdminPostDatabase::fixture_row();
+		$valid_row['subdirectory']    = 'plugins/foo/';
+		$rejected_row                 = AdminPostDatabase::fixture_row();
+		$rejected_row['id']           = '2';
+		$rejected_row['package']      = 'bad/bad.php';
+		$rejected_row['subdirectory'] = '../<script>alert(1)</script>';
+		$database->rows               = array( $valid_row, $rejected_row );
+		$portability                  = new AdminPostPortabilityFacade();
+		$interaction                  = new AdminPostInteractionSpy();
+		$this->connect( $database, $portability, $interaction );
+
+		$panel = $this->capture_panel();
+		self::assertStringContainsString( '<code>fixture/fixture.php</code>', $panel );
+		self::assertStringContainsString( '>Check</button>', $panel );
+		self::assertStringContainsString( '<code>bad/bad.php</code>', $panel );
+		self::assertStringContainsString(
+			'Can&#039;t migrate: subdirectory &quot;../&lt;script&gt;alert(1)&lt;/script&gt;&quot; isn&#039;t a plain relative path.',
+			$panel
+		);
+		self::assertStringNotContainsString( '<script', $panel );
+		self::assertStringNotContainsString( 'notice-error', $panel );
+
+		// Adopting the valid trailing-slash row cleans up only the valid row and keeps completion off.
+		$source = $this->source_package( $database );
+		$_POST  = $this->apply_request( $source, 'v1:' . str_repeat( 'a', 64 ) );
+		$this->run_handler();
+
+		self::assertSame( 'plugins/foo', $portability->candidate?->subdirectory );
+		self::assertCount( 1, $database->rows );
+		self::assertSame( 'bad/bad.php', $database->rows[0]['package'] );
+		self::assertStringContainsString( '>Settings</a>', $interaction->fragment );
+		self::assertStringNotContainsString( 'data-ran-booster-wp-pusher-migration-complete', $interaction->fragment );
+	}
+
+	public function test_fragment_apply_preserves_verified_adoption_and_diagnostic_when_cleanup_throws_db_error(): void {
+		$database                       = new AdminPostDatabase();
+		$database->delete_error_message = "SQLSTATE[42000]: DELETE FROM `wp_wppusher_packages` WHERE secret_col = 'leak'";
+		$portability                    = new AdminPostPortabilityFacade();
+		$interaction                    = new AdminPostInteractionSpy();
+		$this->connect( $database, $portability, $interaction );
+		$source = $this->source_package( $database );
+		$_POST  = $this->apply_request( $source, 'v1:' . str_repeat( 'a', 64 ) );
+
+		$this->run_handler();
+
+		self::assertSame( 1, $portability->apply_calls );
+		self::assertCount( 1, $database->rows );
+		self::assertSame( 'validation_failure', $interaction->outcome?->kind() );
+		$message = (string) $interaction->outcome->message();
+		self::assertStringContainsString(
+			'Booster verified the adopted package, but its exact WP Pusher source record could not be removed. Keep WP Pusher inactive and try again.',
+			$message
+		);
+		self::assertStringContainsString(
+			'Could not access WP Pusher data: a database query failed (code: db_query_failed).',
+			$message
+		);
+		self::assertLessThanOrEqual( 255, strlen( $message ) );
+		self::assertStringNotContainsString( 'SQLSTATE', $message );
+		self::assertStringNotContainsString( 'DELETE FROM', $message );
+		self::assertStringNotContainsString( 'secret_col', $message );
+	}
+
+	public function test_native_apply_preserves_verified_adoption_and_diagnostic_when_cleanup_throws_db_error(): void {
+		// Case 1: delete_exact() fails with $wpdb->last_error, then subsequent inventory() read succeeds.
+		$database                       = new AdminPostDatabase();
+		$database->delete_error_message = "SQLSTATE[42000]: DELETE FROM `wp_wppusher_packages` WHERE secret_col = 'leak'";
+		$portability                    = new AdminPostPortabilityFacade();
+		$interaction                    = new AdminPostInteractionSpy();
+		$this->connect( $database, $portability, $interaction );
+		$source = $this->source_package( $database );
+		$_POST  = $this->apply_request( $source, 'v1:' . str_repeat( 'a', 64 ) );
+
+		$output = $this->capture_panel();
+
+		self::assertSame( 1, $portability->apply_calls );
+		self::assertCount( 1, $database->rows );
+		self::assertStringContainsString( 'class="notice notice-success inline"', $output );
+		self::assertStringContainsString( 'Imported.', $output );
+		self::assertStringContainsString( 'its old WP Pusher record remains', $output );
+		self::assertStringContainsString(
+			'Could not access WP Pusher data: a database query failed (code: db_query_failed).',
+			$output
+		);
+		self::assertStringContainsString( 'fixture/fixture.php', $output );
+		self::assertStringNotContainsString( 'SQLSTATE', $output );
+		self::assertStringNotContainsString( 'DELETE FROM', $output );
+		self::assertStringNotContainsString( 'secret_col', $output );
+
+		// Case 2: delete_exact() fails with $wpdb->last_error AND subsequent inventory() read also throws.
+		$database                       = new AdminPostDatabase();
+		$database->delete_error_message = "SQLSTATE[42000]: DELETE FROM `wp_wppusher_packages` WHERE secret_col = 'leak'";
+		$database->persist_delete_error = true;
+		$portability                    = new AdminPostPortabilityFacade();
+		$interaction                    = new AdminPostInteractionSpy();
+		$this->connect( $database, $portability, $interaction );
+		$source = $this->source_package( $database );
+		$_POST  = $this->apply_request( $source, 'v1:' . str_repeat( 'a', 64 ) );
+
+		$output_with_read_error = $this->capture_panel();
+
+		self::assertSame( 1, $portability->apply_calls );
+		self::assertCount( 1, $database->rows );
+		self::assertStringContainsString( 'class="notice notice-success inline"', $output_with_read_error );
+		self::assertStringContainsString( 'Imported.', $output_with_read_error );
+		self::assertStringContainsString( 'its old WP Pusher record remains', $output_with_read_error );
+		self::assertStringContainsString( 'class="notice notice-error inline"', $output_with_read_error );
+		self::assertStringContainsString(
+			'Could not access WP Pusher data: a database query failed (code: db_query_failed).',
+			$output_with_read_error
+		);
+		self::assertStringNotContainsString( 'SQLSTATE', $output_with_read_error );
+		self::assertStringNotContainsString( 'DELETE FROM', $output_with_read_error );
+		self::assertStringNotContainsString( 'secret_col', $output_with_read_error );
+	}
+
+	public function test_fragment_cleanup_message_uses_compact_multibyte_translation_when_combined_exceeds_255_bytes(): void {
+		$long_cleanup_translation  = 'Booster は採用済みパッケージを検証しましたが、WP Pusher のソースレコードを削除できませんでした。WP Pusher を無効のままにして再試行してください。';
+		$long_db_error_translation = 'WP Pusher データにアクセスできませんでした: データベースクエリが失敗しました (code: db_query_failed)。';
+		$compact_translation       = 'Booster は採用を検証済みですが、WP Pusher レコードが残っています';
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_translations'] = array(
+			'Booster verified the adopted package, but its exact WP Pusher source record could not be removed. Keep WP Pusher inactive and try again.' => $long_cleanup_translation,
+			'Could not access WP Pusher data: a database query failed'                                                                                  => $long_db_error_translation,
+			'Booster verified the adopted package, but its WP Pusher record remains'                                                                  => $compact_translation,
+		);
+		self::assertGreaterThan( 255, strlen( $long_cleanup_translation . ' ' . $long_db_error_translation ) );
+
+		$database                       = new AdminPostDatabase();
+		$database->delete_error_message = "SQLSTATE[42000]: DELETE FROM `wp_wppusher_packages` WHERE secret_col = 'leak'";
+		$portability                    = new AdminPostPortabilityFacade();
+		$interaction                    = new AdminPostInteractionSpy();
+		$this->connect( $database, $portability, $interaction );
+		$source = $this->source_package( $database );
+		$_POST  = $this->apply_request( $source, 'v1:' . str_repeat( 'a', 64 ) );
+
+		$this->run_handler();
+
+		self::assertSame( 'validation_failure', $interaction->outcome?->kind() );
+		$message = (string) $interaction->outcome->message();
+		self::assertSame( $compact_translation . ' (code: db_query_failed).', $message );
+		self::assertLessThanOrEqual( 255, strlen( $message ) );
+		self::assertTrue( 1 === preg_match( '//u', $message ) );
+		self::assertStringContainsString( '(code: db_query_failed)', $message );
+		self::assertStringNotContainsString( 'SQLSTATE', $message );
+		self::assertStringNotContainsString( 'secret_col', $message );
+	}
+
+	public function test_fragment_cleanup_message_falls_back_to_bounded_ascii_retaining_code_when_all_translations_exceed_255_bytes(): void {
+		$oversized_multibyte = str_repeat( '検証済み・未削除・Éé ', 16 );
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_translations'] = array(
+			'Booster verified the adopted package, but its exact WP Pusher source record could not be removed. Keep WP Pusher inactive and try again.' => $oversized_multibyte,
+			'Could not access WP Pusher data: a database query failed'                                                                                  => $oversized_multibyte,
+			'Booster verified the adopted package, but its WP Pusher record remains'                                                                  => $oversized_multibyte,
+		);
+		self::assertGreaterThan( 255, strlen( $oversized_multibyte ) );
+
+		$database                       = new AdminPostDatabase();
+		$database->delete_error_message = "SQLSTATE[42000]: DELETE FROM `wp_wppusher_packages` WHERE secret_col = 'leak'";
+		$portability                    = new AdminPostPortabilityFacade();
+		$interaction                    = new AdminPostInteractionSpy();
+		$this->connect( $database, $portability, $interaction );
+		$source = $this->source_package( $database );
+		$_POST  = $this->apply_request( $source, 'v1:' . str_repeat( 'a', 64 ) );
+
+		$this->run_handler();
+
+		self::assertSame( 'validation_failure', $interaction->outcome?->kind() );
+		$message = (string) $interaction->outcome->message();
+		self::assertSame(
+			'Booster verified the adopted package, but its WP Pusher record remains (code: db_query_failed).',
+			$message
+		);
+		self::assertLessThanOrEqual( 255, strlen( $message ) );
+		self::assertTrue( 1 === preg_match( '//u', $message ) );
+		self::assertStringContainsString( 'verified the adopted package', $message );
+		self::assertStringContainsString( 'WP Pusher record remains', $message );
+		self::assertStringContainsString( '(code: db_query_failed)', $message );
+		self::assertStringNotContainsString( 'SQLSTATE', $message );
+		self::assertStringNotContainsString( 'secret_col', $message );
+	}
+
+	public function test_fragment_review_and_apply_bound_long_translated_second_read_db_error_and_retain_code(): void {
+		$long_db_translation = str_repeat( 'データベース照会エラー・', 14 ) . ' (code: db_query_failed)';
+		$compact_translation = 'WP Pusher データにアクセスできませんでした';
+		self::assertGreaterThan( 450, strlen( $long_db_translation ) );
+		self::assertLessThanOrEqual( 255, strlen( $compact_translation . ' (code: db_query_failed).' ) );
+
+		$borderline_compact = str_repeat( 'x', 240 );
+		self::assertLessThanOrEqual( 255, strlen( $borderline_compact ) );
+		self::assertGreaterThan( 255, strlen( $borderline_compact . ' (code: db_query_failed).' ) );
+
+		$oversized_compact = str_repeat( 'データベース接続失敗・Éé ', 16 );
+		self::assertGreaterThan( 255, strlen( $oversized_compact ) );
+
+		$scenarios = array(
+			'compact_multibyte'        => array(
+				'translations' => array(
+					'Could not access WP Pusher data: a database query failed' => $long_db_translation,
+					'Could not access WP Pusher data' => $compact_translation,
+				),
+				'expected'     => $compact_translation . ' (code: db_query_failed).',
+			),
+			'short_full_omitting_code' => array(
+				'translations' => array(
+					'Could not access WP Pusher data: a database query failed' => 'WP Pusher エラー。',
+					'Could not access WP Pusher data' => $compact_translation,
+				),
+				'expected'     => 'WP Pusher エラー。 (code: db_query_failed).',
+			),
+			'compact_prose_fits_alone_but_overflows_with_suffix' => array(
+				'translations' => array(
+					'Could not access WP Pusher data: a database query failed' => $long_db_translation,
+					'Could not access WP Pusher data' => $borderline_compact,
+				),
+				'expected'     => 'Could not access WP Pusher data (code: db_query_failed).',
+			),
+			'ascii_fallback'           => array(
+				'translations' => array(
+					'Could not access WP Pusher data: a database query failed' => $long_db_translation,
+					'Could not access WP Pusher data' => $oversized_compact,
+				),
+				'expected'     => 'Could not access WP Pusher data (code: db_query_failed).',
+			),
+		);
+
+		foreach ( array( 'review', 'apply' ) as $operation ) {
+			foreach ( $scenarios as $name => $scenario ) {
+				$GLOBALS['ran_booster_wp_pusher_migrator_test_translations'] = $scenario['translations'];
+
+				$database    = new AdminPostDatabase();
+				$portability = new AdminPostPortabilityFacade();
+				$interaction = new AdminPostInteractionSpy();
+				$this->connect( $database, $portability, $interaction );
+				$source                               = $this->source_package( $database );
+				$database->fail_on_package_read       = 2;
+				$database->package_read_error_message = 'SQLSTATE[42000]: SELECT secret_table';
+
+				$_POST = 'review' === $operation
+					? $this->review_request( $source )
+					: $this->apply_request( $source, 'v1:' . str_repeat( 'a', 64 ) );
+
+				$this->run_handler();
+
+				self::assertSame( 'validation_failure', $interaction->outcome?->kind(), $operation . ':' . $name );
+				$message = (string) $interaction->outcome->message();
+				self::assertSame( $scenario['expected'], $message, $operation . ':' . $name );
+				self::assertLessThanOrEqual( 255, strlen( $message ), $operation . ':' . $name );
+				self::assertSame( 1, preg_match( '//u', $message ), $operation . ':' . $name );
+				self::assertStringContainsString( '(code: db_query_failed)', $message, $operation . ':' . $name );
+				self::assertStringNotContainsString( 'SQLSTATE', $message, $operation . ':' . $name );
+				self::assertStringNotContainsString( 'secret_table', $message, $operation . ':' . $name );
+				self::assertSame( 0, $portability->review_calls, $operation . ':' . $name );
+				self::assertSame( 0, $portability->apply_calls, $operation . ':' . $name );
+			}
+		}
+	}
+
+	public function test_apply_does_not_report_completion_when_installation_disappears_before_post_apply_readback(): void {
+		foreach ( array( 'native', 'fragment' ) as $transport ) {
+			$second_row            = AdminPostDatabase::fixture_row();
+			$second_row['id']      = '2';
+			$second_row['package'] = 'other/other.php';
+			$database              = new AdminPostDatabase();
+			$database->rows        = array( AdminPostDatabase::fixture_row(), $second_row );
+			$portability           = new AdminPostPortabilityFacade();
+			$interaction           = new AdminPostInteractionSpy();
+			$plugins_provider      = static function () use ( $database ): array {
+				return 1 === $database->row_count()
+					? array()
+					: array( WpPusherSource::PLUGIN => array( 'Version' => '3.0.18' ) );
+			};
+			$this->connect_custom( $database, $portability, $interaction, null, array(), array(), false, $plugins_provider );
+			$source = $this->source_package( $database );
+			$_POST  = $this->apply_request( $source, 'v1:' . str_repeat( 'a', 64 ) );
+
+			if ( 'native' === $transport ) {
+				$output = $this->capture_panel();
+				self::assertCount( 1, $database->rows );
+				self::assertSame( 'other/other.php', $database->rows[0]['package'] );
+				self::assertStringContainsString( 'Imported.', $output );
+				self::assertStringContainsString( 'No WP Pusher packages were detected. WP Pusher is not installed on this site.', $output );
+				self::assertStringNotContainsString( 'completion-panel--visible', $output );
+				self::assertStringNotContainsString( 'Migration complete!', $output );
+				continue;
+			}
+
+			$this->run_handler();
+			self::assertCount( 1, $database->rows );
+			self::assertSame( 'other/other.php', $database->rows[0]['package'] );
+			self::assertSame( 'success', $interaction->outcome?->kind() );
+			self::assertStringContainsString( '>Settings</a>', $interaction->fragment );
+			self::assertStringNotContainsString( 'data-ran-booster-wp-pusher-migration-complete', $interaction->fragment );
+			self::assertStringNotContainsString( 'Migration complete!', $interaction->fragment );
+		}
+	}
+
+	public function test_all_response_paths_retain_closed_db_code_with_short_or_empty_translations(): void {
+		$variants = array(
+			'short_omitting_code' => 'WP Pusher エラー。',
+			'empty_translation'   => '',
+		);
+
+		foreach ( $variants as $variant => $translated ) {
+			$GLOBALS['ran_booster_wp_pusher_migrator_test_translations'] = array(
+				'Could not access WP Pusher data: a database query failed' => $translated,
+			);
+
+			// Native inventory read failure.
+			$inventory_db             = new AdminPostDatabase();
+			$inventory_db->last_error = "SQLSTATE[42S02]: SELECT * FROM `wp_wppusher_packages` WHERE secret_col = 'leak'";
+			$this->connect( $inventory_db, new AdminPostPortabilityFacade(), new AdminPostInteractionSpy() );
+			$_POST            = array();
+			$inventory_output = $this->capture_panel();
+			self::assertStringContainsString( '(code: db_query_failed)', $inventory_output, 'native_inventory:' . $variant );
+			self::assertStringNotContainsString( 'SQLSTATE', $inventory_output, 'native_inventory:' . $variant );
+			self::assertStringNotContainsString( 'secret_col', $inventory_output, 'native_inventory:' . $variant );
+
+			// Native review and apply second-read database failures.
+			foreach ( array( 'review', 'apply' ) as $operation ) {
+				$read_db    = new AdminPostDatabase();
+				$read_proxy = new AdminPostPortabilityFacade();
+				$this->connect( $read_db, $read_proxy, new AdminPostInteractionSpy() );
+				$source                              = $this->source_package( $read_db );
+				$read_db->fail_on_package_read       = 2;
+				$read_db->package_read_error_message = 'SQLSTATE[42000]: SELECT secret_table';
+				$_POST                               = 'review' === $operation
+					? $this->review_request( $source )
+					: $this->apply_request( $source, 'v1:' . str_repeat( 'a', 64 ) );
+				$native_output                       = $this->capture_panel();
+				self::assertStringContainsString( '(code: db_query_failed)', $native_output, 'native_' . $operation . ':' . $variant );
+				self::assertStringNotContainsString( 'SQLSTATE', $native_output, 'native_' . $operation . ':' . $variant );
+				self::assertStringNotContainsString( 'secret_table', $native_output, 'native_' . $operation . ':' . $variant );
+			}
+
+			// Native cleanup database failure.
+			$cleanup_db                       = new AdminPostDatabase();
+			$cleanup_db->delete_error_message = "SQLSTATE[42000]: DELETE FROM `wp_wppusher_packages` WHERE secret_col = 'leak'";
+			$this->connect( $cleanup_db, new AdminPostPortabilityFacade(), new AdminPostInteractionSpy() );
+			$source         = $this->source_package( $cleanup_db );
+			$_POST          = $this->apply_request( $source, 'v1:' . str_repeat( 'a', 64 ) );
+			$cleanup_output = $this->capture_panel();
+			self::assertStringContainsString( '(code: db_query_failed)', $cleanup_output, 'native_cleanup:' . $variant );
+			self::assertStringNotContainsString( 'SQLSTATE', $cleanup_output, 'native_cleanup:' . $variant );
+			self::assertStringNotContainsString( 'secret_col', $cleanup_output, 'native_cleanup:' . $variant );
+
+			// Fragment review and apply second-read database failures.
+			foreach ( array( 'review', 'apply' ) as $operation ) {
+				$frag_db  = new AdminPostDatabase();
+				$frag_spy = new AdminPostInteractionSpy();
+				$this->connect( $frag_db, new AdminPostPortabilityFacade(), $frag_spy );
+				$source                              = $this->source_package( $frag_db );
+				$frag_db->fail_on_package_read       = 2;
+				$frag_db->package_read_error_message = 'SQLSTATE[42000]: SELECT secret_table';
+				$_POST                               = 'review' === $operation
+					? $this->review_request( $source )
+					: $this->apply_request( $source, 'v1:' . str_repeat( 'a', 64 ) );
+				$this->run_handler();
+				self::assertSame( 'validation_failure', $frag_spy->outcome?->kind(), 'fragment_' . $operation . ':' . $variant );
+				$message = (string) $frag_spy->outcome->message();
+				self::assertLessThanOrEqual( 255, strlen( $message ), 'fragment_' . $operation . ':' . $variant );
+				self::assertSame( 1, preg_match( '//u', $message ), 'fragment_' . $operation . ':' . $variant );
+				self::assertStringContainsString( '(code: db_query_failed)', $message, 'fragment_' . $operation . ':' . $variant );
+				self::assertStringNotContainsString( 'SQLSTATE', $message, 'fragment_' . $operation . ':' . $variant );
+				self::assertStringNotContainsString( 'secret_table', $message, 'fragment_' . $operation . ':' . $variant );
+			}
+
+			// Fragment cleanup database failure.
+			$frag_cleanup_db                       = new AdminPostDatabase();
+			$frag_cleanup_db->delete_error_message = "SQLSTATE[42000]: DELETE FROM `wp_wppusher_packages` WHERE secret_col = 'leak'";
+			$frag_cleanup_spy                      = new AdminPostInteractionSpy();
+			$this->connect( $frag_cleanup_db, new AdminPostPortabilityFacade(), $frag_cleanup_spy );
+			$source = $this->source_package( $frag_cleanup_db );
+			$_POST  = $this->apply_request( $source, 'v1:' . str_repeat( 'a', 64 ) );
+			$this->run_handler();
+			self::assertSame( 'validation_failure', $frag_cleanup_spy->outcome?->kind(), 'fragment_cleanup:' . $variant );
+			$cleanup_message = (string) $frag_cleanup_spy->outcome->message();
+			self::assertLessThanOrEqual( 255, strlen( $cleanup_message ), 'fragment_cleanup:' . $variant );
+			self::assertSame( 1, preg_match( '//u', $cleanup_message ), 'fragment_cleanup:' . $variant );
+			self::assertStringContainsString( '(code: db_query_failed)', $cleanup_message, 'fragment_cleanup:' . $variant );
+			self::assertStringNotContainsString( 'SQLSTATE', $cleanup_message, 'fragment_cleanup:' . $variant );
+			self::assertStringNotContainsString( 'secret_col', $cleanup_message, 'fragment_cleanup:' . $variant );
+		}
+	}
+
+	public function test_fragment_first_read_db_failure_returns_escaped_bounded_409_with_code(): void {
+		$oversized = str_repeat( 'データベース接続失敗・Éé ', 16 );
+		$variants  = array(
+			'default'         => array(
+				'translations' => array(),
+				'expected_sub' => '(code: db_query_failed)',
+			),
+			'short_html'      => array(
+				'translations' => array(
+					'Could not access WP Pusher data: a database query failed' => '<script>WP Pusher エラー</script>',
+				),
+				'expected_sub' => '&lt;script&gt;WP Pusher エラー&lt;/script&gt; (code: db_query_failed).',
+			),
+			'empty'           => array(
+				'translations' => array(
+					'Could not access WP Pusher data: a database query failed' => '',
+					'Could not access WP Pusher data' => '',
+				),
+				'expected_sub' => 'Could not access WP Pusher data: a database query failed (code: db_query_failed).',
+			),
+			'oversized_ascii' => array(
+				'translations' => array(
+					'Could not access WP Pusher data: a database query failed' => $oversized,
+					'Could not access WP Pusher data' => $oversized,
+				),
+				'expected_sub' => 'Could not access WP Pusher data (code: db_query_failed).',
+			),
+		);
+
+		foreach ( array( 'review', 'apply' ) as $operation ) {
+			foreach ( $variants as $name => $variant ) {
+				$GLOBALS['ran_booster_wp_pusher_migrator_test_translations'] = $variant['translations'];
+
+				$database    = new AdminPostDatabase();
+				$portability = new AdminPostPortabilityFacade();
+				$interaction = new AdminPostInteractionSpy();
+				$this->connect( $database, $portability, $interaction );
+				$source                               = $this->source_package( $database );
+				$database->fail_on_package_read       = 1;
+				$database->package_read_error_message = 'SQLSTATE[42000]: SELECT secret_table';
+				$_POST                                = 'review' === $operation
+					? $this->review_request( $source )
+					: $this->apply_request( $source, 'v1:' . str_repeat( 'a', 64 ) );
+
+				try {
+					$this->controller->handle_admin_post();
+					self::fail( 'First-read database failure did not stop.' );
+				} catch ( \Ran_Booster_Wp_Pusher_Migrator_Wp_Die_Exception $failure ) {
+					self::assertSame( 409, $failure->args['response'], $operation . ':' . $name );
+					$escaped = $failure->getMessage();
+					$decoded = htmlspecialchars_decode( $escaped, ENT_QUOTES );
+					self::assertStringContainsString( $variant['expected_sub'], $escaped, $operation . ':' . $name );
+					self::assertStringContainsString( '(code: db_query_failed)', $escaped, $operation . ':' . $name );
+					self::assertStringNotContainsString( '<script', $escaped, $operation . ':' . $name );
+					self::assertStringNotContainsString( 'SQLSTATE', $escaped, $operation . ':' . $name );
+					self::assertStringNotContainsString( 'secret_table', $escaped, $operation . ':' . $name );
+					self::assertLessThanOrEqual( 255, strlen( $decoded ), $operation . ':' . $name );
+					self::assertSame( 1, preg_match( '//u', $decoded ), $operation . ':' . $name );
+				}
+
+				self::assertCount( 1, $database->rows, $operation . ':' . $name );
+				self::assertNull( $interaction->outcome, $operation . ':' . $name );
+				self::assertSame( '', $interaction->fragment, $operation . ':' . $name );
+				self::assertSame( 0, $portability->review_calls, $operation . ':' . $name );
+				self::assertSame( 0, $portability->apply_calls, $operation . ':' . $name );
+			}
+		}
+	}
+
+	public function test_fragment_cleanup_retains_verified_adoption_remaining_record_and_code_with_empty_translations(): void {
+		$cases = array(
+			'empty_all'               => array(
+				'translations'     => array(
+					'Booster verified the adopted package, but its exact WP Pusher source record could not be removed. Keep WP Pusher inactive and try again.' => '',
+					'Booster verified the adopted package, but its WP Pusher record remains' => '',
+					'Could not access WP Pusher data: a database query failed' => '',
+					'Could not access WP Pusher data' => '',
+				),
+				'record_substring' => 'source record could not be removed',
+			),
+			'empty_with_short_db'     => array(
+				'translations'     => array(
+					'Booster verified the adopted package, but its exact WP Pusher source record could not be removed. Keep WP Pusher inactive and try again.' => '',
+					'Booster verified the adopted package, but its WP Pusher record remains'                                                                  => '',
+					'Could not access WP Pusher data: a database query failed'                                                                                  => 'WP Pusher エラー。',
+				),
+				'record_substring' => 'source record could not be removed',
+			),
+			'empty_with_oversized_db' => array(
+				'translations'     => array(
+					'Booster verified the adopted package, but its exact WP Pusher source record could not be removed. Keep WP Pusher inactive and try again.' => '',
+					'Booster verified the adopted package, but its WP Pusher record remains'                                                                  => '',
+					'Could not access WP Pusher data: a database query failed'                                                                                  => str_repeat( 'データベース照会エラー・', 14 ),
+				),
+				'record_substring' => 'WP Pusher record remains',
+			),
+		);
+
+		foreach ( $cases as $name => $case ) {
+			$GLOBALS['ran_booster_wp_pusher_migrator_test_translations'] = $case['translations'];
+
+			$database                       = new AdminPostDatabase();
+			$database->delete_error_message = "SQLSTATE[42000]: DELETE FROM `wp_wppusher_packages` WHERE secret_col = 'leak'";
+			$portability                    = new AdminPostPortabilityFacade();
+			$interaction                    = new AdminPostInteractionSpy();
+			$this->connect( $database, $portability, $interaction );
+			$source = $this->source_package( $database );
+			$_POST  = $this->apply_request( $source, 'v1:' . str_repeat( 'a', 64 ) );
+
+			$this->run_handler();
+
+			self::assertSame( 1, $portability->apply_calls, $name );
+			self::assertCount( 1, $database->rows, $name );
+			self::assertSame( 'validation_failure', $interaction->outcome?->kind(), $name );
+			$message = (string) $interaction->outcome->message();
+			self::assertLessThanOrEqual( 255, strlen( $message ), $name );
+			self::assertSame( 1, preg_match( '//u', $message ), $name );
+			self::assertStringContainsString( 'Booster verified the adopted package', $message, $name );
+			self::assertStringContainsString( $case['record_substring'], $message, $name );
+			self::assertStringContainsString( '(code: db_query_failed)', $message, $name );
+			self::assertStringNotContainsString( 'SQLSTATE', $message, $name );
+			self::assertStringNotContainsString( 'secret_col', $message, $name );
+		}
+	}
+
+	private function capture_panel(): string {
+		ob_start();
+		$this->controller->render_panel();
+
+		return (string) ob_get_clean();
+	}
+
 	private function run_handler(): void {
 		try {
 			$this->controller->handle_admin_post();
@@ -612,19 +1277,39 @@ final class PluginAdminPostTest extends TestCase {
 		AdminPostPortabilityFacade $portability,
 		AdminPostInteractionSpy $interaction
 	): void {
-		$source           = new WpPusherSource(
+		$this->connect_custom( $database, $portability, $interaction );
+	}
+
+	/**
+	 * @param array<string, array<string, mixed>>|null               $plugins
+	 * @param array<int, string>                                     $active_plugins
+	 * @param array<string, mixed>                                   $network_active_plugins
+	 * @param (callable():array<string, array<string, mixed>>)|null  $plugins_provider
+	 */
+	private function connect_custom(
+		object $database,
+		AdminPostPortabilityFacade $portability,
+		AdminPostInteractionSpy $interaction,
+		?array $plugins = null,
+		array $active_plugins = array(),
+		array $network_active_plugins = array(),
+		bool $multisite = false,
+		?callable $plugins_provider = null
+	): void {
+		$installed_plugins = $plugins ?? array( WpPusherSource::PLUGIN => array( 'Version' => '3.0.18' ) );
+		$source            = new WpPusherSource(
 			$database,
-			static fn (): array => array( WpPusherSource::PLUGIN => array( 'Version' => '3.0.18' ) ),
-			static fn (): array => array(),
-			static fn (): array => array(),
-			static fn (): bool => false
+			$plugins_provider ?? static fn (): array => $installed_plugins,
+			static fn (): array => $active_plugins,
+			static fn (): array => $network_active_plugins,
+			static fn (): bool => $multisite
 		);
-		$factory          = new CandidateFactory(
+		$factory           = new CandidateFactory(
 			static fn (): array => array( 'fixture/fixture.php' => array( 'Name' => 'Fixture Plugin' ) )
 		);
-		$service          = new MigrationService( $source, $factory, $portability );
-		$presenter        = new MigrationPresenter( $factory, $interaction );
-		$this->controller = new MigrationRequestController( $service, $source, $presenter, $interaction );
+		$service           = new MigrationService( $source, $factory, $portability );
+		$presenter         = new MigrationPresenter( $factory, $interaction );
+		$this->controller  = new MigrationRequestController( $service, $source, $presenter, $interaction );
 	}
 
 	private function source_package( AdminPostDatabase $database ): WpPusherPackage {
@@ -762,21 +1447,33 @@ final class AdminPostPortabilityFacade extends PortabilityFacade {
 }
 
 // phpcs:ignore Generic.Files.OneObjectStructurePerFile.MultipleFound -- Colocated test double belongs to this fixture load unit; unrelated declarations remain checked.
-final class AdminPostDatabase {
+class AdminPostDatabase {
 
-	public string $prefix  = 'wp_';
-	public string $options = 'wp_options';
+	public string $prefix     = 'wp_';
+	public string $options    = 'wp_options';
+	public string $last_error = '';
 
 	/** @var list<array<string, mixed>> */
 	public array $rows;
 	public int $delete_result                     = 1;
 	public bool $fail_inventory_read_after_delete = false;
+	public bool $table_exists                     = true;
+	public bool $unsupported_schema               = false;
+	public string $delete_error_message           = '';
+	public bool $persist_delete_error             = false;
+	public int $fail_on_package_read              = 0;
+	public string $package_read_error_message     = '';
+	private int $package_read_count               = 0;
 	/** @var array<int|string, mixed> Variadic arguments retain named keys too. */
 	private array $prepared_values = array();
 	private bool $deleted          = false;
 
 	public function __construct() {
 		$this->rows = array( self::fixture_row() );
+	}
+
+	public function row_count(): int {
+		return count( $this->rows );
 	}
 
 	/** @return array<string, mixed> */
@@ -795,10 +1492,13 @@ final class AdminPostDatabase {
 		);
 	}
 
-	public function get_var( string $query ): string|int {
+	public function get_var( string $query ): string|int|null {
 		$GLOBALS['ran_booster_wp_pusher_migrator_test_events'][] = 'database';
+		if ( ! $this->persist_delete_error && '' !== $this->delete_error_message ) {
+			$this->last_error = '';
+		}
 		if ( str_starts_with( $query, 'SHOW TABLES' ) ) {
-			return 'wp_wppusher_packages';
+			return $this->table_exists ? 'wp_wppusher_packages' : null;
 		}
 
 		return count( $this->rows );
@@ -813,7 +1513,24 @@ final class AdminPostDatabase {
 			&& str_starts_with( $query, 'SELECT `' ) ) {
 			throw new RuntimeException( 'Inventory readback failed.' );
 		}
+		if ( str_starts_with( $query, 'SELECT `' ) && $this->fail_on_package_read > 0 ) {
+			++$this->package_read_count;
+			if ( $this->package_read_count === $this->fail_on_package_read && '' !== $this->package_read_error_message ) {
+				$this->last_error = $this->package_read_error_message;
+
+				return array();
+			}
+		}
 		if ( str_starts_with( $query, 'SHOW COLUMNS' ) ) {
+			if ( $this->unsupported_schema ) {
+				return array(
+					array(
+						'Field' => 'id',
+						'Type'  => 'bigint',
+					),
+				);
+			}
+
 			return array(
 				array(
 					'Field' => 'id',
@@ -878,17 +1595,53 @@ final class AdminPostDatabase {
 	public function query( string $query ): int {
 		$GLOBALS['ran_booster_wp_pusher_migrator_test_events'][] = 'database';
 		if ( str_starts_with( $query, 'DELETE FROM `wp_wppusher_packages`' )
+			&& '' !== $this->delete_error_message ) {
+			$this->last_error = $this->delete_error_message;
+
+			return 0;
+		}
+		if ( str_starts_with( $query, 'DELETE FROM `wp_wppusher_packages`' )
 			&& 1 === $this->delete_result ) {
-			$source_id     = (string) ( $this->prepared_values[0] ?? '' );
-			$this->rows    = array_values(
-				array_filter(
-					$this->rows,
-					static fn ( array $row ): bool => $source_id !== (string) $row['id']
-				)
-			);
-			$this->deleted = true;
+			$matched   = 0;
+			$remaining = array();
+			foreach ( $this->rows as $row ) {
+				if ( $this->row_matches_delete( $query, $row ) ) {
+					++$matched;
+					continue;
+				}
+				$remaining[] = $row;
+			}
+			$this->rows    = $remaining;
+			$this->deleted = $matched > 0;
+
+			return $matched;
 		}
 
 		return $this->delete_result;
+	}
+
+	/** @param array<string, mixed> $row */
+	private function row_matches_delete( string $query, array $row ): bool {
+		$values = $this->prepared_values;
+		if ( (string) ( $row['id'] ?? '' ) !== (string) ( $values[0] ?? '' )
+			|| (string) ( $row['package'] ?? '' ) !== (string) ( $values[1] ?? '' )
+			|| (string) ( $row['repository'] ?? '' ) !== (string) ( $values[2] ?? '' )
+			|| (string) ( $row['branch'] ?? '' ) !== (string) ( $values[3] ?? '' )
+			|| (string) ( $row['type'] ?? '' ) !== (string) ( $values[4] ?? '' )
+			|| (string) ( $row['status'] ?? '' ) !== (string) ( $values[5] ?? '' )
+			|| (string) ( $row['ptd'] ?? '' ) !== (string) ( $values[6] ?? '' )
+			|| (string) ( $row['host'] ?? '' ) !== (string) ( $values[7] ?? '' )
+			|| (string) ( $row['private'] ?? '' ) !== (string) ( $values[8] ?? '' ) ) {
+			return false;
+		}
+		if ( str_contains( $query, '`subdirectory` IS NULL' ) ) {
+			return null === ( $row['subdirectory'] ?? null );
+		}
+
+		if ( array_key_exists( 9, $values ) && ( $row['subdirectory'] ?? null ) === $values[9] ) {
+			return true;
+		}
+
+		return false;
 	}
 }
