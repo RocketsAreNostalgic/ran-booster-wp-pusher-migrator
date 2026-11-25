@@ -61,6 +61,7 @@ final class SourceCardViewTest extends TestCase {
 		$apply_class         = 'notice-error';
 		$apply_message       = '';
 		$cleanup_pending     = false;
+		$cleanup_error       = '';
 		$completion_visible  = false;
 		$plugins_url         = 'https://example.test/wp-admin/plugins.php';
 		$admin_interaction   = $this->interaction;
@@ -312,6 +313,35 @@ final class SourceCardViewTest extends TestCase {
 		self::assertSame( array( 'wp-pusher:check-package' ), $interaction->rendered_operations );
 	}
 
+	public function test_verified_apply_and_cleanup_error_remain_visible_even_with_panel_read_error(): void {
+		$rows                = array();
+		$error               = 'Could not access WP Pusher data: a database query failed (code: db_query_failed).';
+		$info                = '';
+		$has_error           = true;
+		$has_info            = false;
+		$legacy_data_present = false;
+		$apply_visible       = true;
+		$apply_class         = 'notice-success';
+		$apply_message       = 'Imported.';
+		$cleanup_pending     = true;
+		$cleanup_error       = 'Could not access <WP Pusher> data (code: db_query_failed).';
+		$completion_visible  = false;
+		$plugins_url         = 'https://example.test/wp-admin/plugins.php';
+		$admin_interaction   = new SourceCardInteractionSpy();
+
+		ob_start();
+		require dirname( __DIR__ ) . '/views/source-card.php';
+		$output = (string) ob_get_clean();
+
+		self::assertStringContainsString( 'class="notice notice-success inline"', $output );
+		self::assertStringContainsString( 'Imported.', $output );
+		self::assertStringContainsString( 'The package is safely stored in Booster, but its old WP Pusher record remains.', $output );
+		self::assertStringContainsString( 'Could not access &lt;WP Pusher&gt; data (code: db_query_failed).', $output );
+		self::assertStringContainsString( 'class="notice notice-error inline"', $output );
+		self::assertStringContainsString( 'Could not access WP Pusher data: a database query failed (code: db_query_failed).', $output );
+		self::assertStringNotContainsString( 'completion-panel--visible', $output );
+	}
+
 	private function render_public_package(
 		?string $review_action = null,
 		?SourceCardInteractionSpy $interaction = null,
@@ -380,6 +410,7 @@ final class SourceCardViewTest extends TestCase {
 		$apply_class         = 'notice-error';
 		$apply_message       = '';
 		$cleanup_pending     = false;
+		$cleanup_error       = '';
 		$completion_visible  = ! $has_info && array() === $rows;
 		$plugins_url         = 'https://example.test/wp-admin/plugins.php';
 		$admin_interaction   = $this->interaction ?? new SourceCardInteractionSpy();

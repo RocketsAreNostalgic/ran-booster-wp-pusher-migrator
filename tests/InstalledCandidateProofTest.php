@@ -85,6 +85,11 @@ final class InstalledCandidateProofTest extends TestCase {
 		self::assertStringContainsString( "'workspace/core-public'", $this->probe );
 		self::assertStringContainsString( "'RocketsAreNostalgic/theme-fixture'", $this->probe );
 		self::assertStringContainsString( 'admin_enqueue_scripts|20|enqueueAssets|1', $this->probe );
+		self::assertStringContainsString( "'byte-exact-delete'", $this->probe );
+		self::assertStringContainsString( 'COLLATE=utf8mb4_unicode_ci', $this->probe );
+		self::assertStringContainsString( "'plugins/foo/'", $this->probe );
+		self::assertStringContainsString( "'plugins/Foo/'", $this->probe );
+		self::assertStringContainsString( 'delete_exact(', $this->probe );
 	}
 
 	public function test_database_canonicalization_only_removes_redundant_column_charset_spelling(): void {

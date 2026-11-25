@@ -779,6 +779,88 @@ final class PluginAdminPostTest extends TestCase {
 		self::assertStringNotContainsString( 'data-ran-booster-wp-pusher-migration-complete', $interaction->fragment );
 	}
 
+	public function test_fragment_apply_preserves_verified_adoption_and_diagnostic_when_cleanup_throws_db_error(): void {
+		$database                       = new AdminPostDatabase();
+		$database->delete_error_message = "SQLSTATE[42000]: DELETE FROM `wp_wppusher_packages` WHERE secret_col = 'leak'";
+		$portability                    = new AdminPostPortabilityFacade();
+		$interaction                    = new AdminPostInteractionSpy();
+		$this->connect( $database, $portability, $interaction );
+		$source = $this->source_package( $database );
+		$_POST  = $this->apply_request( $source, 'v1:' . str_repeat( 'a', 64 ) );
+
+		$this->run_handler();
+
+		self::assertSame( 1, $portability->apply_calls );
+		self::assertCount( 1, $database->rows );
+		self::assertSame( 'validation_failure', $interaction->outcome?->kind() );
+		$message = (string) $interaction->outcome->message();
+		self::assertStringContainsString(
+			'Booster verified the adopted package, but its exact WP Pusher source record could not be removed. Keep WP Pusher inactive and try again.',
+			$message
+		);
+		self::assertStringContainsString(
+			'Could not access WP Pusher data: a database query failed (code: db_query_failed).',
+			$message
+		);
+		self::assertLessThanOrEqual( 255, strlen( $message ) );
+		self::assertStringNotContainsString( 'SQLSTATE', $message );
+		self::assertStringNotContainsString( 'DELETE FROM', $message );
+		self::assertStringNotContainsString( 'secret_col', $message );
+	}
+
+	public function test_native_apply_preserves_verified_adoption_and_diagnostic_when_cleanup_throws_db_error(): void {
+		// Case 1: delete_exact() fails with $wpdb->last_error, then subsequent inventory() read succeeds.
+		$database                       = new AdminPostDatabase();
+		$database->delete_error_message = "SQLSTATE[42000]: DELETE FROM `wp_wppusher_packages` WHERE secret_col = 'leak'";
+		$portability                    = new AdminPostPortabilityFacade();
+		$interaction                    = new AdminPostInteractionSpy();
+		$this->connect( $database, $portability, $interaction );
+		$source = $this->source_package( $database );
+		$_POST  = $this->apply_request( $source, 'v1:' . str_repeat( 'a', 64 ) );
+
+		$output = $this->capture_panel();
+
+		self::assertSame( 1, $portability->apply_calls );
+		self::assertCount( 1, $database->rows );
+		self::assertStringContainsString( 'class="notice notice-success inline"', $output );
+		self::assertStringContainsString( 'Imported.', $output );
+		self::assertStringContainsString( 'its old WP Pusher record remains', $output );
+		self::assertStringContainsString(
+			'Could not access WP Pusher data: a database query failed (code: db_query_failed).',
+			$output
+		);
+		self::assertStringContainsString( 'fixture/fixture.php', $output );
+		self::assertStringNotContainsString( 'SQLSTATE', $output );
+		self::assertStringNotContainsString( 'DELETE FROM', $output );
+		self::assertStringNotContainsString( 'secret_col', $output );
+
+		// Case 2: delete_exact() fails with $wpdb->last_error AND subsequent inventory() read also throws.
+		$database                       = new AdminPostDatabase();
+		$database->delete_error_message = "SQLSTATE[42000]: DELETE FROM `wp_wppusher_packages` WHERE secret_col = 'leak'";
+		$database->persist_delete_error = true;
+		$portability                    = new AdminPostPortabilityFacade();
+		$interaction                    = new AdminPostInteractionSpy();
+		$this->connect( $database, $portability, $interaction );
+		$source = $this->source_package( $database );
+		$_POST  = $this->apply_request( $source, 'v1:' . str_repeat( 'a', 64 ) );
+
+		$output_with_read_error = $this->capture_panel();
+
+		self::assertSame( 1, $portability->apply_calls );
+		self::assertCount( 1, $database->rows );
+		self::assertStringContainsString( 'class="notice notice-success inline"', $output_with_read_error );
+		self::assertStringContainsString( 'Imported.', $output_with_read_error );
+		self::assertStringContainsString( 'its old WP Pusher record remains', $output_with_read_error );
+		self::assertStringContainsString( 'class="notice notice-error inline"', $output_with_read_error );
+		self::assertStringContainsString(
+			'Could not access WP Pusher data: a database query failed (code: db_query_failed).',
+			$output_with_read_error
+		);
+		self::assertStringNotContainsString( 'SQLSTATE', $output_with_read_error );
+		self::assertStringNotContainsString( 'DELETE FROM', $output_with_read_error );
+		self::assertStringNotContainsString( 'secret_col', $output_with_read_error );
+	}
+
 	private function capture_panel(): string {
 		ob_start();
 		$this->controller->render_panel();
@@ -980,6 +1062,8 @@ class AdminPostDatabase {
 	public bool $fail_inventory_read_after_delete = false;
 	public bool $table_exists                     = true;
 	public bool $unsupported_schema               = false;
+	public string $delete_error_message           = '';
+	public bool $persist_delete_error             = false;
 	/** @var array<int|string, mixed> Variadic arguments retain named keys too. */
 	private array $prepared_values = array();
 	private bool $deleted          = false;
@@ -1006,6 +1090,9 @@ class AdminPostDatabase {
 
 	public function get_var( string $query ): string|int|null {
 		$GLOBALS['ran_booster_wp_pusher_migrator_test_events'][] = 'database';
+		if ( ! $this->persist_delete_error && '' !== $this->delete_error_message ) {
+			$this->last_error = '';
+		}
 		if ( str_starts_with( $query, 'SHOW TABLES' ) ) {
 			return $this->table_exists ? 'wp_wppusher_packages' : null;
 		}
@@ -1095,6 +1182,12 @@ class AdminPostDatabase {
 
 	public function query( string $query ): int {
 		$GLOBALS['ran_booster_wp_pusher_migrator_test_events'][] = 'database';
+		if ( str_starts_with( $query, 'DELETE FROM `wp_wppusher_packages`' )
+			&& '' !== $this->delete_error_message ) {
+			$this->last_error = $this->delete_error_message;
+
+			return 0;
+		}
 		if ( str_starts_with( $query, 'DELETE FROM `wp_wppusher_packages`' )
 			&& 1 === $this->delete_result ) {
 			$matched   = 0;

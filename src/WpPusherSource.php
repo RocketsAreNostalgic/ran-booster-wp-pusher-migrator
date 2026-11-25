@@ -199,9 +199,10 @@ final class WpPusherSource {
 		$this->assert_schema( $schema );
 	}
 
+	/** @phpstan-impure */
 	public function delete_exact( WpPusherPackage $expected ): bool {
 		$table  = $this->table();
-		$query  = "DELETE FROM `{$table}` WHERE `id` = %d AND `package` = %s AND `repository` = %s AND `branch` = %s AND `type` = %d AND `status` = %d AND `ptd` = %d AND `host` = %s AND `private` = %d";
+		$query  = "DELETE FROM `{$table}` WHERE `id` = %d AND CAST( `package` AS BINARY ) = CAST( %s AS BINARY ) AND CAST( `repository` AS BINARY ) = CAST( %s AS BINARY ) AND CAST( `branch` AS BINARY ) = CAST( %s AS BINARY ) AND `type` = %d AND `status` = %d AND `ptd` = %d AND CAST( `host` AS BINARY ) = CAST( %s AS BINARY ) AND `private` = %d";
 		$values = array(
 			$expected->id,
 			$expected->package,
@@ -216,7 +217,7 @@ final class WpPusherSource {
 		if ( null === $expected->raw_subdirectory ) {
 			$query .= ' AND `subdirectory` IS NULL';
 		} else {
-			$query   .= ' AND `subdirectory` = %s';
+			$query   .= ' AND CAST( `subdirectory` AS BINARY ) = CAST( %s AS BINARY )';
 			$values[] = $expected->raw_subdirectory;
 		}
 

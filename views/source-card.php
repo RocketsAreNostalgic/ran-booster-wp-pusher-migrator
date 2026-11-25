@@ -12,6 +12,7 @@
  * @var string              $apply_class
  * @var string              $apply_message
  * @var bool                $cleanup_pending
+ * @var string              $cleanup_error
  * @var bool                $completion_visible
  * @var string              $plugins_url
  */
@@ -26,21 +27,25 @@ defined( 'ABSPATH' ) || exit;
 		<p><?php esc_html_e( 'Move each package into Booster and check the result before continuing. Migrated packages start with automatic deployments turned off.', 'ran-booster-wp-pusher-migrator' ); ?></p>
 	</header>
 
+	<?php if ( $apply_visible ) { ?>
+		<div class="notice <?php echo esc_attr( $apply_class ); ?> inline">
+			<p>
+				<?php echo esc_html( $apply_message ); ?>
+				<?php if ( $cleanup_pending ) { ?>
+					<?php esc_html_e( 'The package is safely stored in Booster, but its old WP Pusher record remains. Keep WP Pusher inactive and try again.', 'ran-booster-wp-pusher-migrator' ); ?>
+					<?php if ( '' !== $cleanup_error ) { ?>
+						<?php echo esc_html( $cleanup_error ); ?>
+					<?php } ?>
+				<?php } ?>
+			</p>
+		</div>
+	<?php } ?>
+
 	<?php if ( $has_error ) { ?>
 		<div class="notice notice-error inline"><p><?php echo esc_html( $error ); ?></p></div>
 	<?php } elseif ( $has_info ) { ?>
 		<div class="notice notice-info inline"><p><?php echo esc_html( $info ); ?></p></div>
 	<?php } else { ?>
-		<?php if ( $apply_visible ) { ?>
-			<div class="notice <?php echo esc_attr( $apply_class ); ?> inline">
-				<p>
-					<?php echo esc_html( $apply_message ); ?>
-					<?php if ( $cleanup_pending ) { ?>
-						<?php esc_html_e( 'The package is safely stored in Booster, but its old WP Pusher record remains. Keep WP Pusher inactive and try again.', 'ran-booster-wp-pusher-migrator' ); ?>
-					<?php } ?>
-				</p>
-			</div>
-		<?php } ?>
 		<?php if ( $legacy_data_present && array() !== $rows ) { ?>
 			<div class="notice notice-warning inline"><p><?php esc_html_e( 'WP Pusher settings found: Not all Pusher settings can be migrated. Private repositories will need to access credentials.', 'ran-booster-wp-pusher-migrator' ); ?></p></div>
 		<?php } ?>

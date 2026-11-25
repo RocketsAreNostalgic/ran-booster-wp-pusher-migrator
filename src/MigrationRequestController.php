@@ -59,6 +59,7 @@ final readonly class MigrationRequestController {
 			check_admin_referer( 'review' === $operation ? self::FORM_ACTION : self::APPLY_FORM_ACTION );
 		}
 
+		$outcome = null;
 		try {
 			$outcome             = $submitted ? $this->operation_outcome( $operation, $request ) : null;
 			$error               = null !== $outcome && 'success' !== $outcome['kind'] && null === $outcome['apply']
@@ -88,7 +89,7 @@ final readonly class MigrationRequestController {
 			$this->presenter->render_panel(
 				array(),
 				null,
-				null,
+				$outcome['apply'] ?? null,
 				array(),
 				$this->presenter->source_error_message( $failure )
 			);
@@ -193,7 +194,7 @@ final readonly class MigrationRequestController {
 
 	/**
 	 * @param array<string, mixed> $request Authorized request values.
-	 * @return array{kind:'success'|'validation_failure'|'unexpected_failure',message:string,source:WpPusherPackage|null,review:PortabilityReviewResult|null,apply:array{result:PortabilityApplyResult,cleanup_pending:bool}|null,migration_complete:bool}
+	 * @return array{kind:'success'|'validation_failure'|'unexpected_failure',message:string,source:WpPusherPackage|null,review:PortabilityReviewResult|null,apply:array{result:PortabilityApplyResult,cleanup_pending:bool,cleanup_error:?string}|null,migration_complete:bool}
 	 */
 	private function operation_outcome( string $operation, array $request ): array {
 		$outcome = array(
@@ -217,21 +218,37 @@ final readonly class MigrationRequestController {
 				return $outcome;
 			}
 
-			$review_fingerprint            = $this->request_value( $request, 'review_fingerprint' );
-			$provider_expectation          = $this->provider_expectation( $request );
-			$nonce                         = wp_create_nonce( $this->migration->nonce_action( 'apply', $source, $credential_id, $review_fingerprint, $provider_expectation ) );
-			$result                        = $this->migration->apply( $source->id, $source_fingerprint, $credential_id, $review_fingerprint, $nonce, $provider_expectation );
-			$removed                       = $result->target_verified && $this->migration->cleanup( $source->id, $source_fingerprint, $result );
+			$review_fingerprint   = $this->request_value( $request, 'review_fingerprint' );
+			$provider_expectation = $this->provider_expectation( $request );
+			$nonce                = wp_create_nonce( $this->migration->nonce_action( 'apply', $source, $credential_id, $review_fingerprint, $provider_expectation ) );
+			$result               = $this->migration->apply( $source->id, $source_fingerprint, $credential_id, $review_fingerprint, $nonce, $provider_expectation );
+			$removed              = false;
+			$cleanup_error        = null;
+			if ( $result->target_verified ) {
+				try {
+					$removed = $this->migration->cleanup( $source->id, $source_fingerprint, $result );
+				} catch ( Throwable $cleanup_failure ) {
+					$removed       = false;
+					$cleanup_error = $this->presenter->failure_message( $cleanup_failure );
+				}
+			}
 			$cleanup_pending               = $result->target_verified && ! $removed;
 			$outcome['apply']              = array(
 				'result'          => $result,
 				'cleanup_pending' => $cleanup_pending,
+				'cleanup_error'   => $cleanup_error,
 			);
 			$outcome['migration_complete'] = ! $cleanup_pending && $result->target_verified && $this->migration_complete();
-			$outcome['message']            = $cleanup_pending
-				? __( 'Booster verified the adopted package, but its exact WP Pusher source record could not be removed. Keep WP Pusher inactive and try again.', 'ran-booster-wp-pusher-migrator' )
-				: $result->message;
-			$outcome['kind']               = $result->target_verified && ! $cleanup_pending ? 'success' : 'validation_failure';
+			if ( $cleanup_pending ) {
+				$cleanup_message    = __( 'Booster verified the adopted package, but its exact WP Pusher source record could not be removed. Keep WP Pusher inactive and try again.', 'ran-booster-wp-pusher-migrator' );
+				$combined           = null !== $cleanup_error && '' !== $cleanup_error
+					? $cleanup_message . ' ' . $cleanup_error
+					: $cleanup_message;
+				$outcome['message'] = strlen( $combined ) <= 255 ? $combined : $cleanup_message;
+			} else {
+				$outcome['message'] = $result->message;
+			}
+			$outcome['kind'] = $result->target_verified && ! $cleanup_pending ? 'success' : 'validation_failure';
 		} catch ( Throwable $failure ) {
 			$outcome['message'] = $this->presenter->failure_message( $failure ) ?? '';
 			$outcome['kind']    = '' === $outcome['message'] ? 'unexpected_failure' : 'validation_failure';

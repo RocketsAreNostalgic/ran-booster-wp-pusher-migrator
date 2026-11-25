@@ -33,9 +33,9 @@ final readonly class MigrationPresenter {
 	}
 
 	/**
-	 * @param list<WpPusherPackage|WpPusherRejectedPackage>                 $entries
-	 * @param array{result:PortabilityApplyResult,cleanup_pending:bool}|null $apply
-	 * @param array<string, bool>                                           $option_presence
+	 * @param list<WpPusherPackage|WpPusherRejectedPackage>                                         $entries
+	 * @param array{result:PortabilityApplyResult,cleanup_pending:bool,cleanup_error?:?string}|null $apply
+	 * @param array<string, bool>                                                                   $option_presence
 	 */
 	public function render_panel(
 		array $entries,
@@ -53,6 +53,7 @@ final readonly class MigrationPresenter {
 		$apply_class         = $apply_visible && $apply['result']->target_verified ? 'notice-success' : 'notice-error';
 		$apply_message       = $apply['result']->message ?? '';
 		$cleanup_pending     = $apply['cleanup_pending'] ?? false;
+		$cleanup_error       = $apply['cleanup_error'] ?? '';
 		$completion_visible  = ! $has_error && ! $has_info && array() === $rows;
 		$admin_interaction   = $this->admin_interaction;
 		$plugins_url         = admin_url( 'plugins.php' );

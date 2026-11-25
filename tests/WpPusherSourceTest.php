@@ -361,6 +361,47 @@ final class WpPusherSourceTest extends TestCase {
 		$database->rows[0]['subdirectory'] = $stored_subdirectory;
 		self::assertTrue( $source->delete_exact( $package ) );
 		self::assertSame( array(), $database->rows );
+
+		$sql = implode( ' ', $database->queries );
+		self::assertStringContainsString( 'CAST( `package` AS BINARY ) = CAST( %s AS BINARY )', $sql );
+		self::assertStringContainsString( 'CAST( `repository` AS BINARY ) = CAST( %s AS BINARY )', $sql );
+		self::assertStringContainsString( 'CAST( `branch` AS BINARY ) = CAST( %s AS BINARY )', $sql );
+		self::assertStringContainsString( 'CAST( `host` AS BINARY ) = CAST( %s AS BINARY )', $sql );
+		self::assertStringContainsString( 'CAST( `subdirectory` AS BINARY ) = CAST( %s AS BINARY )', $sql );
+	}
+
+	/** @return iterable<string, array{string, string}> */
+	public static function byte_exact_delete_mismatch_provider(): iterable {
+		yield 'subdirectory case change' => array( 'subdirectory', 'plugins/Foo/' );
+		yield 'subdirectory trailing space' => array( 'subdirectory', 'plugins/foo/ ' );
+		yield 'package case change' => array( 'package', 'Fixture/fixture.php' );
+		yield 'repository case change' => array( 'repository', 'RocketsAreNostalgic/Booster-Fixture-Plugin' );
+		yield 'branch case change' => array( 'branch', 'Main' );
+		yield 'host case change' => array( 'host', 'GH' );
+	}
+
+	#[DataProvider( 'byte_exact_delete_mismatch_provider' )]
+	public function test_delete_exact_uses_binary_casts_and_rejects_case_or_space_mutations(
+		string $column,
+		string $mutated_value
+	): void {
+		$database                          = new FakeDatabase();
+		$database->rows[0]['subdirectory'] = 'plugins/foo/';
+		$source                            = $this->source( $database );
+		$package                           = $source->packages()[0];
+
+		$database->rows[0][ $column ] = $mutated_value;
+
+		self::assertFalse( $source->delete_exact( $package ) );
+		self::assertCount( 1, $database->rows );
+		self::assertSame( $mutated_value, $database->rows[0][ $column ] );
+
+		$sql = implode( ' ', $database->queries );
+		self::assertStringContainsString( 'CAST( `package` AS BINARY ) = CAST( %s AS BINARY )', $sql );
+		self::assertStringContainsString( 'CAST( `repository` AS BINARY ) = CAST( %s AS BINARY )', $sql );
+		self::assertStringContainsString( 'CAST( `branch` AS BINARY ) = CAST( %s AS BINARY )', $sql );
+		self::assertStringContainsString( 'CAST( `host` AS BINARY ) = CAST( %s AS BINARY )', $sql );
+		self::assertStringContainsString( 'CAST( `subdirectory` AS BINARY ) = CAST( %s AS BINARY )', $sql );
 	}
 
 	public function test_database_query_errors_report_closed_code_without_sql_text(): void {
@@ -455,7 +496,7 @@ final class WpPusherSourceTest extends TestCase {
 		$proxy->calls = array();
 		self::assertTrue( $source->delete_exact( $package ) );
 		self::assertSame( array( 'prepare', 'query' ), $proxy->calls );
-		self::assertStringContainsString( '`branch` = %s', implode( ' ', $inner->queries ) );
+		self::assertStringContainsString( 'CAST( `branch` AS BINARY ) = CAST( %s AS BINARY )', implode( ' ', $inner->queries ) );
 		self::assertSame( array(), $inner->rows );
 	}
 
