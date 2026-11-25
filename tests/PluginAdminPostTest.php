@@ -600,6 +600,71 @@ final class PluginAdminPostTest extends TestCase {
 		self::assertSame( 'all', $styles[0]['media'] );
 	}
 
+	public function test_empty_inventory_skips_option_read_but_retained_row_reads_options(): void {
+		$database       = new AdminPostDatabase();
+		$database->rows = array();
+		$this->connect( $database, new AdminPostPortabilityFacade(), new AdminPostInteractionSpy() );
+		$output = $this->capture_panel();
+		self::assertStringContainsString( 'No WP Pusher packages were detected.', $output );
+		self::assertNotContains( 'option_read', $GLOBALS['ran_booster_wp_pusher_migrator_test_events'] );
+
+		$database->rows = array( AdminPostDatabase::fixture_row() );
+		$this->capture_panel();
+		self::assertContains( 'option_read', $GLOBALS['ran_booster_wp_pusher_migrator_test_events'] );
+	}
+
+	public function test_overview_prompt_requires_a_retained_row_in_supported_inactive_table(): void {
+		$database       = new AdminPostDatabase();
+		$database->rows = array();
+		$this->connect( $database, new AdminPostPortabilityFacade(), new AdminPostInteractionSpy() );
+		ob_start();
+		$this->controller->render_overview_prompt();
+		self::assertSame( '', (string) ob_get_clean() );
+
+		$row                 = AdminPostDatabase::fixture_row();
+		$row['subdirectory'] = '../invalid';
+		$database->rows      = array( $row );
+		ob_start();
+		$this->controller->render_overview_prompt();
+		self::assertStringContainsString( 'WP Pusher', (string) ob_get_clean() );
+	}
+
+	public function test_overview_prompt_suppresses_errors_and_respects_authority(): void {
+		$database = new class() extends AdminPostDatabase {
+			public function get_var( string $query ): string|int|null {
+				if ( str_starts_with( $query, 'SELECT 1 FROM' ) ) {
+					throw new RuntimeException( 'Probe failed.' );
+				}
+
+				return parent::get_var( $query );
+			}
+		};
+		$this->connect( $database, new AdminPostPortabilityFacade(), new AdminPostInteractionSpy() );
+		ob_start();
+		$this->controller->render_overview_prompt();
+		self::assertSame( '', (string) ob_get_clean() );
+
+		$database                     = new AdminPostDatabase();
+		$database->unsupported_schema = true;
+		$this->connect( $database, new AdminPostPortabilityFacade(), new AdminPostInteractionSpy() );
+		ob_start();
+		$this->controller->render_overview_prompt();
+		self::assertSame( '', (string) ob_get_clean() );
+
+		$this->connect_custom( new AdminPostDatabase(), new AdminPostPortabilityFacade(), new AdminPostInteractionSpy(), null, array( WpPusherSource::PLUGIN ) );
+		ob_start();
+		$this->controller->render_overview_prompt();
+		self::assertSame( '', (string) ob_get_clean() );
+
+		$this->connect( new AdminPostDatabase(), new AdminPostPortabilityFacade(), new AdminPostInteractionSpy() );
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_can_manage'] = false;
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_events']     = array();
+		ob_start();
+		$this->controller->render_overview_prompt();
+		self::assertSame( '', (string) ob_get_clean() );
+		self::assertNotContains( 'database', $GLOBALS['ran_booster_wp_pusher_migrator_test_events'] );
+	}
+
 	public function test_render_panel_shows_informational_notice_when_wp_pusher_is_absent(): void {
 		$database = new AdminPostDatabase();
 		$this->connect_custom( $database, new AdminPostPortabilityFacade(), new AdminPostInteractionSpy(), array() );
@@ -1501,6 +1566,10 @@ class AdminPostDatabase {
 			return $this->table_exists ? 'wp_wppusher_packages' : null;
 		}
 
+		if ( 'SELECT 1 FROM `wp_wppusher_packages` LIMIT 1' === $query ) {
+			return array() === $this->rows ? null : 1;
+		}
+
 		return count( $this->rows );
 	}
 
@@ -1588,6 +1657,7 @@ class AdminPostDatabase {
 	public function get_col( string $query ): array {
 		unset( $query );
 		$GLOBALS['ran_booster_wp_pusher_migrator_test_events'][] = 'database';
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_events'][] = 'option_read';
 
 		return array();
 	}

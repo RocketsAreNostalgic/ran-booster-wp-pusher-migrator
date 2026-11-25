@@ -182,6 +182,33 @@ final class WpPusherSource {
 		return true;
 	}
 
+	public function supported_package_rows_present(): bool {
+		if ( ! $this->supported_package_table_present() ) {
+			return false;
+		}
+		if ( ! is_callable( array( $this->database, 'get_var' ) ) ) {
+			throw WpPusherSourceException::db_table_reader_unavailable();
+		}
+
+		$table = $this->table();
+		try {
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Exact validated table derived from wpdb prefix.
+			$found = $this->database->get_var( "SELECT 1 FROM `{$table}` LIMIT 1" );
+		} catch ( Throwable $failure ) {
+			throw WpPusherSourceException::db_query_failed( $failure );
+		}
+		$this->assert_no_database_error();
+
+		if ( null === $found ) {
+			return false;
+		}
+		if ( 1 !== $found && '1' !== $found ) {
+			throw WpPusherSourceException::db_query_failed();
+		}
+
+		return true;
+	}
+
 	private function assert_package_table_schema( string $table ): void {
 		if ( ! is_callable( array( $this->database, 'get_results' ) ) ) {
 			throw WpPusherSourceException::db_schema_reader_unavailable();
