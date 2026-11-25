@@ -3,8 +3,96 @@ set -euo pipefail
 
 project_root="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$project_root"
-fixture="$(mktemp -d)"
+fixture="$(cd "$(mktemp -d)" && pwd -P)"
 trap 'rm -rf "$fixture"' EXIT
+
+file_replace_literal() {
+	php -r '
+		$file = $argv[1];
+		$contents = file_get_contents( $file );
+		if ( false === $contents ) {
+			exit( 1 );
+		}
+		$updated = str_replace( $argv[2], $argv[3], $contents, $count );
+		if ( 0 === $count || false === file_put_contents( $file, $updated ) ) {
+			exit( 1 );
+		}
+	' "$1" "$2" "$3"
+}
+
+file_insert_line() {
+	php -r '
+		$file = $argv[1];
+		$mode = $argv[2];
+		$pattern = $argv[3];
+		$insert = $argv[4];
+		$contents = file_get_contents( $file );
+		if ( false === $contents || ! in_array( $mode, array( "after", "before" ), true ) ) {
+			exit( 1 );
+		}
+		$trailing = str_ends_with( $contents, "\n" ) ? "\n" : "";
+		$lines = explode( "\n", substr( $contents, 0, strlen( $contents ) - strlen( $trailing ) ) );
+		$out = array();
+		$matched = 0;
+		foreach ( $lines as $line ) {
+			if ( 1 === preg_match( $pattern, $line ) ) {
+				++$matched;
+				if ( "before" === $mode ) {
+					$out[] = $insert;
+				}
+				$out[] = $line;
+				if ( "after" === $mode ) {
+					$out[] = $insert;
+				}
+				continue;
+			}
+			$out[] = $line;
+		}
+		if ( 0 === $matched || false === file_put_contents( $file, implode( "\n", $out ) . $trailing ) ) {
+			exit( 1 );
+		}
+	' "$1" "$2" "$3" "$4"
+}
+
+file_delete_matching_lines() {
+	php -r '
+		$file = $argv[1];
+		$pattern = $argv[2];
+		$contents = file_get_contents( $file );
+		if ( false === $contents ) {
+			exit( 1 );
+		}
+		$trailing = str_ends_with( $contents, "\n" ) ? "\n" : "";
+		$lines = explode( "\n", substr( $contents, 0, strlen( $contents ) - strlen( $trailing ) ) );
+		$out = array();
+		$matched = 0;
+		foreach ( $lines as $line ) {
+			if ( 1 === preg_match( $pattern, $line ) ) {
+				++$matched;
+				continue;
+			}
+			$out[] = $line;
+		}
+		if ( 0 === $matched || false === file_put_contents( $file, implode( "\n", $out ) . $trailing ) ) {
+			exit( 1 );
+		}
+	' "$1" "$2"
+}
+
+file_delete_first_line() {
+	php -r '
+		$file = $argv[1];
+		$contents = file_get_contents( $file );
+		if ( false === $contents || "" === $contents ) {
+			exit( 1 );
+		}
+		$pos = strpos( $contents, "\n" );
+		$updated = false === $pos ? "" : substr( $contents, $pos + 1 );
+		if ( false === file_put_contents( $file, $updated ) ) {
+			exit( 1 );
+		}
+	' "$1"
+}
 
 mkdir -p "$fixture/scripts" "$fixture/tests" "$fixture/new-product/contracts" "$fixture/src/tests"
 cp -R src views "$fixture/"
@@ -21,7 +109,7 @@ analyze > "$fixture/result.json"
 if php -d register_argc_argv=0 "$fixture/scripts/check-analysis-coverage.php" --source > "$fixture/arguments.log" 2>&1; then exit 1; fi
 grep -q 'Analysis coverage requires CLI argument registration.' "$fixture/arguments.log"
 if grep -q 'PHP Warning' "$fixture/arguments.log"; then exit 1; fi
-sed -i 's/level: 8/level: 7/' "$fixture/phpstan.neon.dist"
+file_replace_literal "$fixture/phpstan.neon.dist" 'level: 8' 'level: 7'
 if analyze > "$fixture/level.log" 2>&1; then exit 1; fi
 grep -q 'Review maintained analysis scope' "$fixture/level.log"
 cp phpstan.neon.dist "$fixture/phpstan.neon.dist"
@@ -30,12 +118,12 @@ cp phpstan.neon.dist "$fixture/phpstan.neon.dist"
 printf '<?php\nfunction ran_booster_wp_pusher_migrator_nullable_product(?string $value): string { return strtolower($value); }\n' > "$fixture/src/nullable-product.php"
 if analyze > "$fixture/nullable-product.json" 2>&1; then exit 1; fi
 grep -q 'argument.type' "$fixture/nullable-product.json"
-(cd "$fixture" && php vendor/bin/phpstan analyze -c phpstan.neon.dist --level=7 --no-progress --error-format=json) > "$fixture/nullable-product-seven.json"
+(cd "$fixture" && php vendor/bin/phpstan analyze -c phpstan.neon.dist --level=7 --memory-limit=1G --no-progress --error-format=json) > "$fixture/nullable-product-seven.json"
 rm "$fixture/src/nullable-product.php"
 
 # Reflection retains native parameter enforcement for the existing locked CLI call.
 cp "$fixture/scripts/check-analysis-coverage.php" "$fixture/original-coverage.php"
-sed -i "s/\$ran_booster_wp_pusher_migrator_output, array(), '1G'/\$ran_booster_wp_pusher_migrator_output, 'invalid paths', '1G'/" "$fixture/scripts/check-analysis-coverage.php"
+file_replace_literal "$fixture/scripts/check-analysis-coverage.php" "\$ran_booster_wp_pusher_migrator_output, array(), '1G'" "\$ran_booster_wp_pusher_migrator_output, 'invalid paths', '1G'"
 if php "$fixture/scripts/check-analysis-coverage.php" --source > "$fixture/wrong-discovery-argument.log" 2>&1; then exit 1; fi
 grep -q 'CommandHelper::begin' "$fixture/wrong-discovery-argument.log"
 grep -q 'Argument #3' "$fixture/wrong-discovery-argument.log"
@@ -59,7 +147,7 @@ rm "$fixture/coverage-example.md" "$fixture/coverage-example.json"
 
 # Preserve the accepted two-count POST exception while rejecting imported additions.
 printf '<?php\nfunction ran_booster_wp_pusher_migrator_suppression_probe(): int { return "invalid"; }\n' > "$fixture/src/CoverageSuppressionProbe.php"
-if (cd "$fixture" && php "$project_root/vendor/bin/phpstan" analyze -c phpstan.neon.dist --no-progress --error-format=json) > "$fixture/suppression-before.json" 2> "$fixture/suppression-before.log"; then exit 1; fi
+if (cd "$fixture" && php "$project_root/vendor/bin/phpstan" analyze -c phpstan.neon.dist --memory-limit=1G --no-progress --error-format=json) > "$fixture/suppression-before.json" 2> "$fixture/suppression-before.log"; then exit 1; fi
 grep -q 'return.type' "$fixture/suppression-before.json"
 cat > "$fixture/coverage-ignore.neon" <<'NEON'
 parameters:
@@ -69,8 +157,8 @@ parameters:
 			path: src/CoverageSuppressionProbe.php
 			reportUnmatched: false
 NEON
-sed -i '/^includes:/a\	- coverage-ignore.neon' "$fixture/phpstan.neon.dist"
-(cd "$fixture" && php "$project_root/vendor/bin/phpstan" analyze -c phpstan.neon.dist --no-progress --error-format=json) > "$fixture/suppression-after.json" 2> "$fixture/suppression-after.log"
+file_insert_line "$fixture/phpstan.neon.dist" after '/^includes:/' $'\t- coverage-ignore.neon'
+(cd "$fixture" && php "$project_root/vendor/bin/phpstan" analyze -c phpstan.neon.dist --memory-limit=1G --no-progress --error-format=json) > "$fixture/suppression-after.json" 2> "$fixture/suppression-after.log"
 php -r '$report=json_decode(file_get_contents($argv[1]),true,512,JSON_THROW_ON_ERROR);if($report["totals"]["errors"]!==0||$report["totals"]["file_errors"]!==0){exit(1);}' "$fixture/suppression-after.json"
 if analyze > "$fixture/suppression-guard.log" 2>&1; then exit 1; fi
 grep -q 'Review effective analysis suppressions' "$fixture/suppression-guard.log"
@@ -78,8 +166,8 @@ cp phpstan.neon.dist "$fixture/phpstan.neon.dist"
 rm "$fixture/coverage-ignore.neon" "$fixture/src/CoverageSuppressionProbe.php"
 for mutation in count path unmatched; do
 	case "$mutation" in
-		count) sed -i 's/count: 2/count: 3/' "$fixture/phpstan.neon.dist" ;;
-		path) sed -i 's#path: src/MigrationRequestController.php#path: src/*#' "$fixture/phpstan.neon.dist" ;;
+		count) file_replace_literal "$fixture/phpstan.neon.dist" 'count: 2' 'count: 3' ;;
+		path) file_replace_literal "$fixture/phpstan.neon.dist" 'path: src/MigrationRequestController.php' 'path: src/*' ;;
 		unmatched) printf '\treportUnmatchedIgnoredErrors: false\n' >> "$fixture/phpstan.neon.dist" ;;
 	esac
 	if analyze > "$fixture/suppression-guard.log" 2>&1; then exit 1; fi
@@ -132,7 +220,7 @@ for path in root-contract.php new-product/contracts/split.php; do
 	printf '<?php\nran_migrator_missing_contract();\n' > "$fixture/$path"
 	if analyze > "$fixture/new-root.log" 2>&1; then exit 1; fi
 	grep -q 'Effective PHPStan selection differs' "$fixture/new-root.log"
-	sed -i "/^\tpaths:/a\\\t\t- $path" "$fixture/phpstan.neon.dist"
+	file_insert_line "$fixture/phpstan.neon.dist" after '/^\tpaths:/' $'\t\t- '"$path"
 	if analyze > "$fixture/negative.json" 2> "$fixture/negative.log"; then exit 1; fi
 	grep -q 'function.notFound' "$fixture/negative.json"
 	grep -q 'ran_migrator_missing_contract' "$fixture/negative.json"
@@ -142,7 +230,7 @@ done
 mv "$fixture/src/Autoloader.php" "$fixture/new-product/Autoloader.php"
 if analyze > "$fixture/moved.log" 2>&1; then exit 1; fi
 grep -q 'Effective PHPStan selection differs' "$fixture/moved.log"
-sed -i '/^\tpaths:/a\\		- new-product' "$fixture/phpstan.neon.dist"
+file_insert_line "$fixture/phpstan.neon.dist" after '/^\tpaths:/' $'\t\t- new-product'
 analyze > "$fixture/moved.json"
 mv "$fixture/new-product/Autoloader.php" "$fixture/src/Autoloader.php"
 cp phpstan.neon.dist "$fixture/phpstan.neon.dist"
@@ -151,11 +239,11 @@ cp phpstan.neon.dist "$fixture/phpstan.neon.dist"
 # production reference, even if a configuration tries to scan fixture declarations.
 printf '<?php\nconst RAN_MIGRATOR_FIXTURE_ONLY = 1;\n' > "$fixture/tests/development.php"
 printf '<?php\necho RAN_MIGRATOR_FIXTURE_ONLY;\n' > "$fixture/src/scan-isolation.php"
-sed -i '/^\tscanDirectories:/a\\		- tests' "$fixture/phpstan.neon.dist"
-direct_analyze() { ( cd "$fixture" && php vendor/bin/phpstan analyze --configuration=phpstan.neon.dist --no-progress --error-format=json ); }
+file_insert_line "$fixture/phpstan.neon.dist" after '/^\tscanDirectories:/' $'\t\t- tests'
+direct_analyze() { ( cd "$fixture" && php vendor/bin/phpstan analyze --configuration=phpstan.neon.dist --memory-limit=1G --no-progress --error-format=json ); }
 if direct_analyze > "$fixture/isolation.json" 2> "$fixture/isolation.log"; then exit 1; fi
 php -r '$r=json_decode(file_get_contents($argv[1]),true,512,JSON_THROW_ON_ERROR);foreach($r["files"][$argv[2]]["messages"]??[] as $m){if(($m["identifier"]??"")==="constant.notFound"&&str_contains($m["message"],"RAN_MIGRATOR_FIXTURE_ONLY")){exit(0);}}exit(1);' "$fixture/isolation.json" "$fixture/src/scan-isolation.php"
-sed -i 's/analyseAndScan:/analyse:/' "$fixture/phpstan.neon.dist"
+file_replace_literal "$fixture/phpstan.neon.dist" 'analyseAndScan:' 'analyse:'
 direct_analyze > "$fixture/leaked.json"
 cp phpstan.neon.dist "$fixture/phpstan.neon.dist"
 rm "$fixture/src/scan-isolation.php" "$fixture/tests/development.php"
@@ -267,11 +355,11 @@ for pair in 'phpstan-development.neon.dist:tests/future-nullable.php' 'phpstan-r
     printf '<?php\nfunction ran_booster_wp_pusher_migrator_nullable_development(?string $value): string { return strtolower($value); }\n' > "$development_fixture/$path"
     if development > "$fixture/development-nullable.json" 2>&1; then exit 1; fi
     grep -q 'argument.type' "$fixture/development-nullable.json"
-    (cd "$development_fixture" && php vendor/bin/phpstan analyze -c "$configuration" --level=7 --no-progress --error-format=json) > "$fixture/development-nullable-seven.json"
+    (cd "$development_fixture" && php vendor/bin/phpstan analyze -c "$configuration" --level=7 --memory-limit=1G --no-progress --error-format=json) > "$fixture/development-nullable-seven.json"
     rm "$development_fixture/$path"
 done
 for configuration in phpstan-development.neon.dist phpstan-real-proofs.neon.dist; do
-    sed -i 's/level: 8/level: 7/' "$development_fixture/$configuration"
+    file_replace_literal "$development_fixture/$configuration" 'level: 8' 'level: 7'
     if development > "$fixture/development-negative.log" 2>&1; then exit 1; fi
     grep -q 'Review development analysis level' "$fixture/development-negative.log"
     cp "$project_root/$configuration" "$development_fixture/$configuration"
@@ -292,7 +380,7 @@ if development > "$fixture/development-result-api.log" 2>&1; then exit 1; fi
 grep -q 'phpstanApi.class' "$fixture/development-result-api.log"
 rm "$development_fixture/scripts/future-helper.php"
 # The new exact effective-container API annotation leaves the next call diagnosed.
-sed -i '/_inception->getContainer();/a\\		$ran_booster_wp_pusher_migrator_inception->getContainer();' "$development_fixture/scripts/check-analysis-coverage.php"
+file_insert_line "$development_fixture/scripts/check-analysis-coverage.php" after '/_inception->getContainer\(\);/' $'\t\t''$ran_booster_wp_pusher_migrator_inception->getContainer();'
 if development > "$fixture/development-container-api.log" 2>&1; then exit 1; fi
 grep -q 'phpstanApi.method' "$fixture/development-container-api.log"
 cp "$project_root/scripts/check-analysis-coverage.php" "$development_fixture/scripts/check-analysis-coverage.php"
@@ -305,13 +393,13 @@ for path in tests/coverage-template.tpl scripts/coverage-template.custom; do
 done
 printf '#!/usr/bin/env bash\nprintf '\''<main><?php fixture(); ?></main>'\''\n' > "$development_fixture/scripts/coverage-example.sh"
 development > "$fixture/bash-example.log" 2>&1
-sed -i '1d' "$development_fixture/scripts/coverage-example.sh"
+    file_delete_first_line "$development_fixture/scripts/coverage-example.sh"
 if development > "$fixture/bash-example.log" 2>&1; then exit 1; fi
 grep -q 'Nonstandard-extension PHP needs an explicit reviewed analysis decision' "$fixture/bash-example.log"
 rm "$development_fixture/scripts/coverage-example.sh"
 for configuration in phpstan-development.neon.dist phpstan-real-proofs.neon.dist; do
     printf 'parameters:\n\tignoreErrors:\n\t\t-\n\t\t\tidentifier: return.type\n\t\t\treportUnmatched: false\n' > "$development_fixture/development-ignore.neon"
-    sed -i '/^includes:/a\\	- development-ignore.neon' "$development_fixture/$configuration"
+    file_insert_line "$development_fixture/$configuration" after '/^includes:/' $'\t- development-ignore.neon'
     if development > "$fixture/development-ignore.log" 2>&1; then exit 1; fi
     grep -q 'Review effective analysis suppressions' "$fixture/development-ignore.log"
     cp "$project_root/$configuration" "$development_fixture/$configuration"
@@ -402,7 +490,7 @@ sed 's/->deleteExact(/->delete_exact(/' "$project_root/tests/installed-candidate
 if historical_cleanup "$fixture/current-spelling-probe.php" > "$fixture/historical-negative.log" 2>&1; then exit 1; fi
 grep -q 'undefined method.*delete_exact' "$fixture/historical-negative.log"
 # The one historical allowance cannot hide an immediately adjacent missing call.
-sed -i '/@phpstan-ignore method.notFound/i\	$ran_booster_wp_pusher_migrator_source->ran_missing_outside_historical_cleanup();' "$development_fixture/tests/installed-candidate/migrator-installed-probe.php"
+file_insert_line "$development_fixture/tests/installed-candidate/migrator-installed-probe.php" before '/@phpstan-ignore method\.notFound/' $'\t''$ran_booster_wp_pusher_migrator_source->ran_missing_outside_historical_cleanup();'
 if development > "$fixture/development-installed-negative.log" 2>&1; then exit 1; fi
 grep -q 'ran_missing_outside_historical_cleanup' "$fixture/development-installed-negative.log"
 grep -q 'method.notFound' "$fixture/development-installed-negative.log"
@@ -412,10 +500,10 @@ printf 'Historical beta.7 cleanup receiver and exact exception boundary passed.\
 # The real CLI profile must see real Core's method, never the PHPUnit stand-in.
 printf '<?php\n/** @return array<string, string|null> */\nfunction ran_booster_wp_pusher_migrator_real_world(\\RAN\\AddOn\\Portability\\PortabilityCandidate $candidate): array { return $candidate->to_array(); }\n' > "$development_fixture/tests/installed-candidate/world-proof.php"
 development > "$fixture/development-world.log"
-sed -i '/- tests\/fixtures\/PortabilityApi.php$/d' "$development_fixture/phpstan-real-proofs.neon.dist"
+file_delete_matching_lines "$development_fixture/phpstan-real-proofs.neon.dist" '#- tests/fixtures/PortabilityApi\.php$#'
 printf 'parameters:\n\tpaths:\n\t\t- tests/installed-candidate\n\t\t- tests/source-candidate-behaviour.php\n\t\t- tests/fixtures/PortabilityApi.php\n' > "$development_fixture/world-import.neon"
-sed -i '/^includes:/a\\	- world-import.neon' "$development_fixture/phpstan-real-proofs.neon.dist"
-if (cd "$development_fixture" && php vendor/bin/phpstan analyze -c phpstan-real-proofs.neon.dist --no-progress --error-format=json) > "$fixture/development-world-negative.log" 2>&1; then exit 1; fi
+file_insert_line "$development_fixture/phpstan-real-proofs.neon.dist" after '/^includes:/' $'\t- world-import.neon'
+if (cd "$development_fixture" && php vendor/bin/phpstan analyze -c phpstan-real-proofs.neon.dist --memory-limit=1G --no-progress --error-format=json) > "$fixture/development-world-negative.log" 2>&1; then exit 1; fi
 grep -q 'to_array' "$fixture/development-world-negative.log"
 grep -q 'method.notFound' "$fixture/development-world-negative.log"
 if development > "$fixture/development-negative.log" 2>&1; then exit 1; fi

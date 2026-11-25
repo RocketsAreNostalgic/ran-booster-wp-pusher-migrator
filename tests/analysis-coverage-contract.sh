@@ -2,8 +2,81 @@
 set -euo pipefail
 
 project_root="$(cd "$(dirname "$0")/.." && pwd)"
-fixture="$(mktemp -d)"
+fixture="$(cd "$(mktemp -d)" && pwd -P)"
 trap 'rm -rf "$fixture"' EXIT
+
+file_replace_literal() {
+	php -r '
+		$file = $argv[1];
+		$contents = file_get_contents( $file );
+		if ( false === $contents ) {
+			exit( 1 );
+		}
+		$updated = str_replace( $argv[2], $argv[3], $contents, $count );
+		if ( 0 === $count || false === file_put_contents( $file, $updated ) ) {
+			exit( 1 );
+		}
+	' "$1" "$2" "$3"
+}
+
+file_insert_line() {
+	php -r '
+		$file = $argv[1];
+		$mode = $argv[2];
+		$pattern = $argv[3];
+		$insert = $argv[4];
+		$contents = file_get_contents( $file );
+		if ( false === $contents || ! in_array( $mode, array( "after", "before" ), true ) ) {
+			exit( 1 );
+		}
+		$trailing = str_ends_with( $contents, "\n" ) ? "\n" : "";
+		$lines = explode( "\n", substr( $contents, 0, strlen( $contents ) - strlen( $trailing ) ) );
+		$out = array();
+		$matched = 0;
+		foreach ( $lines as $line ) {
+			if ( 1 === preg_match( $pattern, $line ) ) {
+				++$matched;
+				if ( "before" === $mode ) {
+					$out[] = $insert;
+				}
+				$out[] = $line;
+				if ( "after" === $mode ) {
+					$out[] = $insert;
+				}
+				continue;
+			}
+			$out[] = $line;
+		}
+		if ( 0 === $matched || false === file_put_contents( $file, implode( "\n", $out ) . $trailing ) ) {
+			exit( 1 );
+		}
+	' "$1" "$2" "$3" "$4"
+}
+
+file_delete_matching_lines() {
+	php -r '
+		$file = $argv[1];
+		$pattern = $argv[2];
+		$contents = file_get_contents( $file );
+		if ( false === $contents ) {
+			exit( 1 );
+		}
+		$trailing = str_ends_with( $contents, "\n" ) ? "\n" : "";
+		$lines = explode( "\n", substr( $contents, 0, strlen( $contents ) - strlen( $trailing ) ) );
+		$out = array();
+		$matched = 0;
+		foreach ( $lines as $line ) {
+			if ( 1 === preg_match( $pattern, $line ) ) {
+				++$matched;
+				continue;
+			}
+			$out[] = $line;
+		}
+		if ( 0 === $matched || false === file_put_contents( $file, implode( "\n", $out ) . $trailing ) ) {
+			exit( 1 );
+		}
+	' "$1" "$2"
+}
 git -C "$project_root" archive HEAD | tar -x -C "$fixture"
 cp "$project_root/scripts/check-analysis-coverage.php" "$fixture/scripts/"
 cp "$project_root/phpstan.neon.dist" "$project_root/composer.json" "$fixture/"
@@ -56,7 +129,7 @@ for path in root-contract.php new-product/contracts/split.php; do
 	printf '<?php\n// Unpackaged production fixture.\n' > "$path"
 	reject 'unpackaged production path' 'Effective PHPStan selection differs'
 	printf 'parameters:\n\tpaths:\n\t\t- %s\n' "$path" > coverage-import.neon
-	sed -i '/^includes:/a\	- coverage-import.neon' phpstan.neon.dist
+	file_insert_line phpstan.neon.dist after '/^includes:/' $'\t- coverage-import.neon'
 	check
 	cp coverage-baseline.neon phpstan.neon.dist
 	rm "$path" coverage-import.neon
@@ -113,10 +186,10 @@ for mode in --source --development; do
 	rm "${prefix}example.md" "${prefix}example.json" "${prefix}example.sh"
 done
 printf 'Analysis coverage contract: bare short tags, INI independence and XML/data boundaries passed.\n'
-sed -i '/- views$/d' phpstan.neon.dist
+file_delete_matching_lines phpstan.neon.dist '/- views$/'
 reject 'shrunken selection' 'Effective PHPStan selection differs'
 cp coverage-baseline.neon phpstan.neon.dist
-sed -i 's/analyseAndScan:/analyse:/' phpstan.neon.dist
+file_replace_literal phpstan.neon.dist 'analyseAndScan:' 'analyse:'
 reject 'development scan leakage policy' 'Review maintained analysis scope'
 cp coverage-baseline.neon phpstan.neon.dist
 
@@ -129,7 +202,7 @@ reject 'new shipped PHP' 'Effective PHPStan selection differs'
 
 # scanDirectories supplies symbols but must not count as direct analysis.
 printf 'parameters:\n\tscanDirectories:\n\t\t- assets\n' > coverage-import.neon
-sed -i '/^includes:/a\	- coverage-import.neon' phpstan.neon.dist
+file_insert_line phpstan.neon.dist after '/^includes:/' $'\t- coverage-import.neon'
 reject 'scan-only PHP' 'Effective PHPStan selection differs'
 
 # Imported paths are supported; exclusions use the locked engine's semantics.
