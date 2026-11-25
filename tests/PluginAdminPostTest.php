@@ -866,11 +866,11 @@ final class PluginAdminPostTest extends TestCase {
 	public function test_fragment_cleanup_message_uses_compact_multibyte_translation_when_combined_exceeds_255_bytes(): void {
 		$long_cleanup_translation  = 'Booster は採用済みパッケージを検証しましたが、WP Pusher のソースレコードを削除できませんでした。WP Pusher を無効のままにして再試行してください。';
 		$long_db_error_translation = 'WP Pusher データにアクセスできませんでした: データベースクエリが失敗しました (code: db_query_failed)。';
-		$compact_translation       = 'Booster は採用を検証済みですが、WP Pusher レコードが残っています (code: %s)。';
+		$compact_translation       = 'Booster は採用を検証済みですが、WP Pusher レコードが残っています';
 		$GLOBALS['ran_booster_wp_pusher_migrator_test_translations'] = array(
 			'Booster verified the adopted package, but its exact WP Pusher source record could not be removed. Keep WP Pusher inactive and try again.' => $long_cleanup_translation,
 			'Could not access WP Pusher data: a database query failed (code: db_query_failed).'                                                        => $long_db_error_translation,
-			'Booster verified the adopted package, but its WP Pusher record remains (code: %s).'                                                       => $compact_translation,
+			'Booster verified the adopted package, but its WP Pusher record remains'                                                                  => $compact_translation,
 		);
 		self::assertGreaterThan( 255, strlen( $long_cleanup_translation . ' ' . $long_db_error_translation ) );
 
@@ -886,7 +886,7 @@ final class PluginAdminPostTest extends TestCase {
 
 		self::assertSame( 'validation_failure', $interaction->outcome?->kind() );
 		$message = (string) $interaction->outcome->message();
-		self::assertSame( sprintf( $compact_translation, 'db_query_failed' ), $message );
+		self::assertSame( $compact_translation . ' (code: db_query_failed).', $message );
 		self::assertLessThanOrEqual( 255, strlen( $message ) );
 		self::assertTrue( 1 === preg_match( '//u', $message ) );
 		self::assertStringContainsString( '(code: db_query_failed)', $message );
@@ -899,7 +899,7 @@ final class PluginAdminPostTest extends TestCase {
 		$GLOBALS['ran_booster_wp_pusher_migrator_test_translations'] = array(
 			'Booster verified the adopted package, but its exact WP Pusher source record could not be removed. Keep WP Pusher inactive and try again.' => $oversized_multibyte,
 			'Could not access WP Pusher data: a database query failed (code: db_query_failed).'                                                        => $oversized_multibyte,
-			'Booster verified the adopted package, but its WP Pusher record remains (code: %s).'                                                       => $oversized_multibyte . ' (%s)',
+			'Booster verified the adopted package, but its WP Pusher record remains'                                                                  => $oversized_multibyte,
 		);
 		self::assertGreaterThan( 255, strlen( $oversized_multibyte ) );
 
@@ -929,26 +929,44 @@ final class PluginAdminPostTest extends TestCase {
 	}
 
 	public function test_fragment_review_and_apply_bound_long_translated_second_read_db_error_and_retain_code(): void {
-		$long_db_translation = str_repeat( 'データベース照会エラー・', 10 ) . ' (code: db_query_failed)';
-		$compact_translation = 'WP Pusher データにアクセスできませんでした (code: %s)。';
-		self::assertGreaterThan( 255, strlen( $long_db_translation ) );
-		self::assertLessThanOrEqual( 255, strlen( sprintf( $compact_translation, 'db_query_failed' ) ) );
+		$long_db_translation = str_repeat( 'データベース照会エラー・', 14 ) . ' (code: db_query_failed)';
+		$compact_translation = 'WP Pusher データにアクセスできませんでした';
+		self::assertGreaterThan( 450, strlen( $long_db_translation ) );
+		self::assertLessThanOrEqual( 255, strlen( $compact_translation . ' (code: db_query_failed).' ) );
 
-		$oversized_compact = str_repeat( 'データベース接続失敗・Éé ', 16 ) . ' (code: %s)';
+		$borderline_compact = str_repeat( 'x', 240 );
+		self::assertLessThanOrEqual( 255, strlen( $borderline_compact ) );
+		self::assertGreaterThan( 255, strlen( $borderline_compact . ' (code: db_query_failed).' ) );
+
+		$oversized_compact = str_repeat( 'データベース接続失敗・Éé ', 16 );
 		self::assertGreaterThan( 255, strlen( $oversized_compact ) );
 
 		$scenarios = array(
-			'compact_multibyte' => array(
+			'compact_multibyte'        => array(
 				'translations' => array(
 					'Could not access WP Pusher data: a database query failed (code: db_query_failed).' => $long_db_translation,
-					'Could not access WP Pusher data (code: %s).'                                      => $compact_translation,
+					'Could not access WP Pusher data' => $compact_translation,
 				),
-				'expected'     => sprintf( $compact_translation, 'db_query_failed' ),
+				'expected'     => $compact_translation . ' (code: db_query_failed).',
 			),
-			'ascii_fallback'    => array(
+			'short_full_omitting_code' => array(
+				'translations' => array(
+					'Could not access WP Pusher data: a database query failed (code: db_query_failed).' => 'WP Pusher エラー。',
+					'Could not access WP Pusher data' => $compact_translation,
+				),
+				'expected'     => $compact_translation . ' (code: db_query_failed).',
+			),
+			'compact_prose_fits_alone_but_overflows_with_suffix' => array(
 				'translations' => array(
 					'Could not access WP Pusher data: a database query failed (code: db_query_failed).' => $long_db_translation,
-					'Could not access WP Pusher data (code: %s).'                                      => $oversized_compact,
+					'Could not access WP Pusher data' => $borderline_compact,
+				),
+				'expected'     => 'Could not access WP Pusher data (code: db_query_failed).',
+			),
+			'ascii_fallback'           => array(
+				'translations' => array(
+					'Could not access WP Pusher data: a database query failed (code: db_query_failed).' => $long_db_translation,
+					'Could not access WP Pusher data' => $oversized_compact,
 				),
 				'expected'     => 'Could not access WP Pusher data (code: db_query_failed).',
 			),

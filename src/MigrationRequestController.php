@@ -259,21 +259,28 @@ final readonly class MigrationRequestController {
 	}
 
 	private function bounded_validation_failure_message( string $message, ?Throwable $failure ): string {
-		if ( $this->is_bounded_interaction_message( $message ) ) {
-			return $message;
-		}
+		$database_code = $failure instanceof WpPusherSourceException && $failure->is_database_error
+			? $failure->reason
+			: null;
+		if ( null !== $database_code ) {
+			$code_suffix = '(code: ' . $database_code . ')';
+			if ( $this->is_bounded_interaction_message( $message ) && str_contains( $message, $code_suffix ) ) {
+				return $message;
+			}
 
-		if ( $failure instanceof WpPusherSourceException && $failure->is_database_error ) {
-			$compact = sprintf(
-				/* translators: %s: closed database failure code. */
-				__( 'Could not access WP Pusher data (code: %s).', 'ran-booster-wp-pusher-migrator' ),
-				$failure->reason
-			);
+			$compact_prose = rtrim( trim( __( 'Could not access WP Pusher data', 'ran-booster-wp-pusher-migrator' ) ), ". \t\n\r\0\x0B" );
+			$compact       = '' === $compact_prose
+				? ''
+				: $compact_prose . ' ' . $code_suffix . '.';
 			if ( $this->is_bounded_interaction_message( $compact ) ) {
 				return $compact;
 			}
 
-			return 'Could not access WP Pusher data (code: ' . $failure->reason . ').';
+			return 'Could not access WP Pusher data ' . $code_suffix . '.';
+		}
+
+		if ( $this->is_bounded_interaction_message( $message ) ) {
+			return $message;
 		}
 
 		if ( $failure instanceof WpPusherSourceException ) {
@@ -296,24 +303,28 @@ final readonly class MigrationRequestController {
 		$combined        = null !== $cleanup_error && '' !== $cleanup_error
 			? $cleanup_message . ' ' . $cleanup_error
 			: $cleanup_message;
-		if ( $this->is_bounded_interaction_message( $combined ) ) {
-			return $combined;
-		}
-
-		$database_code = $cleanup_failure instanceof WpPusherSourceException && $cleanup_failure->is_database_error
+		$database_code   = $cleanup_failure instanceof WpPusherSourceException && $cleanup_failure->is_database_error
 			? $cleanup_failure->reason
 			: null;
 		if ( null !== $database_code ) {
-			$compact = sprintf(
-				/* translators: %s: closed database failure code. */
-				__( 'Booster verified the adopted package, but its WP Pusher record remains (code: %s).', 'ran-booster-wp-pusher-migrator' ),
-				$database_code
-			);
+			$code_suffix = '(code: ' . $database_code . ')';
+			if ( $this->is_bounded_interaction_message( $combined ) && str_contains( $combined, $code_suffix ) ) {
+				return $combined;
+			}
+
+			$compact_prose = rtrim( trim( __( 'Booster verified the adopted package, but its WP Pusher record remains', 'ran-booster-wp-pusher-migrator' ) ), ". \t\n\r\0\x0B" );
+			$compact       = '' === $compact_prose
+				? ''
+				: $compact_prose . ' ' . $code_suffix . '.';
 			if ( $this->is_bounded_interaction_message( $compact ) ) {
 				return $compact;
 			}
 
-			return 'Booster verified the adopted package, but its WP Pusher record remains (code: ' . $database_code . ').';
+			return 'Booster verified the adopted package, but its WP Pusher record remains ' . $code_suffix . '.';
+		}
+
+		if ( $this->is_bounded_interaction_message( $combined ) ) {
+			return $combined;
 		}
 
 		$compact = __( 'Booster verified the adopted package, but its WP Pusher record remains.', 'ran-booster-wp-pusher-migrator' );
