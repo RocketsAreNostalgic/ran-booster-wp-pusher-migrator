@@ -153,8 +153,11 @@ final readonly class MigrationRequestController {
 		$outcome = $this->operation_outcome( $operation, $request );
 		$source  = $outcome['source'];
 		if ( ! $source instanceof WpPusherPackage ) {
+			$die_message = $outcome['failure'] instanceof WpPusherSourceException
+				? $this->bounded_validation_failure_message( $outcome['message'], $outcome['failure'] )
+				: __( 'Booster could not safely process this WP Pusher package. Reload Transporter and try again.', 'ran-booster-wp-pusher-migrator' );
 			wp_die(
-				esc_html__( 'Booster could not safely process this WP Pusher package. Reload Transporter and try again.', 'ran-booster-wp-pusher-migrator' ),
+				esc_html( $die_message ),
 				esc_html__( 'Migration request failed', 'ran-booster-wp-pusher-migrator' ),
 				array( 'response' => 409 )
 			);
@@ -302,11 +305,15 @@ final readonly class MigrationRequestController {
 	}
 
 	private function cleanup_pending_message( ?string $cleanup_error, ?Throwable $cleanup_failure ): string {
-		$cleanup_message = __( 'Booster verified the adopted package, but its exact WP Pusher source record could not be removed. Keep WP Pusher inactive and try again.', 'ran-booster-wp-pusher-migrator' );
-		$combined        = null !== $cleanup_error && '' !== $cleanup_error
-			? $cleanup_message . ' ' . $cleanup_error
+		$cleanup_default = 'Booster verified the adopted package, but its exact WP Pusher source record could not be removed. Keep WP Pusher inactive and try again.';
+		$cleanup_message = trim( __( 'Booster verified the adopted package, but its exact WP Pusher source record could not be removed. Keep WP Pusher inactive and try again.', 'ran-booster-wp-pusher-migrator' ) );
+		if ( '' === $cleanup_message ) {
+			$cleanup_message = $cleanup_default;
+		}
+		$combined      = null !== $cleanup_error && '' !== trim( $cleanup_error )
+			? $cleanup_message . ' ' . trim( $cleanup_error )
 			: $cleanup_message;
-		$database_code   = $cleanup_failure instanceof WpPusherSourceException && $cleanup_failure->is_database_error
+		$database_code = $cleanup_failure instanceof WpPusherSourceException && $cleanup_failure->is_database_error
 			? $cleanup_failure->reason
 			: null;
 		if ( null !== $database_code ) {

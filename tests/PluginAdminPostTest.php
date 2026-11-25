@@ -1131,6 +1131,131 @@ final class PluginAdminPostTest extends TestCase {
 		}
 	}
 
+	public function test_fragment_first_read_db_failure_returns_escaped_bounded_409_with_code(): void {
+		$oversized = str_repeat( 'データベース接続失敗・Éé ', 16 );
+		$variants  = array(
+			'default'         => array(
+				'translations' => array(),
+				'expected_sub' => '(code: db_query_failed)',
+			),
+			'short_html'      => array(
+				'translations' => array(
+					'Could not access WP Pusher data: a database query failed' => '<script>WP Pusher エラー</script>',
+				),
+				'expected_sub' => '&lt;script&gt;WP Pusher エラー&lt;/script&gt; (code: db_query_failed).',
+			),
+			'empty'           => array(
+				'translations' => array(
+					'Could not access WP Pusher data: a database query failed' => '',
+					'Could not access WP Pusher data' => '',
+				),
+				'expected_sub' => 'Could not access WP Pusher data: a database query failed (code: db_query_failed).',
+			),
+			'oversized_ascii' => array(
+				'translations' => array(
+					'Could not access WP Pusher data: a database query failed' => $oversized,
+					'Could not access WP Pusher data' => $oversized,
+				),
+				'expected_sub' => 'Could not access WP Pusher data (code: db_query_failed).',
+			),
+		);
+
+		foreach ( array( 'review', 'apply' ) as $operation ) {
+			foreach ( $variants as $name => $variant ) {
+				$GLOBALS['ran_booster_wp_pusher_migrator_test_translations'] = $variant['translations'];
+
+				$database    = new AdminPostDatabase();
+				$portability = new AdminPostPortabilityFacade();
+				$interaction = new AdminPostInteractionSpy();
+				$this->connect( $database, $portability, $interaction );
+				$source                               = $this->source_package( $database );
+				$database->fail_on_package_read       = 1;
+				$database->package_read_error_message = 'SQLSTATE[42000]: SELECT secret_table';
+				$_POST                                = 'review' === $operation
+					? $this->review_request( $source )
+					: $this->apply_request( $source, 'v1:' . str_repeat( 'a', 64 ) );
+
+				try {
+					$this->controller->handle_admin_post();
+					self::fail( 'First-read database failure did not stop.' );
+				} catch ( \Ran_Booster_Wp_Pusher_Migrator_Wp_Die_Exception $failure ) {
+					self::assertSame( 409, $failure->args['response'], $operation . ':' . $name );
+					$escaped = $failure->getMessage();
+					$decoded = htmlspecialchars_decode( $escaped, ENT_QUOTES );
+					self::assertStringContainsString( $variant['expected_sub'], $escaped, $operation . ':' . $name );
+					self::assertStringContainsString( '(code: db_query_failed)', $escaped, $operation . ':' . $name );
+					self::assertStringNotContainsString( '<script', $escaped, $operation . ':' . $name );
+					self::assertStringNotContainsString( 'SQLSTATE', $escaped, $operation . ':' . $name );
+					self::assertStringNotContainsString( 'secret_table', $escaped, $operation . ':' . $name );
+					self::assertLessThanOrEqual( 255, strlen( $decoded ), $operation . ':' . $name );
+					self::assertSame( 1, preg_match( '//u', $decoded ), $operation . ':' . $name );
+				}
+
+				self::assertCount( 1, $database->rows, $operation . ':' . $name );
+				self::assertNull( $interaction->outcome, $operation . ':' . $name );
+				self::assertSame( '', $interaction->fragment, $operation . ':' . $name );
+				self::assertSame( 0, $portability->review_calls, $operation . ':' . $name );
+				self::assertSame( 0, $portability->apply_calls, $operation . ':' . $name );
+			}
+		}
+	}
+
+	public function test_fragment_cleanup_retains_verified_adoption_remaining_record_and_code_with_empty_translations(): void {
+		$cases = array(
+			'empty_all'               => array(
+				'translations'     => array(
+					'Booster verified the adopted package, but its exact WP Pusher source record could not be removed. Keep WP Pusher inactive and try again.' => '',
+					'Booster verified the adopted package, but its WP Pusher record remains' => '',
+					'Could not access WP Pusher data: a database query failed' => '',
+					'Could not access WP Pusher data' => '',
+				),
+				'record_substring' => 'source record could not be removed',
+			),
+			'empty_with_short_db'     => array(
+				'translations'     => array(
+					'Booster verified the adopted package, but its exact WP Pusher source record could not be removed. Keep WP Pusher inactive and try again.' => '',
+					'Booster verified the adopted package, but its WP Pusher record remains'                                                                  => '',
+					'Could not access WP Pusher data: a database query failed'                                                                                  => 'WP Pusher エラー。',
+				),
+				'record_substring' => 'source record could not be removed',
+			),
+			'empty_with_oversized_db' => array(
+				'translations'     => array(
+					'Booster verified the adopted package, but its exact WP Pusher source record could not be removed. Keep WP Pusher inactive and try again.' => '',
+					'Booster verified the adopted package, but its WP Pusher record remains'                                                                  => '',
+					'Could not access WP Pusher data: a database query failed'                                                                                  => str_repeat( 'データベース照会エラー・', 14 ),
+				),
+				'record_substring' => 'WP Pusher record remains',
+			),
+		);
+
+		foreach ( $cases as $name => $case ) {
+			$GLOBALS['ran_booster_wp_pusher_migrator_test_translations'] = $case['translations'];
+
+			$database                       = new AdminPostDatabase();
+			$database->delete_error_message = "SQLSTATE[42000]: DELETE FROM `wp_wppusher_packages` WHERE secret_col = 'leak'";
+			$portability                    = new AdminPostPortabilityFacade();
+			$interaction                    = new AdminPostInteractionSpy();
+			$this->connect( $database, $portability, $interaction );
+			$source = $this->source_package( $database );
+			$_POST  = $this->apply_request( $source, 'v1:' . str_repeat( 'a', 64 ) );
+
+			$this->run_handler();
+
+			self::assertSame( 1, $portability->apply_calls, $name );
+			self::assertCount( 1, $database->rows, $name );
+			self::assertSame( 'validation_failure', $interaction->outcome?->kind(), $name );
+			$message = (string) $interaction->outcome->message();
+			self::assertLessThanOrEqual( 255, strlen( $message ), $name );
+			self::assertSame( 1, preg_match( '//u', $message ), $name );
+			self::assertStringContainsString( 'Booster verified the adopted package', $message, $name );
+			self::assertStringContainsString( $case['record_substring'], $message, $name );
+			self::assertStringContainsString( '(code: db_query_failed)', $message, $name );
+			self::assertStringNotContainsString( 'SQLSTATE', $message, $name );
+			self::assertStringNotContainsString( 'secret_col', $message, $name );
+		}
+	}
+
 	private function capture_panel(): string {
 		ob_start();
 		$this->controller->render_panel();
