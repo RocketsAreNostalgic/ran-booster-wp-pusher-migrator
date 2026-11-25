@@ -67,34 +67,110 @@ final readonly class MigrationPresenter {
 
 	public function empty_inventory_message( WpPusherInventory $inventory ): string {
 		if ( WpPusherInventory::STATUS_NOT_INSTALLED === $inventory->status ) {
-			return __( 'No WP Pusher packages were detected. WP Pusher is not installed on this site.', 'ran-booster-wp-pusher-migrator' );
+			return $this->translated_or_fallback(
+				__( 'No WP Pusher packages were detected. WP Pusher is not installed on this site.', 'ran-booster-wp-pusher-migrator' ),
+				'No WP Pusher packages were detected. WP Pusher is not installed on this site.'
+			);
 		}
 
-		return __( 'No WP Pusher packages were detected.', 'ran-booster-wp-pusher-migrator' );
+		return $this->translated_or_fallback(
+			__( 'No WP Pusher packages were detected.', 'ran-booster-wp-pusher-migrator' ),
+			'No WP Pusher packages were detected.'
+		);
 	}
 
 	public function source_error_message( Throwable $failure ): string {
+		$generic = 'Booster could not read this WP Pusher installation safely. Reload Transporter and try again.';
 		if ( ! $failure instanceof WpPusherSourceException ) {
-			return __( 'Booster could not read this WP Pusher installation safely. Reload Transporter and try again.', 'ran-booster-wp-pusher-migrator' );
+			return $this->translated_or_fallback(
+				__( 'Booster could not read this WP Pusher installation safely. Reload Transporter and try again.', 'ran-booster-wp-pusher-migrator' ),
+				$generic
+			);
+		}
+
+		if ( $failure->is_database_error ) {
+			$prose = match ( $failure->reason ) {
+				WpPusherSourceException::REASON_DB_PREFIX_INVALID => $this->translated_prose_or_fallback(
+					__( 'Could not read WP Pusher data: the WordPress database prefix is unavailable or invalid', 'ran-booster-wp-pusher-migrator' ),
+					'Could not read WP Pusher data: the WordPress database prefix is unavailable or invalid'
+				),
+				WpPusherSourceException::REASON_DB_TABLE_READER_UNAVAILABLE => $this->translated_prose_or_fallback(
+					__( 'Could not read WP Pusher data: the database table reader is unavailable', 'ran-booster-wp-pusher-migrator' ),
+					'Could not read WP Pusher data: the database table reader is unavailable'
+				),
+				WpPusherSourceException::REASON_DB_SCHEMA_READER_UNAVAILABLE => $this->translated_prose_or_fallback(
+					__( 'Could not read WP Pusher data: the database schema reader is unavailable', 'ran-booster-wp-pusher-migrator' ),
+					'Could not read WP Pusher data: the database schema reader is unavailable'
+				),
+				WpPusherSourceException::REASON_DB_READER_UNAVAILABLE => $this->translated_prose_or_fallback(
+					__( 'Could not read WP Pusher data: the database package reader is unavailable', 'ran-booster-wp-pusher-migrator' ),
+					'Could not read WP Pusher data: the database package reader is unavailable'
+				),
+				WpPusherSourceException::REASON_DB_OPTION_READER_UNAVAILABLE => $this->translated_prose_or_fallback(
+					__( 'Could not read WP Pusher settings: the database option reader is unavailable', 'ran-booster-wp-pusher-migrator' ),
+					'Could not read WP Pusher settings: the database option reader is unavailable'
+				),
+				WpPusherSourceException::REASON_DB_CLEANUP_UNAVAILABLE => $this->translated_prose_or_fallback(
+					__( 'Could not clean up the WP Pusher record: the database writer is unavailable', 'ran-booster-wp-pusher-migrator' ),
+					'Could not clean up the WP Pusher record: the database writer is unavailable'
+				),
+				WpPusherSourceException::REASON_DB_QUERY_FAILED => $this->translated_prose_or_fallback(
+					__( 'Could not access WP Pusher data: a database query failed', 'ran-booster-wp-pusher-migrator' ),
+					'Could not access WP Pusher data: a database query failed'
+				),
+				default => $this->translated_prose_or_fallback(
+					__( 'Booster could not read this WP Pusher installation safely', 'ran-booster-wp-pusher-migrator' ),
+					'Booster could not read this WP Pusher installation safely'
+				),
+			};
+
+			return $prose . ' (code: ' . $failure->reason . ').';
 		}
 
 		return match ( $failure->reason ) {
-			WpPusherSourceException::REASON_MULTISITE => __( 'WP Pusher migration supports single-site WordPress only.', 'ran-booster-wp-pusher-migrator' ),
-			WpPusherSourceException::REASON_INVALID_PLUGIN_METADATA => __( 'WP Pusher is installed, but its version metadata is missing or invalid.', 'ran-booster-wp-pusher-migrator' ),
-			WpPusherSourceException::REASON_PLUGIN_ACTIVE => __( 'WP Pusher is still active. Deactivate WP Pusher before migrating retained packages.', 'ran-booster-wp-pusher-migrator' ),
-			WpPusherSourceException::REASON_UNSUPPORTED_SCHEMA => __( 'The retained WP Pusher package table schema is not supported.', 'ran-booster-wp-pusher-migrator' ),
-			WpPusherSourceException::REASON_INVENTORY_LIMIT_EXCEEDED => __( 'The retained WP Pusher package table contains more than 128 packages, which is not supported.', 'ran-booster-wp-pusher-migrator' ),
-			WpPusherSourceException::REASON_DUPLICATE_PACKAGES => __( 'The retained WP Pusher package table contains duplicate package records.', 'ran-booster-wp-pusher-migrator' ),
-			WpPusherSourceException::REASON_MALFORMED_PACKAGE_ROW => __( 'The retained WP Pusher package table contains a malformed package record.', 'ran-booster-wp-pusher-migrator' ),
-			WpPusherSourceException::REASON_DB_PREFIX_INVALID => __( 'Could not read WP Pusher data: the WordPress database prefix is unavailable or invalid (code: db_prefix_invalid).', 'ran-booster-wp-pusher-migrator' ),
-			WpPusherSourceException::REASON_DB_TABLE_READER_UNAVAILABLE => __( 'Could not read WP Pusher data: the database table reader is unavailable (code: db_table_reader_unavailable).', 'ran-booster-wp-pusher-migrator' ),
-			WpPusherSourceException::REASON_DB_SCHEMA_READER_UNAVAILABLE => __( 'Could not read WP Pusher data: the database schema reader is unavailable (code: db_schema_reader_unavailable).', 'ran-booster-wp-pusher-migrator' ),
-			WpPusherSourceException::REASON_DB_READER_UNAVAILABLE => __( 'Could not read WP Pusher data: the database package reader is unavailable (code: db_reader_unavailable).', 'ran-booster-wp-pusher-migrator' ),
-			WpPusherSourceException::REASON_DB_OPTION_READER_UNAVAILABLE => __( 'Could not read WP Pusher settings: the database option reader is unavailable (code: db_option_reader_unavailable).', 'ran-booster-wp-pusher-migrator' ),
-			WpPusherSourceException::REASON_DB_CLEANUP_UNAVAILABLE => __( 'Could not clean up the WP Pusher record: the database writer is unavailable (code: db_cleanup_unavailable).', 'ran-booster-wp-pusher-migrator' ),
-			WpPusherSourceException::REASON_DB_QUERY_FAILED => __( 'Could not access WP Pusher data: a database query failed (code: db_query_failed).', 'ran-booster-wp-pusher-migrator' ),
-			default => __( 'Booster could not read this WP Pusher installation safely. Reload Transporter and try again.', 'ran-booster-wp-pusher-migrator' ),
+			WpPusherSourceException::REASON_MULTISITE => $this->translated_or_fallback(
+				__( 'WP Pusher migration supports single-site WordPress only.', 'ran-booster-wp-pusher-migrator' ),
+				'WP Pusher migration supports single-site WordPress only.'
+			),
+			WpPusherSourceException::REASON_INVALID_PLUGIN_METADATA => $this->translated_or_fallback(
+				__( 'WP Pusher is installed, but its version metadata is missing or invalid.', 'ran-booster-wp-pusher-migrator' ),
+				'WP Pusher is installed, but its version metadata is missing or invalid.'
+			),
+			WpPusherSourceException::REASON_PLUGIN_ACTIVE => $this->translated_or_fallback(
+				__( 'WP Pusher is still active. Deactivate WP Pusher before migrating retained packages.', 'ran-booster-wp-pusher-migrator' ),
+				'WP Pusher is still active. Deactivate WP Pusher before migrating retained packages.'
+			),
+			WpPusherSourceException::REASON_UNSUPPORTED_SCHEMA => $this->translated_or_fallback(
+				__( 'The retained WP Pusher package table schema is not supported.', 'ran-booster-wp-pusher-migrator' ),
+				'The retained WP Pusher package table schema is not supported.'
+			),
+			WpPusherSourceException::REASON_INVENTORY_LIMIT_EXCEEDED => $this->translated_or_fallback(
+				__( 'The retained WP Pusher package table contains more than 128 packages, which is not supported.', 'ran-booster-wp-pusher-migrator' ),
+				'The retained WP Pusher package table contains more than 128 packages, which is not supported.'
+			),
+			WpPusherSourceException::REASON_DUPLICATE_PACKAGES => $this->translated_or_fallback(
+				__( 'The retained WP Pusher package table contains duplicate package records.', 'ran-booster-wp-pusher-migrator' ),
+				'The retained WP Pusher package table contains duplicate package records.'
+			),
+			WpPusherSourceException::REASON_MALFORMED_PACKAGE_ROW => $this->translated_or_fallback(
+				__( 'The retained WP Pusher package table contains a malformed package record.', 'ran-booster-wp-pusher-migrator' ),
+				'The retained WP Pusher package table contains a malformed package record.'
+			),
+			default => $this->translated_or_fallback(
+				__( 'Booster could not read this WP Pusher installation safely. Reload Transporter and try again.', 'ran-booster-wp-pusher-migrator' ),
+				$generic
+			),
 		};
+	}
+
+	private function translated_or_fallback( string $translated, string $fallback ): string {
+		return '' === trim( $translated ) ? $fallback : $translated;
+	}
+
+	private function translated_prose_or_fallback( string $translated, string $fallback ): string {
+		$trimmed = rtrim( trim( $translated ), ". \t\n\r\0\x0B" );
+
+		return '' === $trimmed ? $fallback : $trimmed;
 	}
 
 	/**

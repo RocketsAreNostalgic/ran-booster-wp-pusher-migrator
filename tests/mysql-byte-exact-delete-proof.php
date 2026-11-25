@@ -14,10 +14,6 @@ if ( ! defined( 'ARRAY_A' ) ) {
 	// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- Supply the exact WordPress or Core capability constant consumed by the host-contract fixture.
 	define( 'ARRAY_A', 'ARRAY_A' );
 }
-if ( ! defined( 'ABSPATH' ) ) {
-	// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- Supply the exact WordPress or Core capability constant consumed by the host-contract fixture.
-	define( 'ABSPATH', '/tmp/mysql-byte-exact-proof-wordpress/' );
-}
 
 require_once dirname( __DIR__ ) . '/src/Autoloader.php';
 Autoloader::register();

@@ -74,7 +74,7 @@ final readonly class MigrationRequestController {
 			$apply_completed_all = null !== $apply
 				&& $apply['result']->target_verified
 				&& ! $apply['cleanup_pending']
-				&& $inventory->is_empty();
+				&& WpPusherInventory::STATUS_EMPTY === $inventory->status;
 			$info                = '' === $error && $inventory->is_empty() && ! $apply_completed_all
 				? $this->presenter->empty_inventory_message( $inventory )
 				: '';
@@ -251,9 +251,12 @@ final readonly class MigrationRequestController {
 				: $result->message;
 			$outcome['kind']               = $result->target_verified && ! $cleanup_pending ? 'success' : 'validation_failure';
 		} catch ( Throwable $failure ) {
+			$failure_message    = $this->presenter->failure_message( $failure );
 			$outcome['failure'] = $failure;
-			$outcome['message'] = $this->presenter->failure_message( $failure ) ?? '';
-			$outcome['kind']    = '' === $outcome['message'] ? 'unexpected_failure' : 'validation_failure';
+			$outcome['message'] = $failure_message ?? '';
+			$outcome['kind']    = null !== $failure_message || $failure instanceof WpPusherSourceException
+				? 'validation_failure'
+				: 'unexpected_failure';
 		}
 		return $outcome;
 	}
@@ -372,7 +375,7 @@ final readonly class MigrationRequestController {
 
 	private function migration_complete(): bool {
 		try {
-			return $this->migration->inventory()->is_empty();
+			return WpPusherInventory::STATUS_EMPTY === $this->migration->inventory()->status;
 		} catch ( Throwable ) {
 			return false;
 		}
