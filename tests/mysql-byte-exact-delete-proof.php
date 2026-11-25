@@ -71,13 +71,16 @@ function run_proof(): void {
 		'Proof must load the current checkout src/WpPusherSource.php.'
 	);
 
-	$pdo = connect_pdo();
+	$pdo    = connect_pdo();
+	$prefix = 'ran_mig_proof_' . bin2hex( random_bytes( 6 ) ) . '_';
 
-	$database = new class( $pdo ) {
-		public string $prefix     = 'wp_';
+	$database = new class( $pdo, $prefix ) {
 		public string $last_error = '';
 
-		public function __construct( private PDO $pdo ) {
+		public function __construct(
+			private PDO $pdo,
+			public string $prefix
+		) {
 		}
 
 		public function prepare( string $query, mixed ...$values ): string {
@@ -146,141 +149,148 @@ function run_proof(): void {
 		}
 	};
 
-	$table = $database->prefix . 'wppusher_packages';
-	$pdo->exec( "DROP TABLE IF EXISTS `{$table}`" );
-	$pdo->exec(
-		"CREATE TABLE `{$table}` ("
-		. '`id` mediumint NOT NULL,'
-		. '`package` varchar(255) NOT NULL,'
-		. '`repository` varchar(255) NOT NULL,'
-		. '`branch` varchar(255) NOT NULL,'
-		. '`type` int NOT NULL,'
-		. '`status` int NOT NULL,'
-		. '`ptd` int NOT NULL,'
-		. '`host` varchar(10) NOT NULL,'
-		. '`private` int NOT NULL,'
-		. '`subdirectory` varchar(255) NULL,'
-		. 'PRIMARY KEY (`id`)'
-		. ') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
-	);
+	$table         = $database->prefix . 'wppusher_packages';
+	$table_created = false;
 
-	$insert = $pdo->prepare(
-		"INSERT INTO `{$table}` (`id`, `package`, `repository`, `branch`, `type`, `status`, `ptd`, `host`, `private`, `subdirectory`)"
-		. ' VALUES (:id, :package, :repository, :branch, :type, :status, :ptd, :host, :private, :subdirectory)'
-	);
-	$insert->execute(
-		array(
-			':id'           => 1,
-			':package'      => 'fixture/fixture.php',
-			':repository'   => 'RocketsAreNostalgic/booster-fixture-plugin',
-			':branch'       => 'main',
-			':type'         => 1,
-			':status'       => 1,
-			':ptd'          => 0,
-			':host'         => 'gh',
-			':private'      => 0,
-			':subdirectory' => 'plugins/foo/',
-		)
-	);
+	try {
+		$pdo->exec(
+			"CREATE TABLE `{$table}` ("
+			. '`id` mediumint NOT NULL,'
+			. '`package` varchar(255) NOT NULL,'
+			. '`repository` varchar(255) NOT NULL,'
+			. '`branch` varchar(255) NOT NULL,'
+			. '`type` int NOT NULL,'
+			. '`status` int NOT NULL,'
+			. '`ptd` int NOT NULL,'
+			. '`host` varchar(10) NOT NULL,'
+			. '`private` int NOT NULL,'
+			. '`subdirectory` varchar(255) NULL,'
+			. 'PRIMARY KEY (`id`)'
+			. ') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
+		);
+		$table_created = true;
 
-	// Control: confirm utf8mb4_unicode_ci treats plugins/foo/ and plugins/Foo/ as equal under plain =.
-	$control = $pdo->prepare( "SELECT COUNT(*) FROM `{$table}` WHERE `id` = 1 AND `subdirectory` = :sub" );
-	$control->execute( array( ':sub' => 'plugins/Foo/' ) );
-	expect(
-		'1' === (string) $control->fetchColumn( 0 ),
-		'Control failed: plain = under utf8mb4_unicode_ci did not match plugins/Foo/ against plugins/foo/.'
-	);
-
-	$source   = new WpPusherSource(
-		$database,
-		static fn (): array => array( WpPusherSource::PLUGIN => array( 'Version' => '3.0.18' ) ),
-		static fn (): array => array(),
-		static fn (): array => array(),
-		static fn (): bool => false
-	);
-	$packages = $source->packages();
-	expect( 1 === count( $packages ), 'Expected exactly one seeded row.' );
-	$original = $packages[0];
-	expect( 'plugins/foo' === $original->subdirectory, 'Expected normalized subdirectory plugins/foo.' );
-	expect( 'plugins/foo/' === $original->raw_subdirectory, 'Expected raw subdirectory plugins/foo/.' );
-
-	$mutations = array(
-		array( 'subdirectory', 'plugins/Foo/', 'plugins/foo/' ),
-		array( 'subdirectory', 'plugins/foo/ ', 'plugins/foo/' ),
-		array( 'package', 'Fixture/fixture.php', 'fixture/fixture.php' ),
-		array( 'package', 'fixture/fixture.php ', 'fixture/fixture.php' ),
-		array( 'repository', 'RocketsAreNostalgic/Booster-Fixture-Plugin', 'RocketsAreNostalgic/booster-fixture-plugin' ),
-		array( 'repository', 'RocketsAreNostalgic/booster-fixture-plugin ', 'RocketsAreNostalgic/booster-fixture-plugin' ),
-		array( 'branch', 'Main', 'main' ),
-		array( 'branch', 'main ', 'main' ),
-		array( 'host', 'GH', 'gh' ),
-		array( 'host', 'gh ', 'gh' ),
-	);
-
-	foreach ( $mutations as $mutation ) {
-		list( $column, $mutated_value, $original_value ) = $mutation;
-		$update = $pdo->prepare( "UPDATE `{$table}` SET `{$column}` = :value WHERE `id` = 1" );
-		$update->execute( array( ':value' => $mutated_value ) );
-
-		expect(
-			! $source->delete_exact( $original ),
-			sprintf( 'delete_exact() unexpectedly deleted mutated %s (%s).', $column, $mutated_value )
+		$insert = $pdo->prepare(
+			"INSERT INTO `{$table}` (`id`, `package`, `repository`, `branch`, `type`, `status`, `ptd`, `host`, `private`, `subdirectory`)"
+			. ' VALUES (:id, :package, :repository, :branch, :type, :status, :ptd, :host, :private, :subdirectory)'
+		);
+		$insert->execute(
+			array(
+				':id'           => 1,
+				':package'      => 'fixture/fixture.php',
+				':repository'   => 'RocketsAreNostalgic/booster-fixture-plugin',
+				':branch'       => 'main',
+				':type'         => 1,
+				':status'       => 1,
+				':ptd'          => 0,
+				':host'         => 'gh',
+				':private'      => 0,
+				':subdirectory' => 'plugins/foo/',
+			)
 		);
 
-		$check = $pdo->query( "SELECT HEX(`{$column}`) FROM `{$table}` WHERE `id` = 1" );
-		if ( false === $check ) {
-			throw new RuntimeException( 'Could not inspect surviving mutated row.' );
+		// Control: confirm utf8mb4_unicode_ci treats plugins/foo/ and plugins/Foo/ as equal under plain =.
+		$control = $pdo->prepare( "SELECT COUNT(*) FROM `{$table}` WHERE `id` = 1 AND `subdirectory` = :sub" );
+		$control->execute( array( ':sub' => 'plugins/Foo/' ) );
+		expect(
+			'1' === (string) $control->fetchColumn( 0 ),
+			'Control failed: plain = under utf8mb4_unicode_ci did not match plugins/Foo/ against plugins/foo/.'
+		);
+
+		$source   = new WpPusherSource(
+			$database,
+			static fn (): array => array( WpPusherSource::PLUGIN => array( 'Version' => '3.0.18' ) ),
+			static fn (): array => array(),
+			static fn (): array => array(),
+			static fn (): bool => false
+		);
+		$packages = $source->packages();
+		expect( 1 === count( $packages ), 'Expected exactly one seeded row.' );
+		$original = $packages[0];
+		expect( 'plugins/foo' === $original->subdirectory, 'Expected normalized subdirectory plugins/foo.' );
+		expect( 'plugins/foo/' === $original->raw_subdirectory, 'Expected raw subdirectory plugins/foo/.' );
+
+		$mutations = array(
+			array( 'subdirectory', 'plugins/Foo/', 'plugins/foo/' ),
+			array( 'subdirectory', 'plugins/foo/ ', 'plugins/foo/' ),
+			array( 'package', 'Fixture/fixture.php', 'fixture/fixture.php' ),
+			array( 'package', 'fixture/fixture.php ', 'fixture/fixture.php' ),
+			array( 'repository', 'RocketsAreNostalgic/Booster-Fixture-Plugin', 'RocketsAreNostalgic/booster-fixture-plugin' ),
+			array( 'repository', 'RocketsAreNostalgic/booster-fixture-plugin ', 'RocketsAreNostalgic/booster-fixture-plugin' ),
+			array( 'branch', 'Main', 'main' ),
+			array( 'branch', 'main ', 'main' ),
+			array( 'host', 'GH', 'gh' ),
+			array( 'host', 'gh ', 'gh' ),
+		);
+
+		foreach ( $mutations as $mutation ) {
+			list( $column, $mutated_value, $original_value ) = $mutation;
+			$update = $pdo->prepare( "UPDATE `{$table}` SET `{$column}` = :value WHERE `id` = 1" );
+			$update->execute( array( ':value' => $mutated_value ) );
+
+			expect(
+				! $source->delete_exact( $original ),
+				sprintf( 'delete_exact() unexpectedly deleted mutated %s (%s).', $column, $mutated_value )
+			);
+
+			$check = $pdo->query( "SELECT HEX(`{$column}`) FROM `{$table}` WHERE `id` = 1" );
+			if ( false === $check ) {
+				throw new RuntimeException( 'Could not inspect surviving mutated row.' );
+			}
+			expect(
+				strtoupper( bin2hex( $mutated_value ) ) === strtoupper( (string) $check->fetchColumn( 0 ) ),
+				sprintf( 'Mutated %s row did not survive intact in MySQL.', $column )
+			);
+
+			$update->execute( array( ':value' => $original_value ) );
 		}
-		expect(
-			strtoupper( bin2hex( $mutated_value ) ) === strtoupper( (string) $check->fetchColumn( 0 ) ),
-			sprintf( 'Mutated %s row did not survive intact in MySQL.', $column )
-		);
 
-		$update->execute( array( ':value' => $original_value ) );
+		// Exact original bytes must delete the row.
+		expect( $source->delete_exact( $original ), 'delete_exact() failed to delete the exact matching row.' );
+		$after_first = $pdo->query( "SELECT COUNT(*) FROM `{$table}` WHERE `id` = 1" );
+		expect( false !== $after_first && '0' === (string) $after_first->fetchColumn( 0 ), 'Exact matching row remained after delete_exact().' );
+
+		// NULL vs empty-string distinction.
+		$insert->execute(
+			array(
+				':id'           => 2,
+				':package'      => 'null-sub/plugin.php',
+				':repository'   => 'RocketsAreNostalgic/null-sub-plugin',
+				':branch'       => 'main',
+				':type'         => 1,
+				':status'       => 1,
+				':ptd'          => 0,
+				':host'         => 'gh',
+				':private'      => 0,
+				':subdirectory' => null,
+			)
+		);
+		$null_packages = $source->packages();
+		expect( 1 === count( $null_packages ), 'Expected one NULL-subdirectory row.' );
+		$null_original = $null_packages[0];
+		expect( null === $null_original->subdirectory && null === $null_original->raw_subdirectory, 'Expected NULL raw and normalized subdirectory.' );
+
+		$pdo->exec( "UPDATE `{$table}` SET `subdirectory` = '' WHERE `id` = 2" );
+		expect(
+			! $source->delete_exact( $null_original ),
+			'delete_exact() with NULL subdirectory unexpectedly deleted empty-string row.'
+		);
+		$empty_check = $pdo->query( "SELECT `subdirectory` FROM `{$table}` WHERE `id` = 2" );
+		expect( false !== $empty_check && '' === $empty_check->fetchColumn( 0 ), 'Empty-string row did not survive NULL delete_exact().' );
+
+		$pdo->exec( "UPDATE `{$table}` SET `subdirectory` = NULL WHERE `id` = 2" );
+		expect(
+			$source->delete_exact( $null_original ),
+			'delete_exact() with NULL subdirectory failed to delete matching NULL row.'
+		);
+		$after_second = $pdo->query( "SELECT COUNT(*) FROM `{$table}` WHERE `id` = 2" );
+		expect( false !== $after_second && '0' === (string) $after_second->fetchColumn( 0 ), 'NULL subdirectory row remained after delete_exact().' );
+	} finally {
+		if ( $table_created ) {
+			$pdo->exec( "DROP TABLE `{$table}`" );
+		}
 	}
 
-	// Exact original bytes must delete the row.
-	expect( $source->delete_exact( $original ), 'delete_exact() failed to delete the exact matching row.' );
-	$after_first = $pdo->query( "SELECT COUNT(*) FROM `{$table}` WHERE `id` = 1" );
-	expect( false !== $after_first && '0' === (string) $after_first->fetchColumn( 0 ), 'Exact matching row remained after delete_exact().' );
-
-	// NULL vs empty-string distinction.
-	$insert->execute(
-		array(
-			':id'           => 2,
-			':package'      => 'null-sub/plugin.php',
-			':repository'   => 'RocketsAreNostalgic/null-sub-plugin',
-			':branch'       => 'main',
-			':type'         => 1,
-			':status'       => 1,
-			':ptd'          => 0,
-			':host'         => 'gh',
-			':private'      => 0,
-			':subdirectory' => null,
-		)
-	);
-	$null_packages = $source->packages();
-	expect( 1 === count( $null_packages ), 'Expected one NULL-subdirectory row.' );
-	$null_original = $null_packages[0];
-	expect( null === $null_original->subdirectory && null === $null_original->raw_subdirectory, 'Expected NULL raw and normalized subdirectory.' );
-
-	$pdo->exec( "UPDATE `{$table}` SET `subdirectory` = '' WHERE `id` = 2" );
-	expect(
-		! $source->delete_exact( $null_original ),
-		'delete_exact() with NULL subdirectory unexpectedly deleted empty-string row.'
-	);
-	$empty_check = $pdo->query( "SELECT `subdirectory` FROM `{$table}` WHERE `id` = 2" );
-	expect( false !== $empty_check && '' === $empty_check->fetchColumn( 0 ), 'Empty-string row did not survive NULL delete_exact().' );
-
-	$pdo->exec( "UPDATE `{$table}` SET `subdirectory` = NULL WHERE `id` = 2" );
-	expect(
-		$source->delete_exact( $null_original ),
-		'delete_exact() with NULL subdirectory failed to delete matching NULL row.'
-	);
-	$after_second = $pdo->query( "SELECT COUNT(*) FROM `{$table}` WHERE `id` = 2" );
-	expect( false !== $after_second && '0' === (string) $after_second->fetchColumn( 0 ), 'NULL subdirectory row remained after delete_exact().' );
-
-	$pdo->exec( "DROP TABLE IF EXISTS `{$table}`" );
 	echo "PASS MySQL utf8mb4_unicode_ci byte-exact delete_exact() proof.\n";
 }
 
