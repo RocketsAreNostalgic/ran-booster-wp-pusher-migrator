@@ -1,98 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-project_root="$(cd "$(dirname "$0")/.." && pwd)"
-cd "$project_root"
-fixture="$(cd "$(mktemp -d)" && pwd -P)"
+project_root="$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd -P)"
+# shellcheck source=tests/analysis-fixture-helpers.sh
+source "$project_root/tests/analysis-fixture-helpers.sh"
+fixture="$(create_canonical_fixture_dir)"
+if [ -z "$fixture" ] || [ ! -d "$fixture" ] || [ "$fixture" = "$project_root" ] || [ "$fixture" = "$(pwd -P)" ]; then
+	printf 'Refusing unsafe fixture directory: %s\n' "$fixture" >&2
+	exit 1
+fi
 trap 'rm -rf "$fixture"' EXIT
-
-file_replace_literal() {
-	php -r '
-		$file = $argv[1];
-		$contents = file_get_contents( $file );
-		if ( false === $contents ) {
-			exit( 1 );
-		}
-		$updated = str_replace( $argv[2], $argv[3], $contents, $count );
-		if ( 0 === $count || false === file_put_contents( $file, $updated ) ) {
-			exit( 1 );
-		}
-	' "$1" "$2" "$3"
-}
-
-file_insert_line() {
-	php -r '
-		$file = $argv[1];
-		$mode = $argv[2];
-		$pattern = $argv[3];
-		$insert = $argv[4];
-		$contents = file_get_contents( $file );
-		if ( false === $contents || ! in_array( $mode, array( "after", "before" ), true ) ) {
-			exit( 1 );
-		}
-		$trailing = str_ends_with( $contents, "\n" ) ? "\n" : "";
-		$lines = explode( "\n", substr( $contents, 0, strlen( $contents ) - strlen( $trailing ) ) );
-		$out = array();
-		$matched = 0;
-		foreach ( $lines as $line ) {
-			if ( 1 === preg_match( $pattern, $line ) ) {
-				++$matched;
-				if ( "before" === $mode ) {
-					$out[] = $insert;
-				}
-				$out[] = $line;
-				if ( "after" === $mode ) {
-					$out[] = $insert;
-				}
-				continue;
-			}
-			$out[] = $line;
-		}
-		if ( 0 === $matched || false === file_put_contents( $file, implode( "\n", $out ) . $trailing ) ) {
-			exit( 1 );
-		}
-	' "$1" "$2" "$3" "$4"
-}
-
-file_delete_matching_lines() {
-	php -r '
-		$file = $argv[1];
-		$pattern = $argv[2];
-		$contents = file_get_contents( $file );
-		if ( false === $contents ) {
-			exit( 1 );
-		}
-		$trailing = str_ends_with( $contents, "\n" ) ? "\n" : "";
-		$lines = explode( "\n", substr( $contents, 0, strlen( $contents ) - strlen( $trailing ) ) );
-		$out = array();
-		$matched = 0;
-		foreach ( $lines as $line ) {
-			if ( 1 === preg_match( $pattern, $line ) ) {
-				++$matched;
-				continue;
-			}
-			$out[] = $line;
-		}
-		if ( 0 === $matched || false === file_put_contents( $file, implode( "\n", $out ) . $trailing ) ) {
-			exit( 1 );
-		}
-	' "$1" "$2"
-}
-
-file_delete_first_line() {
-	php -r '
-		$file = $argv[1];
-		$contents = file_get_contents( $file );
-		if ( false === $contents || "" === $contents ) {
-			exit( 1 );
-		}
-		$pos = strpos( $contents, "\n" );
-		$updated = false === $pos ? "" : substr( $contents, $pos + 1 );
-		if ( false === file_put_contents( $file, $updated ) ) {
-			exit( 1 );
-		}
-	' "$1"
-}
+cd "$project_root"
 
 mkdir -p "$fixture/scripts" "$fixture/tests" "$fixture/new-product/contracts" "$fixture/src/tests"
 cp -R src views "$fixture/"
@@ -509,3 +427,30 @@ grep -q 'method.notFound' "$fixture/development-world-negative.log"
 if development > "$fixture/development-negative.log" 2>&1; then exit 1; fi
 grep -q 'Review development analysis level' "$fixture/development-negative.log"
 printf 'Development analysis contract passed: future roots, minimum levels, effective stub omission, historical waiver neighbors and actual Core/fixture separation.\n'
+
+# Failed or empty mktemp -d output must exit before installing a cleanup trap.
+mktemp_fail_probe="$fixture/mktemp-fail-check"
+mkdir -p "$mktemp_fail_probe/repo/tests" "$mktemp_fail_probe/cwd" "$mktemp_fail_probe/bin-fail" "$mktemp_fail_probe/bin-empty"
+cp "$project_root/tests/analysis-contract.sh" "$project_root/tests/analysis-coverage-contract.sh" "$project_root/tests/analysis-fixture-helpers.sh" "$mktemp_fail_probe/repo/tests/"
+printf 'repo-sentinel\n' > "$mktemp_fail_probe/repo/sentinel.txt"
+printf 'cwd-sentinel\n' > "$mktemp_fail_probe/cwd/sentinel.txt"
+printf '#!/bin/sh\nexit 1\n' > "$mktemp_fail_probe/bin-fail/mktemp"
+printf '#!/bin/sh\nexit 0\n' > "$mktemp_fail_probe/bin-empty/mktemp"
+for mode in bin-fail bin-empty; do
+	printf '#!/bin/sh\nprintf "%%s\\n" "$*" >> "$RM_LOG"\nexit 99\n' > "$mktemp_fail_probe/$mode/rm"
+	chmod +x "$mktemp_fail_probe/$mode/mktemp" "$mktemp_fail_probe/$mode/rm"
+	for script in analysis-contract.sh analysis-coverage-contract.sh; do
+		if ( cd "$mktemp_fail_probe/cwd" && RM_LOG="$mktemp_fail_probe/rm.log" PATH="$mktemp_fail_probe/$mode:$PATH" bash "$mktemp_fail_probe/repo/tests/$script" ) > "$mktemp_fail_probe/out.log" 2>&1; then
+			printf 'Fixture creation failure unexpectedly succeeded for %s/%s.\n' "$mode" "$script" >&2
+			exit 1
+		fi
+		if [ -e "$mktemp_fail_probe/rm.log" ]; then
+			printf 'Cleanup trap executed after failed mktemp -d for %s/%s.\n' "$mode" "$script" >&2
+			exit 1
+		fi
+		if [ ! -f "$mktemp_fail_probe/repo/sentinel.txt" ] || [ ! -f "$mktemp_fail_probe/cwd/sentinel.txt" ]; then
+			printf 'Sentinel file missing after failed mktemp -d for %s/%s.\n' "$mode" "$script" >&2
+			exit 1
+		fi
+	done
+done

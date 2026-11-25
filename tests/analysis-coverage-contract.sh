@@ -1,82 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-project_root="$(cd "$(dirname "$0")/.." && pwd)"
-fixture="$(cd "$(mktemp -d)" && pwd -P)"
+project_root="$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd -P)"
+# shellcheck source=tests/analysis-fixture-helpers.sh
+source "$project_root/tests/analysis-fixture-helpers.sh"
+fixture="$(create_canonical_fixture_dir)"
+if [ -z "$fixture" ] || [ ! -d "$fixture" ] || [ "$fixture" = "$project_root" ] || [ "$fixture" = "$(pwd -P)" ]; then
+	printf 'Refusing unsafe fixture directory: %s\n' "$fixture" >&2
+	exit 1
+fi
 trap 'rm -rf "$fixture"' EXIT
-
-file_replace_literal() {
-	php -r '
-		$file = $argv[1];
-		$contents = file_get_contents( $file );
-		if ( false === $contents ) {
-			exit( 1 );
-		}
-		$updated = str_replace( $argv[2], $argv[3], $contents, $count );
-		if ( 0 === $count || false === file_put_contents( $file, $updated ) ) {
-			exit( 1 );
-		}
-	' "$1" "$2" "$3"
-}
-
-file_insert_line() {
-	php -r '
-		$file = $argv[1];
-		$mode = $argv[2];
-		$pattern = $argv[3];
-		$insert = $argv[4];
-		$contents = file_get_contents( $file );
-		if ( false === $contents || ! in_array( $mode, array( "after", "before" ), true ) ) {
-			exit( 1 );
-		}
-		$trailing = str_ends_with( $contents, "\n" ) ? "\n" : "";
-		$lines = explode( "\n", substr( $contents, 0, strlen( $contents ) - strlen( $trailing ) ) );
-		$out = array();
-		$matched = 0;
-		foreach ( $lines as $line ) {
-			if ( 1 === preg_match( $pattern, $line ) ) {
-				++$matched;
-				if ( "before" === $mode ) {
-					$out[] = $insert;
-				}
-				$out[] = $line;
-				if ( "after" === $mode ) {
-					$out[] = $insert;
-				}
-				continue;
-			}
-			$out[] = $line;
-		}
-		if ( 0 === $matched || false === file_put_contents( $file, implode( "\n", $out ) . $trailing ) ) {
-			exit( 1 );
-		}
-	' "$1" "$2" "$3" "$4"
-}
-
-file_delete_matching_lines() {
-	php -r '
-		$file = $argv[1];
-		$pattern = $argv[2];
-		$contents = file_get_contents( $file );
-		if ( false === $contents ) {
-			exit( 1 );
-		}
-		$trailing = str_ends_with( $contents, "\n" ) ? "\n" : "";
-		$lines = explode( "\n", substr( $contents, 0, strlen( $contents ) - strlen( $trailing ) ) );
-		$out = array();
-		$matched = 0;
-		foreach ( $lines as $line ) {
-			if ( 1 === preg_match( $pattern, $line ) ) {
-				++$matched;
-				continue;
-			}
-			$out[] = $line;
-		}
-		if ( 0 === $matched || false === file_put_contents( $file, implode( "\n", $out ) . $trailing ) ) {
-			exit( 1 );
-		}
-	' "$1" "$2"
-}
 git -C "$project_root" archive HEAD | tar -x -C "$fixture"
 cp "$project_root/scripts/check-analysis-coverage.php" "$fixture/scripts/"
 cp "$project_root/phpstan.neon.dist" "$project_root/composer.json" "$fixture/"
