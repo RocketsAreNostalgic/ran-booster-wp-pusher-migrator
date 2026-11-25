@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.0-beta.13](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/compare/v0.1.0-beta.12...v0.1.0-beta.13) (2026-11-25)
+
+
+### Bug Fixes
+
+* **migrator:** hide the prompt when no packages remain ([#103](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/103)) ([ed0ce59](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/ed0ce595559b6a1084b83ef6a6eb465a55c116b4))
+* **migrator:** refine inventory errors, rows and cleanup ([#98](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/issues/98)) ([7954846](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/commit/795484644160b68f8b0470f8f2160b3b271d3dd5))
+
 ## [0.1.0-beta.12](https://github.com/RocketsAreNostalgic/ran-booster-wp-pusher-migrator/compare/v0.1.0-beta.11...v0.1.0-beta.12) (2026-11-24)
 
 
