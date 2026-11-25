@@ -4,7 +4,7 @@ set -euo pipefail
 project_root="$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd -P)"
 # shellcheck source=tests/analysis-fixture-helpers.sh
 source "$project_root/tests/analysis-fixture-helpers.sh"
-fixture="$(create_canonical_fixture_dir)"
+fixture="$(create_canonical_fixture_dir)" || exit 1
 if [ -z "$fixture" ] || [ ! -d "$fixture" ] || [ "$fixture" = "$project_root" ] || [ "$fixture" = "$(pwd -P)" ]; then
 	printf 'Refusing unsafe fixture directory: %s\n' "$fixture" >&2
 	exit 1

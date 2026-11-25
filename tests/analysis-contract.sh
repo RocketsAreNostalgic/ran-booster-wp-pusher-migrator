@@ -4,7 +4,7 @@ set -euo pipefail
 project_root="$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd -P)"
 # shellcheck source=tests/analysis-fixture-helpers.sh
 source "$project_root/tests/analysis-fixture-helpers.sh"
-fixture="$(create_canonical_fixture_dir)"
+fixture="$(create_canonical_fixture_dir)" || exit 1
 if [ -z "$fixture" ] || [ ! -d "$fixture" ] || [ "$fixture" = "$project_root" ] || [ "$fixture" = "$(pwd -P)" ]; then
 	printf 'Refusing unsafe fixture directory: %s\n' "$fixture" >&2
 	exit 1
@@ -428,15 +428,17 @@ if development > "$fixture/development-negative.log" 2>&1; then exit 1; fi
 grep -q 'Review development analysis level' "$fixture/development-negative.log"
 printf 'Development analysis contract passed: future roots, minimum levels, effective stub omission, historical waiver neighbors and actual Core/fixture separation.\n'
 
-# Failed or empty mktemp -d output must exit before installing a cleanup trap.
+# Failed, empty, or nonzero-with-output mktemp -d must exit before installing a cleanup trap.
 mktemp_fail_probe="$fixture/mktemp-fail-check"
-mkdir -p "$mktemp_fail_probe/repo/tests" "$mktemp_fail_probe/cwd" "$mktemp_fail_probe/bin-fail" "$mktemp_fail_probe/bin-empty"
+mkdir -p "$mktemp_fail_probe/repo/tests" "$mktemp_fail_probe/cwd" "$mktemp_fail_probe/other-dir" "$mktemp_fail_probe/bin-fail" "$mktemp_fail_probe/bin-empty" "$mktemp_fail_probe/bin-nonzero-dir"
 cp "$project_root/tests/analysis-contract.sh" "$project_root/tests/analysis-coverage-contract.sh" "$project_root/tests/analysis-fixture-helpers.sh" "$mktemp_fail_probe/repo/tests/"
 printf 'repo-sentinel\n' > "$mktemp_fail_probe/repo/sentinel.txt"
 printf 'cwd-sentinel\n' > "$mktemp_fail_probe/cwd/sentinel.txt"
+printf 'other-sentinel\n' > "$mktemp_fail_probe/other-dir/sentinel.txt"
 printf '#!/bin/sh\nexit 1\n' > "$mktemp_fail_probe/bin-fail/mktemp"
 printf '#!/bin/sh\nexit 0\n' > "$mktemp_fail_probe/bin-empty/mktemp"
-for mode in bin-fail bin-empty; do
+printf '#!/bin/sh\nprintf '\''%%s\\n'\'' '\''%s'\''\nexit 1\n' "$mktemp_fail_probe/other-dir" > "$mktemp_fail_probe/bin-nonzero-dir/mktemp"
+for mode in bin-fail bin-empty bin-nonzero-dir; do
 	printf '#!/bin/sh\nprintf "%%s\\n" "$*" >> "$RM_LOG"\nexit 99\n' > "$mktemp_fail_probe/$mode/rm"
 	chmod +x "$mktemp_fail_probe/$mode/mktemp" "$mktemp_fail_probe/$mode/rm"
 	for script in analysis-contract.sh analysis-coverage-contract.sh; do
@@ -448,7 +450,7 @@ for mode in bin-fail bin-empty; do
 			printf 'Cleanup trap executed after failed mktemp -d for %s/%s.\n' "$mode" "$script" >&2
 			exit 1
 		fi
-		if [ ! -f "$mktemp_fail_probe/repo/sentinel.txt" ] || [ ! -f "$mktemp_fail_probe/cwd/sentinel.txt" ]; then
+		if [ ! -f "$mktemp_fail_probe/repo/sentinel.txt" ] || [ ! -f "$mktemp_fail_probe/cwd/sentinel.txt" ] || [ ! -f "$mktemp_fail_probe/other-dir/sentinel.txt" ]; then
 			printf 'Sentinel file missing after failed mktemp -d for %s/%s.\n' "$mode" "$script" >&2
 			exit 1
 		fi

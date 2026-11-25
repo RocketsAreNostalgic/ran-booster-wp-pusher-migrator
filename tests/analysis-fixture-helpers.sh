@@ -3,12 +3,12 @@
 create_canonical_fixture_dir() {
 	local raw_dir
 	local canonical_dir
-	raw_dir="$(mktemp -d)"
+	raw_dir="$(mktemp -d)" || return 1
 	if [ -z "$raw_dir" ] || [ ! -d "$raw_dir" ]; then
 		printf 'Failed to create temporary fixture directory.\n' >&2
 		return 1
 	fi
-	canonical_dir="$(CDPATH='' cd -- "$raw_dir" && pwd -P)"
+	canonical_dir="$(CDPATH='' cd -- "$raw_dir" && pwd -P)" || return 1
 	if [ -z "$canonical_dir" ] || [ ! -d "$canonical_dir" ]; then
 		printf 'Failed to resolve temporary fixture directory.\n' >&2
 		return 1
