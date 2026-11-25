@@ -313,6 +313,58 @@ final class SourceCardViewTest extends TestCase {
 		self::assertSame( array( 'wp-pusher:check-package' ), $interaction->rendered_operations );
 	}
 
+	public function test_rejected_multibyte_subdirectory_truncates_on_utf8_boundary_and_retains_reason(): void {
+		$presenter = new MigrationPresenter(
+			new CandidateFactory(
+				static fn (): array => array( 'fixture/fixture.php' => array( 'Name' => 'Fixture Plugin' ) )
+			),
+			new SourceCardInteractionSpy()
+		);
+		$cases     = array(
+			'two_byte_straddle'   => array(
+				'raw'      => str_repeat( 'é', 128 ),
+				'expected' => str_repeat( 'é', 127 ),
+			),
+			'three_byte_straddle' => array(
+				'raw'      => 'a' . str_repeat( 'あ', 86 ),
+				'expected' => 'a' . str_repeat( 'あ', 84 ),
+			),
+			'four_byte_straddle'  => array(
+				'raw'      => str_repeat( '🚀', 64 ),
+				'expected' => str_repeat( '🚀', 63 ),
+			),
+			'invalid_utf8_bytes'  => array(
+				'raw'      => "../\xFFbad",
+				'expected' => '../bad',
+			),
+		);
+
+		foreach ( $cases as $name => $case ) {
+			$rejected = new WpPusherRejectedPackage(
+				2,
+				'bad/bad.php',
+				'RocketsAreNostalgic/bad-plugin',
+				1,
+				$case['raw']
+			);
+			$display  = $rejected->display_subdirectory();
+
+			self::assertSame( $case['expected'], $display, $name );
+			self::assertLessThanOrEqual( 255, strlen( $display ), $name );
+			self::assertSame( 1, preg_match( '//u', $display ), $name );
+
+			$row    = $presenter->rejected_row( $rejected );
+			$output = $this->render_rows( array( $row ) );
+
+			self::assertStringContainsString( '<strong>Cannot adopt</strong>', $output, $name );
+			self::assertStringContainsString(
+				'Can&#039;t migrate: subdirectory &quot;' . $case['expected'] . '&quot; isn&#039;t a plain relative path.',
+				$output,
+				$name
+			);
+		}
+	}
+
 	public function test_verified_apply_and_cleanup_error_remain_visible_even_with_panel_read_error(): void {
 		$rows                = array();
 		$error               = 'Could not access WP Pusher data: a database query failed (code: db_query_failed).';

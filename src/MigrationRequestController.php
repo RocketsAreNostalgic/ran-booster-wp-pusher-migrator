@@ -166,7 +166,10 @@ final readonly class MigrationRequestController {
 		);
 		$interaction_outcome = match ( $outcome['kind'] ) {
 			'success' => AdminInteractionOutcome::success( $request_model, $outcome['message'] ),
-			'validation_failure' => AdminInteractionOutcome::validation_failure( $request_model, $outcome['message'] ),
+			'validation_failure' => AdminInteractionOutcome::validation_failure(
+				$request_model,
+				$this->bounded_validation_failure_message( $outcome['message'], $outcome['failure'] )
+			),
 			default => AdminInteractionOutcome::unexpected_failure( $request_model ),
 		};
 		$row = null;
@@ -195,12 +198,13 @@ final readonly class MigrationRequestController {
 
 	/**
 	 * @param array<string, mixed> $request Authorized request values.
-	 * @return array{kind:'success'|'validation_failure'|'unexpected_failure',message:string,source:WpPusherPackage|null,review:PortabilityReviewResult|null,apply:array{result:PortabilityApplyResult,cleanup_pending:bool,cleanup_error:?string}|null,migration_complete:bool}
+	 * @return array{kind:'success'|'validation_failure'|'unexpected_failure',message:string,failure:?Throwable,source:WpPusherPackage|null,review:PortabilityReviewResult|null,apply:array{result:PortabilityApplyResult,cleanup_pending:bool,cleanup_error:?string}|null,migration_complete:bool}
 	 */
 	private function operation_outcome( string $operation, array $request ): array {
 		$outcome = array(
 			'kind'               => 'success',
 			'message'            => '',
+			'failure'            => null,
 			'source'             => null,
 			'review'             => null,
 			'apply'              => null,
@@ -247,10 +251,44 @@ final readonly class MigrationRequestController {
 				: $result->message;
 			$outcome['kind']               = $result->target_verified && ! $cleanup_pending ? 'success' : 'validation_failure';
 		} catch ( Throwable $failure ) {
+			$outcome['failure'] = $failure;
 			$outcome['message'] = $this->presenter->failure_message( $failure ) ?? '';
 			$outcome['kind']    = '' === $outcome['message'] ? 'unexpected_failure' : 'validation_failure';
 		}
 		return $outcome;
+	}
+
+	private function bounded_validation_failure_message( string $message, ?Throwable $failure ): string {
+		if ( $this->is_bounded_interaction_message( $message ) ) {
+			return $message;
+		}
+
+		if ( $failure instanceof WpPusherSourceException && $failure->is_database_error ) {
+			$compact = sprintf(
+				/* translators: %s: closed database failure code. */
+				__( 'Could not access WP Pusher data (code: %s).', 'ran-booster-wp-pusher-migrator' ),
+				$failure->reason
+			);
+			if ( $this->is_bounded_interaction_message( $compact ) ) {
+				return $compact;
+			}
+
+			return 'Could not access WP Pusher data (code: ' . $failure->reason . ').';
+		}
+
+		if ( $failure instanceof WpPusherSourceException ) {
+			$fallback = $failure->getMessage();
+			if ( $this->is_bounded_interaction_message( $fallback ) ) {
+				return $fallback;
+			}
+		}
+
+		$compact = __( 'Booster could not safely process this WP Pusher package. Reload Transporter and try again.', 'ran-booster-wp-pusher-migrator' );
+		if ( $this->is_bounded_interaction_message( $compact ) ) {
+			return $compact;
+		}
+
+		return 'Booster could not safely process this WP Pusher package. Reload Transporter and try again.';
 	}
 
 	private function cleanup_pending_message( ?string $cleanup_error, ?Throwable $cleanup_failure ): string {
@@ -289,6 +327,7 @@ final readonly class MigrationRequestController {
 	private function is_bounded_interaction_message( string $message ): bool {
 		return '' !== trim( $message )
 			&& strlen( $message ) <= self::MAX_INTERACTION_MESSAGE_BYTES
+			&& 1 === preg_match( '//u', $message )
 			&& 1 !== preg_match( '/[\x00-\x1F\x7F]/', $message );
 	}
 

@@ -928,6 +928,64 @@ final class PluginAdminPostTest extends TestCase {
 		self::assertStringNotContainsString( 'secret_col', $message );
 	}
 
+	public function test_fragment_review_and_apply_bound_long_translated_second_read_db_error_and_retain_code(): void {
+		$long_db_translation = str_repeat( 'データベース照会エラー・', 10 ) . ' (code: db_query_failed)';
+		$compact_translation = 'WP Pusher データにアクセスできませんでした (code: %s)。';
+		self::assertGreaterThan( 255, strlen( $long_db_translation ) );
+		self::assertLessThanOrEqual( 255, strlen( sprintf( $compact_translation, 'db_query_failed' ) ) );
+
+		$oversized_compact = str_repeat( 'データベース接続失敗・Éé ', 16 ) . ' (code: %s)';
+		self::assertGreaterThan( 255, strlen( $oversized_compact ) );
+
+		$scenarios = array(
+			'compact_multibyte' => array(
+				'translations' => array(
+					'Could not access WP Pusher data: a database query failed (code: db_query_failed).' => $long_db_translation,
+					'Could not access WP Pusher data (code: %s).'                                      => $compact_translation,
+				),
+				'expected'     => sprintf( $compact_translation, 'db_query_failed' ),
+			),
+			'ascii_fallback'    => array(
+				'translations' => array(
+					'Could not access WP Pusher data: a database query failed (code: db_query_failed).' => $long_db_translation,
+					'Could not access WP Pusher data (code: %s).'                                      => $oversized_compact,
+				),
+				'expected'     => 'Could not access WP Pusher data (code: db_query_failed).',
+			),
+		);
+
+		foreach ( array( 'review', 'apply' ) as $operation ) {
+			foreach ( $scenarios as $name => $scenario ) {
+				$GLOBALS['ran_booster_wp_pusher_migrator_test_translations'] = $scenario['translations'];
+
+				$database    = new AdminPostDatabase();
+				$portability = new AdminPostPortabilityFacade();
+				$interaction = new AdminPostInteractionSpy();
+				$this->connect( $database, $portability, $interaction );
+				$source                               = $this->source_package( $database );
+				$database->fail_on_package_read       = 2;
+				$database->package_read_error_message = 'SQLSTATE[42000]: SELECT secret_table';
+
+				$_POST = 'review' === $operation
+					? $this->review_request( $source )
+					: $this->apply_request( $source, 'v1:' . str_repeat( 'a', 64 ) );
+
+				$this->run_handler();
+
+				self::assertSame( 'validation_failure', $interaction->outcome?->kind(), $operation . ':' . $name );
+				$message = (string) $interaction->outcome->message();
+				self::assertSame( $scenario['expected'], $message, $operation . ':' . $name );
+				self::assertLessThanOrEqual( 255, strlen( $message ), $operation . ':' . $name );
+				self::assertSame( 1, preg_match( '//u', $message ), $operation . ':' . $name );
+				self::assertStringContainsString( '(code: db_query_failed)', $message, $operation . ':' . $name );
+				self::assertStringNotContainsString( 'SQLSTATE', $message, $operation . ':' . $name );
+				self::assertStringNotContainsString( 'secret_table', $message, $operation . ':' . $name );
+				self::assertSame( 0, $portability->review_calls, $operation . ':' . $name );
+				self::assertSame( 0, $portability->apply_calls, $operation . ':' . $name );
+			}
+		}
+	}
+
 	private function capture_panel(): string {
 		ob_start();
 		$this->controller->render_panel();
@@ -1131,6 +1189,9 @@ class AdminPostDatabase {
 	public bool $unsupported_schema               = false;
 	public string $delete_error_message           = '';
 	public bool $persist_delete_error             = false;
+	public int $fail_on_package_read              = 0;
+	public string $package_read_error_message     = '';
+	private int $package_read_count               = 0;
 	/** @var array<int|string, mixed> Variadic arguments retain named keys too. */
 	private array $prepared_values = array();
 	private bool $deleted          = false;
@@ -1175,6 +1236,14 @@ class AdminPostDatabase {
 			&& $this->deleted
 			&& str_starts_with( $query, 'SELECT `' ) ) {
 			throw new RuntimeException( 'Inventory readback failed.' );
+		}
+		if ( str_starts_with( $query, 'SELECT `' ) && $this->fail_on_package_read > 0 ) {
+			++$this->package_read_count;
+			if ( $this->package_read_count === $this->fail_on_package_read && '' !== $this->package_read_error_message ) {
+				$this->last_error = $this->package_read_error_message;
+
+				return array();
+			}
 		}
 		if ( str_starts_with( $query, 'SHOW COLUMNS' ) ) {
 			if ( $this->unsupported_schema ) {
