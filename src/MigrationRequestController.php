@@ -69,7 +69,7 @@ final readonly class MigrationRequestController {
 					: $outcome['message'] )
 				: '';
 			$inventory           = '' === $error ? $this->migration->inventory() : WpPusherInventory::empty_inventory();
-			$option_presence     = '' === $error && $inventory->is_installed() ? $this->source->option_presence() : array();
+			$option_presence     = '' === $error && ! $inventory->is_empty() ? $this->source->option_presence() : array();
 			$apply               = $outcome['apply'] ?? null;
 			$apply_completed_all = null !== $apply
 				&& $apply['result']->target_verified
@@ -102,7 +102,7 @@ final readonly class MigrationRequestController {
 			return;
 		}
 		try {
-			if ( ! $this->source->supported_package_table_present() ) {
+			if ( ! $this->source->supported_package_rows_present() ) {
 				return;
 			}
 		} catch ( Throwable ) {
