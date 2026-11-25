@@ -93,10 +93,13 @@ final class ReleaseWorkflowTest extends TestCase {
 		self::assertStringContainsString( "      - runtime-archive\n", $terminal );
 		self::assertStringContainsString( "      - core-contract\n", $terminal );
 		self::assertStringContainsString( "      - quality\n", $terminal );
+		self::assertStringContainsString( "      - mysql-byte-exact-delete\n", $terminal );
 		self::assertStringContainsString( 'test "$RAN_BASELINE_RESULT" = success', $terminal );
 		self::assertStringContainsString( 'test "$RAN_RUNTIME_ARCHIVE_RESULT" = success', $terminal );
 		self::assertStringContainsString( 'test "$RAN_CORE_CONTRACT_RESULT" = success', $terminal );
 		self::assertStringContainsString( 'test "$RAN_REPOSITORY_QUALITY_RESULT" = success', $terminal );
+		self::assertStringContainsString( 'test "$RAN_MYSQL_PROOF_RESULT" = success', $terminal );
+		self::assertStringContainsString( 'php tests/mysql-byte-exact-delete-proof.php', $quality );
 	}
 
 	public function test_certified_core_checkout_uses_the_exact_local_certification(): void {

@@ -49,6 +49,11 @@ final readonly class AdminInteractionOutcome {
 		private string $kind,
 		private string $message
 	) {
+		if ( '' === trim( $message )
+			|| strlen( $message ) > 255
+			|| 1 === preg_match( '/[\x00-\x1F\x7F]/', $message ) ) {
+			throw new \InvalidArgumentException( 'Administration interaction messages must be bounded display-safe text.' );
+		}
 	}
 
 	public static function success( AdminInteractionRequest $request, string $message ): self {

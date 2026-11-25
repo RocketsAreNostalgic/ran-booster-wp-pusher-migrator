@@ -19,9 +19,10 @@ use Throwable;
  * @internal
  */
 final readonly class MigrationRequestController {
-	private const FORM_ACTION       = 'ran-booster-wp-pusher-migrator-review-v1';
-	private const APPLY_FORM_ACTION = 'ran-booster-wp-pusher-migrator-apply-v1';
-	private const ADMIN_POST_ACTION = 'ran_booster_wp_pusher_migrator_package';
+	private const FORM_ACTION                   = 'ran-booster-wp-pusher-migrator-review-v1';
+	private const APPLY_FORM_ACTION             = 'ran-booster-wp-pusher-migrator-apply-v1';
+	private const ADMIN_POST_ACTION             = 'ran_booster_wp_pusher_migrator_package';
+	private const MAX_INTERACTION_MESSAGE_BYTES = 255;
 
 	public function __construct(
 		private MigrationService $migration,
@@ -224,12 +225,14 @@ final readonly class MigrationRequestController {
 			$result               = $this->migration->apply( $source->id, $source_fingerprint, $credential_id, $review_fingerprint, $nonce, $provider_expectation );
 			$removed              = false;
 			$cleanup_error        = null;
+			$cleanup_failure      = null;
 			if ( $result->target_verified ) {
 				try {
 					$removed = $this->migration->cleanup( $source->id, $source_fingerprint, $result );
-				} catch ( Throwable $cleanup_failure ) {
-					$removed       = false;
-					$cleanup_error = $this->presenter->failure_message( $cleanup_failure );
+				} catch ( Throwable $failure ) {
+					$removed         = false;
+					$cleanup_failure = $failure;
+					$cleanup_error   = $this->presenter->failure_message( $failure );
 				}
 			}
 			$cleanup_pending               = $result->target_verified && ! $removed;
@@ -239,21 +242,54 @@ final readonly class MigrationRequestController {
 				'cleanup_error'   => $cleanup_error,
 			);
 			$outcome['migration_complete'] = ! $cleanup_pending && $result->target_verified && $this->migration_complete();
-			if ( $cleanup_pending ) {
-				$cleanup_message    = __( 'Booster verified the adopted package, but its exact WP Pusher source record could not be removed. Keep WP Pusher inactive and try again.', 'ran-booster-wp-pusher-migrator' );
-				$combined           = null !== $cleanup_error && '' !== $cleanup_error
-					? $cleanup_message . ' ' . $cleanup_error
-					: $cleanup_message;
-				$outcome['message'] = strlen( $combined ) <= 255 ? $combined : $cleanup_message;
-			} else {
-				$outcome['message'] = $result->message;
-			}
-			$outcome['kind'] = $result->target_verified && ! $cleanup_pending ? 'success' : 'validation_failure';
+			$outcome['message']            = $cleanup_pending
+				? $this->cleanup_pending_message( $cleanup_error, $cleanup_failure )
+				: $result->message;
+			$outcome['kind']               = $result->target_verified && ! $cleanup_pending ? 'success' : 'validation_failure';
 		} catch ( Throwable $failure ) {
 			$outcome['message'] = $this->presenter->failure_message( $failure ) ?? '';
 			$outcome['kind']    = '' === $outcome['message'] ? 'unexpected_failure' : 'validation_failure';
 		}
 		return $outcome;
+	}
+
+	private function cleanup_pending_message( ?string $cleanup_error, ?Throwable $cleanup_failure ): string {
+		$cleanup_message = __( 'Booster verified the adopted package, but its exact WP Pusher source record could not be removed. Keep WP Pusher inactive and try again.', 'ran-booster-wp-pusher-migrator' );
+		$combined        = null !== $cleanup_error && '' !== $cleanup_error
+			? $cleanup_message . ' ' . $cleanup_error
+			: $cleanup_message;
+		if ( $this->is_bounded_interaction_message( $combined ) ) {
+			return $combined;
+		}
+
+		$database_code = $cleanup_failure instanceof WpPusherSourceException && $cleanup_failure->is_database_error
+			? $cleanup_failure->reason
+			: null;
+		if ( null !== $database_code ) {
+			$compact = sprintf(
+				/* translators: %s: closed database failure code. */
+				__( 'Booster verified the adopted package, but its WP Pusher record remains (code: %s).', 'ran-booster-wp-pusher-migrator' ),
+				$database_code
+			);
+			if ( $this->is_bounded_interaction_message( $compact ) ) {
+				return $compact;
+			}
+
+			return 'Booster verified the adopted package, but its WP Pusher record remains (code: ' . $database_code . ').';
+		}
+
+		$compact = __( 'Booster verified the adopted package, but its WP Pusher record remains.', 'ran-booster-wp-pusher-migrator' );
+		if ( $this->is_bounded_interaction_message( $compact ) ) {
+			return $compact;
+		}
+
+		return 'Booster verified the adopted package, but its WP Pusher record remains.';
+	}
+
+	private function is_bounded_interaction_message( string $message ): bool {
+		return '' !== trim( $message )
+			&& strlen( $message ) <= self::MAX_INTERACTION_MESSAGE_BYTES
+			&& 1 !== preg_match( '/[\x00-\x1F\x7F]/', $message );
 	}
 
 	/**

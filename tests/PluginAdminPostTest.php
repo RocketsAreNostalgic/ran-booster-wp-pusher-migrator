@@ -35,6 +35,7 @@ final class PluginAdminPostTest extends TestCase {
 		$GLOBALS['ran_booster_wp_pusher_migrator_test_capabilities']    = array();
 		$GLOBALS['ran_booster_wp_pusher_migrator_test_events']          = array();
 		$GLOBALS['ran_booster_wp_pusher_migrator_test_enqueued_styles'] = array();
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_translations']    = array();
 		$GLOBALS['ran_booster_wp_pusher_migrator_test_plugins']         = array(
 			'fixture/fixture.php' => array( 'Name' => 'Fixture Plugin' ),
 		);
@@ -46,6 +47,7 @@ final class PluginAdminPostTest extends TestCase {
 		$_POST = array();
 		$GLOBALS['ran_booster_wp_pusher_migrator_test_capabilities']    = array();
 		$GLOBALS['ran_booster_wp_pusher_migrator_test_enqueued_styles'] = array();
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_translations']    = array();
 		parent::tearDown();
 	}
 
@@ -859,6 +861,71 @@ final class PluginAdminPostTest extends TestCase {
 		self::assertStringNotContainsString( 'SQLSTATE', $output_with_read_error );
 		self::assertStringNotContainsString( 'DELETE FROM', $output_with_read_error );
 		self::assertStringNotContainsString( 'secret_col', $output_with_read_error );
+	}
+
+	public function test_fragment_cleanup_message_uses_compact_multibyte_translation_when_combined_exceeds_255_bytes(): void {
+		$long_cleanup_translation  = 'Booster は採用済みパッケージを検証しましたが、WP Pusher のソースレコードを削除できませんでした。WP Pusher を無効のままにして再試行してください。';
+		$long_db_error_translation = 'WP Pusher データにアクセスできませんでした: データベースクエリが失敗しました (code: db_query_failed)。';
+		$compact_translation       = 'Booster は採用を検証済みですが、WP Pusher レコードが残っています (code: %s)。';
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_translations'] = array(
+			'Booster verified the adopted package, but its exact WP Pusher source record could not be removed. Keep WP Pusher inactive and try again.' => $long_cleanup_translation,
+			'Could not access WP Pusher data: a database query failed (code: db_query_failed).'                                                        => $long_db_error_translation,
+			'Booster verified the adopted package, but its WP Pusher record remains (code: %s).'                                                       => $compact_translation,
+		);
+		self::assertGreaterThan( 255, strlen( $long_cleanup_translation . ' ' . $long_db_error_translation ) );
+
+		$database                       = new AdminPostDatabase();
+		$database->delete_error_message = "SQLSTATE[42000]: DELETE FROM `wp_wppusher_packages` WHERE secret_col = 'leak'";
+		$portability                    = new AdminPostPortabilityFacade();
+		$interaction                    = new AdminPostInteractionSpy();
+		$this->connect( $database, $portability, $interaction );
+		$source = $this->source_package( $database );
+		$_POST  = $this->apply_request( $source, 'v1:' . str_repeat( 'a', 64 ) );
+
+		$this->run_handler();
+
+		self::assertSame( 'validation_failure', $interaction->outcome?->kind() );
+		$message = (string) $interaction->outcome->message();
+		self::assertSame( sprintf( $compact_translation, 'db_query_failed' ), $message );
+		self::assertLessThanOrEqual( 255, strlen( $message ) );
+		self::assertTrue( 1 === preg_match( '//u', $message ) );
+		self::assertStringContainsString( '(code: db_query_failed)', $message );
+		self::assertStringNotContainsString( 'SQLSTATE', $message );
+		self::assertStringNotContainsString( 'secret_col', $message );
+	}
+
+	public function test_fragment_cleanup_message_falls_back_to_bounded_ascii_retaining_code_when_all_translations_exceed_255_bytes(): void {
+		$oversized_multibyte = str_repeat( '検証済み・未削除・Éé ', 16 );
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_translations'] = array(
+			'Booster verified the adopted package, but its exact WP Pusher source record could not be removed. Keep WP Pusher inactive and try again.' => $oversized_multibyte,
+			'Could not access WP Pusher data: a database query failed (code: db_query_failed).'                                                        => $oversized_multibyte,
+			'Booster verified the adopted package, but its WP Pusher record remains (code: %s).'                                                       => $oversized_multibyte . ' (%s)',
+		);
+		self::assertGreaterThan( 255, strlen( $oversized_multibyte ) );
+
+		$database                       = new AdminPostDatabase();
+		$database->delete_error_message = "SQLSTATE[42000]: DELETE FROM `wp_wppusher_packages` WHERE secret_col = 'leak'";
+		$portability                    = new AdminPostPortabilityFacade();
+		$interaction                    = new AdminPostInteractionSpy();
+		$this->connect( $database, $portability, $interaction );
+		$source = $this->source_package( $database );
+		$_POST  = $this->apply_request( $source, 'v1:' . str_repeat( 'a', 64 ) );
+
+		$this->run_handler();
+
+		self::assertSame( 'validation_failure', $interaction->outcome?->kind() );
+		$message = (string) $interaction->outcome->message();
+		self::assertSame(
+			'Booster verified the adopted package, but its WP Pusher record remains (code: db_query_failed).',
+			$message
+		);
+		self::assertLessThanOrEqual( 255, strlen( $message ) );
+		self::assertTrue( 1 === preg_match( '//u', $message ) );
+		self::assertStringContainsString( 'verified the adopted package', $message );
+		self::assertStringContainsString( 'WP Pusher record remains', $message );
+		self::assertStringContainsString( '(code: db_query_failed)', $message );
+		self::assertStringNotContainsString( 'SQLSTATE', $message );
+		self::assertStringNotContainsString( 'secret_col', $message );
 	}
 
 	private function capture_panel(): string {
