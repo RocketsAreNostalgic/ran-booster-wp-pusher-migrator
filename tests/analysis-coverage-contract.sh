@@ -1,8 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-project_root="$(cd "$(dirname "$0")/.." && pwd)"
-fixture="$(mktemp -d)"
+project_root="$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd -P)"
+# shellcheck source=tests/analysis-fixture-helpers.sh
+source "$project_root/tests/analysis-fixture-helpers.sh"
+fixture="$(create_canonical_fixture_dir)" || exit 1
+if [ -z "$fixture" ] || [ ! -d "$fixture" ] || [ "$fixture" = "$project_root" ] || [ "$fixture" = "$(pwd -P)" ]; then
+	printf 'Refusing unsafe fixture directory: %s\n' "$fixture" >&2
+	exit 1
+fi
 trap 'rm -rf "$fixture"' EXIT
 git -C "$project_root" archive HEAD | tar -x -C "$fixture"
 cp "$project_root/scripts/check-analysis-coverage.php" "$fixture/scripts/"
@@ -56,7 +62,7 @@ for path in root-contract.php new-product/contracts/split.php; do
 	printf '<?php\n// Unpackaged production fixture.\n' > "$path"
 	reject 'unpackaged production path' 'Effective PHPStan selection differs'
 	printf 'parameters:\n\tpaths:\n\t\t- %s\n' "$path" > coverage-import.neon
-	sed -i '/^includes:/a\	- coverage-import.neon' phpstan.neon.dist
+	file_insert_line phpstan.neon.dist after '/^includes:/' $'\t- coverage-import.neon'
 	check
 	cp coverage-baseline.neon phpstan.neon.dist
 	rm "$path" coverage-import.neon
@@ -113,10 +119,10 @@ for mode in --source --development; do
 	rm "${prefix}example.md" "${prefix}example.json" "${prefix}example.sh"
 done
 printf 'Analysis coverage contract: bare short tags, INI independence and XML/data boundaries passed.\n'
-sed -i '/- views$/d' phpstan.neon.dist
+file_delete_matching_lines phpstan.neon.dist '/- views$/'
 reject 'shrunken selection' 'Effective PHPStan selection differs'
 cp coverage-baseline.neon phpstan.neon.dist
-sed -i 's/analyseAndScan:/analyse:/' phpstan.neon.dist
+file_replace_literal phpstan.neon.dist 'analyseAndScan:' 'analyse:'
 reject 'development scan leakage policy' 'Review maintained analysis scope'
 cp coverage-baseline.neon phpstan.neon.dist
 
@@ -129,7 +135,7 @@ reject 'new shipped PHP' 'Effective PHPStan selection differs'
 
 # scanDirectories supplies symbols but must not count as direct analysis.
 printf 'parameters:\n\tscanDirectories:\n\t\t- assets\n' > coverage-import.neon
-sed -i '/^includes:/a\	- coverage-import.neon' phpstan.neon.dist
+file_insert_line phpstan.neon.dist after '/^includes:/' $'\t- coverage-import.neon'
 reject 'scan-only PHP' 'Effective PHPStan selection differs'
 
 # Imported paths are supported; exclusions use the locked engine's semantics.

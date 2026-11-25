@@ -39,18 +39,18 @@ git show "${source_commit}:composer.json" > "$manifest"
 php scripts/core-certification.php read "$manifest" >/dev/null
 
 entries=()
-declare -A seen_entries=()
 while IFS= read -r entry || [[ -n "$entry" ]]; do
 	[[ -z "$entry" || "$entry" == \#* ]] && continue
 	if [[ "$entry" == /* || "$entry" == *//* || "$entry" == . || "$entry" == ./* || "$entry" == */./* || "$entry" == */. || "$entry" == .. || "$entry" == ../* || "$entry" == */../* || "$entry" == */.. ]]; then
 		printf 'Release allowlist contains an unsafe path: %s\n' "$entry" >&2
 		exit 1
 	fi
-	if [[ -n "${seen_entries[$entry]+yes}" ]]; then
-		printf 'Release allowlist contains a duplicate entry: %s\n' "$entry" >&2
-		exit 1
-	fi
-	seen_entries[$entry]=1
+	for existing in "${entries[@]+"${entries[@]}"}"; do
+		if [[ "$existing" == "$entry" ]]; then
+			printf 'Release allowlist contains a duplicate entry: %s\n' "$entry" >&2
+			exit 1
+		fi
+	done
 	if ! git cat-file -e "${source_commit}:${entry}" 2>/dev/null; then
 		printf 'Release allowlist entry is missing from source commit: %s\n' "$entry" >&2
 		exit 1
