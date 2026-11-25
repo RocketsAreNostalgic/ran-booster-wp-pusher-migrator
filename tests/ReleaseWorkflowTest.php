@@ -163,6 +163,7 @@ final class ReleaseWorkflowTest extends TestCase {
 		$config = json_decode( (string) file_get_contents( dirname( __DIR__ ) . '/release-please-config.json' ), true, 512, JSON_THROW_ON_ERROR ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local release contract.
 		self::assertTrue( $config['draft'] ?? false );
 		self::assertTrue( $config['force-tag-creation'] ?? false );
+		self::assertTrue( $config['always-update'] ?? false );
 		self::assertNotSame( true, $config['skip-github-release'] ?? false );
 	}
 
