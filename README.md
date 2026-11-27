@@ -81,14 +81,20 @@ offered under the same slug; it is not an update feed.
 
 ## Migrate from WP Pusher
 
+A compatible active bridge contributes the detailed guide to Booster’s
+Documentation at `#ran-booster-wp-pusher-migration`. The guide remains available
+without reading the retained inventory; migration readiness is checked in
+Transporter.
+
 1. Back up the site and deactivate WP Pusher.
 2. Install and activate this bridge beside a compatible RAN Booster release.
 3. Open Booster's Transporter screen, choose **Migrate from WP Pusher**, and
    review one retained package at a time. Confirm the Bitbucket add-on is active
    before reviewing any Bitbucket rows.
 4. Apply only candidates whose installed package and repository identity match.
-5. Confirm the adopted Booster package is Disabled before removing its exact
-   retained WP Pusher row.
+5. Adoption starts Disabled. After Booster verifies the target, the bridge
+   removes the exact unchanged source row. Use **Finish** for an already-managed
+   package whose retained row remains.
 6. After all rows are migrated, delete WP Pusher through WordPress. WP Pusher's
    uninstaller removes its local data and attempts to revoke the site's license
    activation.

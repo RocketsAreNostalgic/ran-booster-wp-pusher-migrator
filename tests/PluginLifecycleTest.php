@@ -39,6 +39,7 @@ final class PluginLifecycleTest extends TestCase {
 		$GLOBALS['ran_booster_wp_pusher_migrator_test_hooks']        = array();
 		$GLOBALS['ran_booster_wp_pusher_migrator_test_events']       = array();
 		$GLOBALS['ran_booster_wp_pusher_migrator_test_capabilities'] = array();
+		unset( $GLOBALS['ran_booster_wp_pusher_migrator_test_translations'] );
 		unset( $GLOBALS['wpdb'] );
 		unset( $GLOBALS['ran_booster_wp_pusher_migrator_test_plugins'] );
 		parent::tearDown();
@@ -109,12 +110,44 @@ final class PluginLifecycleTest extends TestCase {
 				'ran_booster_overview_render_migration_prompt',
 				'admin_post_ran_booster_wp_pusher_migrator_package',
 				'admin_enqueue_scripts',
+				'ran_booster_documentation_sections_before_about',
 			),
 			array_keys( $GLOBALS['ran_booster_wp_pusher_migrator_test_hooks'] )
 		);
 		foreach ( $GLOBALS['ran_booster_wp_pusher_migrator_test_hooks'] as $callbacks ) {
 			self::assertCount( 1, $callbacks );
 		}
+	}
+
+	public function test_documentation_is_passive_and_uses_scope_appropriate_navigation(): void {
+		$this->define_compatible_apis();
+		( new Plugin() )->register();
+		$this->deliver( 'ran_booster_portability_ready', new LifecyclePortabilityFacade() );
+		$this->deliver( 'ran_booster_admin_interaction_ready', new LifecycleInteractionFacade() );
+		$callback = $GLOBALS['ran_booster_wp_pusher_migrator_test_hooks']['ran_booster_documentation_sections_before_about'][0]['callback'];
+		$GLOBALS['ran_booster_wp_pusher_migrator_test_translations'] = array();
+		foreach ( array( 'site', 'network' ) as $scope ) {
+			$sections = $callback( array(), 'https://example.test/docs', $scope );
+			self::assertCount( 1, $sections );
+			self::assertSame( 'ran-booster-wp-pusher-migration', $sections[0]['id'] );
+			self::assertSame( 'Migrate from WP Pusher', $sections[0]['summary'] );
+			self::assertFalse( $sections[0]['open'] );
+			self::assertArrayNotHasKey( 'chapter', $sections[0] );
+			ob_start();
+			$sections[0]['content']();
+			$output = (string) ob_get_clean();
+			self::assertStringContainsString( 'single-site', $output );
+			self::assertStringContainsString( 'Disabled', $output );
+			self::assertStringContainsString( 'Finish', $output );
+			if ( 'site' === $scope ) {
+				self::assertStringContainsString( 'admin.php?page=ran-booster&amp;tab=portability#ran-booster-portability-wp-pusher', $output );
+			} else {
+				self::assertStringNotContainsString( 'Open migration tools</a>', $output );
+			}
+		}
+		self::assertSame( array(), $GLOBALS['ran_booster_wp_pusher_migrator_test_events'] );
+		self::assertNotEmpty( $GLOBALS['ran_booster_wp_pusher_migrator_test_translations'] );
+		self::assertSame( array( 'ran-booster-wp-pusher-migrator' ), array_values( array_unique( $GLOBALS['ran_booster_wp_pusher_migrator_test_translations'] ) ) );
 	}
 
 	public function test_first_exact_facade_instances_win_against_duplicate_and_conflicting_deliveries(): void {
